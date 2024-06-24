@@ -1,3 +1,45 @@
+## 3.0.0
+- TypeScript 5.4.2
+	- not all new language features are supported yet, but we plan to add support in future releases
+- Generic JSX (#2404)
+	- JSX can now be used for any library which matches `React.createElement()` syntax
+- `--optimizedLoops` flag is now enabled by default
+	- this will optimize loops like `for (let i = 1; i <= 10; i++) {}` into `for i = 1, 10 do end`
+	- please report any issues [here](https://github.com/roblox-ts/roblox-ts/issues/new)
+	- if necessary, you can run the compiler with `--optimizedLoops=false` to return to the old behavior
+- Improve emit for `a.b()` and `a[b]()` (#2623)
+- Fix `noMacroExtends` diagnostic (#2587)
+- Fixed an issue where watch mode + transformer plugins would not pick up .d.ts changes (#2701)
+- Fixed multiline template string bug on Windows (roblox-ts/luau-ast#483)
+- Fixed template string unicode escape sequence bug (roblox-ts/luau-ast#483)
+
+### **Breaking Changes**
+- `@rbxts/roact`
+	- now considered deprecated, but will continue to function
+	- roblox-ts 3.0.0+ will require `@rbxts/roact` 3.0.0+
+	- you should prefer `@rbxts/react` where possible
+- Upgaded bundled `roblox-lua-promise` from 3.2.1 to 4.0.0. See possible breaking changes [here](https://github.com/evaera/roblox-lua-promise/releases).
+
+## 2.3.0
+- Removed `rbxtsc init` in favor of `npm create roblox-ts` (#2503)
+- Lune Unit Testing (#2489)
+	- Not user facing, but the compiler should be more stable going forwards! :tada:
+- Removed enum inverse mapping for string values (#2506)
+- $range macro optimizations (#2130, #2196)
+- Added support for `typeIs(value, "buffer")` (#2588)
+- Fixed `Array.push()` inserting multiple values for different tables (#2597)
+- Support interpolated string emit for template expressions (#2591)
+- Removed unnecessary parentheses for chained binary expressions like `a && b && c` (##2242)
+- Better usage analysis for function expressions + `...` (#2527)
+- Fixed `noAny` diagnostic for `a.b()` and `a[b]()` (#2550)
+- Optimized array offset emit so that `x[n - 1]` becomes `x[n]` instead of `x[n - 1 + 1]` (#2567)
+- Optimized object spread assignment when the spread is the first entry in the object, i.e. `{ ...obj, foo: "bar" }` (#2546)
+- Fixed bug related to `new Map( ... ).delete(exp)` and `new Set( ... ).delete(exp)` (#2605)
+- Split off PathTranslator class into it's own package (#2614)
+- Added support integer division operator via macro: `Number.idiv()`, `Vector2.idiv()`, and `Vector3.idiv()` (#2606)
+	- these compile to `a // b`
+	- number literals should be wrapped in parentheses, i.e. `(10).idiv(3)`
+
 ## 2.2.0
 - TypeScript 5.2.2 Support (#2401, #2466)
 - Support for instantiated expressions (#2445)

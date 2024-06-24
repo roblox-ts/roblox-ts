@@ -1,8 +1,10 @@
-import { ROACT_SYMBOL_NAMES, SYMBOL_NAMES, TransformState } from "TSTransformer";
+import path from "path";
+import { RBXTS_SCOPE } from "Shared/constants";
+import { isPathDescendantOf } from "Shared/util/isPathDescendantOf";
+import { SYMBOL_NAMES, TransformState } from "TSTransformer";
 import { NOMINAL_LUA_TUPLE_NAME } from "TSTransformer/classes/MacroManager";
 import { isTemplateLiteralType } from "TSTransformer/typeGuards";
 import ts from "typescript";
-
 type TypeCheck = (type: ts.Type) => boolean;
 
 function getRecursiveBaseTypesInner(result: Array<ts.Type>, type: ts.InterfaceType) {
@@ -194,11 +196,13 @@ export function isEmptyStringType(type: ts.Type) {
 	return isStringType(type);
 }
 
-export function isRoactElementType(state: TransformState): TypeCheck {
-	return type => {
-		const symbol = state.services.roactSymbolManager?.getSymbolOrThrow(ROACT_SYMBOL_NAMES.Element);
-		return symbol !== undefined && type.symbol === symbol;
-	};
+export function isRobloxType(state: TransformState): TypeCheck {
+	const typesPath = path.join(state.data.nodeModulesPath, RBXTS_SCOPE, "types");
+	return type =>
+		type.symbol.declarations?.some(d => {
+			const filePath = d.getSourceFile()?.fileName;
+			return filePath !== undefined && isPathDescendantOf(filePath, typesPath);
+		}) ?? false;
 }
 
 // type utilities

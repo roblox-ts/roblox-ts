@@ -9,16 +9,30 @@ import ts from "typescript";
  * Takes an array of `ts.Expression` and transforms each, capturing prereqs. Returns the transformed nodes.
  * Ensures the `luau.Expression` nodes execute in the same order as the `ts.Expression` nodes.
  */
-export function ensureTransformOrder(state: TransformState, expressions: ReadonlyArray<ts.Expression>) {
-	const expressionInfoList = expressions.map(exp => state.capture(() => transformExpression(state, exp)));
-	const lastArgWithPrereqsIndex = findLastIndex(expressionInfoList, info => !luau.list.isEmpty(info[1]));
+export function ensureTransformOrder(
+	state: TransformState,
+	nodes: ReadonlyArray<ts.Expression>,
+	transformer?: (state: TransformState, node: ts.Expression) => luau.Expression,
+): Array<luau.Expression>;
+export function ensureTransformOrder<T extends ts.Node>(
+	state: TransformState,
+	nodes: ReadonlyArray<T>,
+	transformer: (state: TransformState, node: T) => luau.Expression,
+): Array<luau.Expression>;
+export function ensureTransformOrder(
+	state: TransformState,
+	nodes: ReadonlyArray<ts.Expression>,
+	transformer: (state: TransformState, node: ts.Expression) => luau.Expression = transformExpression,
+) {
+	const expressionInfoList = nodes.map(node => state.capture(() => transformer(state, node)));
+	const lastArgWithPrereqsIndex = findLastIndex(expressionInfoList, ([, prereqs]) => !luau.list.isEmpty(prereqs));
 	const result = new Array<luau.Expression>();
 	for (let i = 0; i < expressionInfoList.length; i++) {
-		const info = expressionInfoList[i];
-		state.prereqList(info[1]);
+		const [expression, prereqs] = expressionInfoList[i];
+		state.prereqList(prereqs);
 
 		let isConstVar = false;
-		const exp = expressions[i];
+		const exp = nodes[i];
 		if (ts.isIdentifier(exp)) {
 			const symbol = state.typeChecker.getSymbolAtLocation(exp);
 			if (symbol && !isSymbolMutable(state, symbol)) {
@@ -26,16 +40,16 @@ export function ensureTransformOrder(state: TransformState, expressions: Readonl
 			}
 		}
 
-		let expression = info[0];
 		if (
 			i < lastArgWithPrereqsIndex &&
 			!luau.isSimplePrimitive(expression) &&
 			!luau.isTemporaryIdentifier(expression) &&
 			!isConstVar
 		) {
-			expression = state.pushToVar(expression, "exp");
+			result.push(state.pushToVar(expression, "exp"));
+		} else {
+			result.push(expression);
 		}
-		result.push(expression);
 	}
 	return result;
 }

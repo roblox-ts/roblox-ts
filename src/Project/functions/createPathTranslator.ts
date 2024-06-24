@@ -1,5 +1,5 @@
+import { PathTranslator } from "@roblox-ts/path-translator";
 import path from "path";
-import { PathTranslator } from "Shared/classes/PathTranslator";
 import { findAncestorDir } from "Shared/util/findAncestorDir";
 import { getRootDirs } from "Shared/util/getRootDirs";
 import ts from "typescript";

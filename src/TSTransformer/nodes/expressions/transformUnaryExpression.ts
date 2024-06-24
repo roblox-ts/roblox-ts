@@ -1,10 +1,10 @@
 import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
-import { assertNever } from "Shared/util/assertNever";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformWritableExpression } from "TSTransformer/nodes/transformWritable";
+import { assertNever } from "TSTransformer/util/assertNever";
 import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
 import { isDefinitelyType, isNumberType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";

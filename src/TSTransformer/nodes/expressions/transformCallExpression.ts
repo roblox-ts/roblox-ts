@@ -10,10 +10,8 @@ import { addOneIfArrayType } from "TSTransformer/util/addOneIfArrayType";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { expressionMightMutate } from "TSTransformer/util/expressionMightMutate";
-import { isInsideRoactComponent } from "TSTransformer/util/isInsideRoactComponent";
 import { isMethod } from "TSTransformer/util/isMethod";
-import { isSymbolFromRobloxTypes } from "TSTransformer/util/isSymbolFromRobloxTypes";
-import { getFirstDefinedSymbol, isPossiblyType, isUndefinedType } from "TSTransformer/util/types";
+import { getFirstDefinedSymbol, isPossiblyType, isRobloxType, isUndefinedType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
 import { wrapReturnIfLuaTuple } from "TSTransformer/util/wrapReturnIfLuaTuple";
@@ -91,11 +89,11 @@ function runCallMacro(
  */
 function fixVoidArgumentsForRobloxFunctions(
 	state: TransformState,
-	symbol: ts.Symbol | undefined,
+	type: ts.Type,
 	args: Array<luau.Expression>,
 	nodeArguments: ReadonlyArray<ts.Expression>,
 ) {
-	if (isSymbolFromRobloxTypes(state, symbol)) {
+	if (isPossiblyType(type, isRobloxType(state))) {
 		for (let i = 0; i < args.length; i++) {
 			const arg = args[i];
 			const nodeArg = nodeArguments[i];
@@ -122,9 +120,6 @@ export function transformCallExpressionInner(
 	validateNotAnyType(state, node.expression);
 
 	if (ts.isSuperCall(node)) {
-		if (isInsideRoactComponent(state, node)) {
-			DiagnosticService.addDiagnostic(errors.missingSuperConstructorRoactComponent(node));
-		}
 		return luau.call(luau.property(convertToIndexableExpression(expression), "constructor"), [
 			luau.globals.self,
 			...ensureTransformOrder(state, node.arguments),
@@ -141,7 +136,7 @@ export function transformCallExpressionInner(
 	}
 
 	const [args, prereqs] = state.capture(() => ensureTransformOrder(state, nodeArguments));
-	fixVoidArgumentsForRobloxFunctions(state, symbol, args, nodeArguments);
+	fixVoidArgumentsForRobloxFunctions(state, expType, args, nodeArguments);
 
 	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, expression, node.expression)) {
 		expression = state.pushToVar(expression, "fn");
@@ -167,9 +162,6 @@ export function transformPropertyCallExpressionInner(
 	validateNotAnyType(state, node.expression);
 
 	if (ts.isSuperProperty(expression)) {
-		if (isInsideRoactComponent(state, node)) {
-			DiagnosticService.addDiagnostic(errors.noSuperPropertyCallRoactComponent(node));
-		}
 		return luau.call(luau.property(convertToIndexableExpression(baseExpression), expression.name.text), [
 			luau.globals.self,
 			...ensureTransformOrder(state, node.arguments),
@@ -186,10 +178,10 @@ export function transformPropertyCallExpressionInner(
 	}
 
 	const [args, prereqs] = state.capture(() => ensureTransformOrder(state, nodeArguments));
-	fixVoidArgumentsForRobloxFunctions(state, symbol, args, nodeArguments);
+	fixVoidArgumentsForRobloxFunctions(state, expType, args, nodeArguments);
 
-	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, baseExpression, node.expression)) {
-		baseExpression = state.pushToVar(baseExpression, "fn");
+	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, baseExpression, expression.expression)) {
+		baseExpression = state.pushToVar(baseExpression);
 	}
 	state.prereqList(prereqs);
 
@@ -204,7 +196,7 @@ export function transformPropertyCallExpressionInner(
 				args: luau.list.make(...args),
 			});
 		} else {
-			baseExpression = state.pushToVarIfComplex(baseExpression, "fn");
+			baseExpression = state.pushToVarIfComplex(baseExpression);
 			args.unshift(baseExpression);
 			exp = luau.call(luau.property(convertToIndexableExpression(baseExpression), name), args);
 		}
@@ -232,9 +224,6 @@ export function transformElementCallExpressionInner(
 	validateNotAnyType(state, node.expression);
 
 	if (ts.isSuperProperty(expression)) {
-		if (isInsideRoactComponent(state, node)) {
-			DiagnosticService.addDiagnostic(errors.noSuperPropertyCallRoactComponent(node));
-		}
 		return luau.call(
 			luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 				expression: convertToIndexableExpression(baseExpression),
@@ -257,15 +246,15 @@ export function transformElementCallExpressionInner(
 		ensureTransformOrder(state, [argumentExpression, ...nodeArguments]),
 	);
 
-	fixVoidArgumentsForRobloxFunctions(state, symbol, args, nodeArguments);
+	fixVoidArgumentsForRobloxFunctions(state, expType, args, nodeArguments);
 
-	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, baseExpression, node.expression)) {
-		baseExpression = state.pushToVar(baseExpression, "fn");
+	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, baseExpression, expression.expression)) {
+		baseExpression = state.pushToVar(baseExpression);
 	}
 	state.prereqList(prereqs);
 
 	if (isMethod(state, expression)) {
-		baseExpression = state.pushToVarIfComplex(baseExpression, "fn");
+		baseExpression = state.pushToVarIfComplex(baseExpression);
 		args.unshift(baseExpression);
 	}
 

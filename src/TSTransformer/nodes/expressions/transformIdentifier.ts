@@ -5,6 +5,7 @@ import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { SYMBOL_NAMES, TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { isBlockLike, isNamespace } from "TSTransformer/typeGuards";
+import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
 import { isSymbolMutable } from "TSTransformer/util/isSymbolMutable";
 import { getAncestor, isAncestorOf, skipDownwards, skipUpwards } from "TSTransformer/util/traversal";
 import { getFirstConstructSymbol } from "TSTransformer/util/types";
@@ -108,6 +109,13 @@ function checkIdentifierHoist(state: TransformState, node: ts.Identifier, symbol
 }
 
 export function transformIdentifier(state: TransformState, node: ts.Identifier) {
+	// synthetic nodes don't have parents or symbols, so skip all the symbol-related logic
+	// JSX EntityName functions like `getJsxFactoryEntity()` will return synthetic nodes
+	// and transformEntityName will eventually end up here
+	if (!node.parent || ts.positionIsSynthesized(node.pos)) {
+		return luau.create(luau.SyntaxKind.Identifier, { name: node.text });
+	}
+
 	const symbol = ts.isShorthandPropertyAssignment(node.parent)
 		? state.typeChecker.getShorthandAssignmentValueSymbol(node.parent)
 		: state.typeChecker.getSymbolAtLocation(node);
@@ -130,7 +138,14 @@ export function transformIdentifier(state: TransformState, node: ts.Identifier) 
 	if (constructSymbol) {
 		const constructorMacro = state.services.macroManager.getConstructorMacro(constructSymbol);
 		if (constructorMacro) {
-			DiagnosticService.addDiagnostic(errors.noConstructorMacroWithoutNew(node));
+			const isClassExtendsNode =
+				ts.isClassLike(node.parent.parent.parent) &&
+				getExtendsNode(node.parent.parent.parent)?.expression === node;
+			if (isClassExtendsNode) {
+				DiagnosticService.addDiagnostic(errors.noMacroExtends(node));
+			} else {
+				DiagnosticService.addDiagnostic(errors.noConstructorMacroWithoutNew(node));
+			}
 		}
 	}
 
