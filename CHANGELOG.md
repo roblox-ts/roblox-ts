@@ -1,3 +1,25 @@
+## 3.0.0
+- TypeScript 5.4.2
+	- not all new language features are supported yet, but we plan to add support in future releases
+- Generic JSX (#2404)
+	- JSX can now be used for any library which matches `React.createElement()` syntax
+- `--optimizedLoops` flag is now enabled by default
+	- this will optimize loops like `for (let i = 1; i <= 10; i++) {}` into `for i = 1, 10 do end`
+	- please report any issues [here](https://github.com/roblox-ts/roblox-ts/issues/new)
+	- if necessary, you can run the compiler with `--optimizedLoops=false` to return to the old behavior
+- Improve emit for `a.b()` and `a[b]()` (#2623)
+- Fix `noMacroExtends` diagnostic (#2587)
+- Fixed an issue where watch mode + transformer plugins would not pick up .d.ts changes (#2701)
+- Fixed multiline template string bug on Windows (roblox-ts/luau-ast#483)
+- Fixed template string unicode escape sequence bug (roblox-ts/luau-ast#483)
+
+### **Breaking Changes**
+- `@rbxts/roact`
+	- now considered deprecated, but will continue to function
+	- roblox-ts 3.0.0+ will require `@rbxts/roact` 3.0.0+
+	- you should prefer `@rbxts/react` where possible
+- Upgaded bundled `roblox-lua-promise` from 3.2.1 to 4.0.0. See possible breaking changes [here](https://github.com/evaera/roblox-lua-promise/releases).
+
 ## 2.3.0
 - Removed `rbxtsc init` in favor of `npm create roblox-ts` (#2503)
 - Lune Unit Testing (#2489)

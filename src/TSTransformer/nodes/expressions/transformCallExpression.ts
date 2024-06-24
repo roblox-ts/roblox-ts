@@ -11,8 +11,7 @@ import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexa
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { expressionMightMutate } from "TSTransformer/util/expressionMightMutate";
 import { isMethod } from "TSTransformer/util/isMethod";
-import { isSymbolFromRobloxTypes } from "TSTransformer/util/isSymbolFromRobloxTypes";
-import { getFirstDefinedSymbol, isPossiblyType, isUndefinedType } from "TSTransformer/util/types";
+import { getFirstDefinedSymbol, isPossiblyType, isRobloxType, isUndefinedType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
 import { wrapReturnIfLuaTuple } from "TSTransformer/util/wrapReturnIfLuaTuple";
@@ -90,11 +89,11 @@ function runCallMacro(
  */
 function fixVoidArgumentsForRobloxFunctions(
 	state: TransformState,
-	symbol: ts.Symbol | undefined,
+	type: ts.Type,
 	args: Array<luau.Expression>,
 	nodeArguments: ReadonlyArray<ts.Expression>,
 ) {
-	if (isSymbolFromRobloxTypes(state, symbol)) {
+	if (isPossiblyType(type, isRobloxType(state))) {
 		for (let i = 0; i < args.length; i++) {
 			const arg = args[i];
 			const nodeArg = nodeArguments[i];
@@ -137,7 +136,7 @@ export function transformCallExpressionInner(
 	}
 
 	const [args, prereqs] = state.capture(() => ensureTransformOrder(state, nodeArguments));
-	fixVoidArgumentsForRobloxFunctions(state, symbol, args, nodeArguments);
+	fixVoidArgumentsForRobloxFunctions(state, expType, args, nodeArguments);
 
 	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, expression, node.expression)) {
 		expression = state.pushToVar(expression, "fn");
@@ -179,7 +178,7 @@ export function transformPropertyCallExpressionInner(
 	}
 
 	const [args, prereqs] = state.capture(() => ensureTransformOrder(state, nodeArguments));
-	fixVoidArgumentsForRobloxFunctions(state, symbol, args, nodeArguments);
+	fixVoidArgumentsForRobloxFunctions(state, expType, args, nodeArguments);
 
 	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, baseExpression, expression.expression)) {
 		baseExpression = state.pushToVar(baseExpression);
@@ -247,7 +246,7 @@ export function transformElementCallExpressionInner(
 		ensureTransformOrder(state, [argumentExpression, ...nodeArguments]),
 	);
 
-	fixVoidArgumentsForRobloxFunctions(state, symbol, args, nodeArguments);
+	fixVoidArgumentsForRobloxFunctions(state, expType, args, nodeArguments);
 
 	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, baseExpression, expression.expression)) {
 		baseExpression = state.pushToVar(baseExpression);
