@@ -2,7 +2,6 @@ import luau from "@roblox-ts/luau-ast";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
-import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import ts from "typescript";
 
@@ -41,13 +40,11 @@ function transformMemberDecorators(
 		let key: luau.Expression | undefined;
 		if (ts.isMethodDeclaration(node) || ts.isPropertyDeclaration(node)) {
 			key = state.getClassElementObjectKey(node);
-			if (!key) {
-				// `name` can be `ts.BindingPattern` if it's from a `ts.ParameterDeclaration`
-				// we check against this above
-				assert(!ts.isBindingPattern(name));
-				const keyPrereqs = state.capturePrereqs(() => (key = transformPropertyName(state, name)));
-				luau.list.pushList(result, keyPrereqs);
-			}
+			assert(key);
+
+			// `name` can be `ts.BindingPattern` if it's from a `ts.ParameterDeclaration`
+			// we check against this above
+			assert(!ts.isBindingPattern(name));
 		}
 
 		luau.list.unshiftList(finalizers, callback(convertToIndexableExpression(expression), key));
@@ -142,12 +139,9 @@ function transformParameterDecorators(
 	const result = luau.list.make<luau.Statement>();
 
 	const memberName = member.name;
-	let key: luau.Expression | undefined =
+	const key: luau.Expression | undefined =
 		memberName !== undefined ? state.getClassElementObjectKey(member) : luau.nil();
-	if (!key) {
-		const keyPrereqs = state.capturePrereqs(() => (key = transformPropertyName(state, memberName!)));
-		luau.list.pushList(result, keyPrereqs);
-	}
+	assert(key);
 
 	for (let i = 0; i < member.parameters.length; i++) {
 		const parameter = member.parameters[i];
