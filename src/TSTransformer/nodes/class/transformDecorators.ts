@@ -137,20 +137,21 @@ function transformParameterDecorators(
 	const memberName = member.name;
 	const key: luau.Expression | undefined =
 		memberName !== undefined ? state.getClassElementObjectKey(member) : luau.nil();
-	assert(key);
 
 	for (let i = 0; i < member.parameters.length; i++) {
 		const parameter = member.parameters[i];
 		luau.list.pushList(
 			result,
-			transformMemberDecorators(state, parameter, expression =>
+			transformMemberDecorators(state, parameter, expression => {
+				assert(key, `Missing key for parameter decorator at index ${i}`);
+
 				// decorator(Class, "name", 0)
-				luau.list.make(
+				return luau.list.make(
 					luau.create(luau.SyntaxKind.CallStatement, {
 						expression: luau.call(expression, [classId, key, luau.number(i)]),
 					}),
-				),
-			),
+				);
+			}),
 		);
 	}
 
