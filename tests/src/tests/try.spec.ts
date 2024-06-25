@@ -255,4 +255,90 @@ export = () => {
 
 		expect(() => foo()).to.throw("bar");
 	});
+
+	it("should discard errors if finally has a control flow statement", () => {
+		function tryErrorReturn() {
+			try {
+				throw "try error";
+			} finally {
+				return true;
+			}
+			return false;
+		}
+
+		expect(tryErrorReturn()).to.equal(true);
+
+		function catchErrorReturn() {
+			try {
+				throw "try error";
+			} catch {
+				throw "catch error";
+			} finally {
+				return true;
+			}
+			return false;
+		}
+
+		expect(catchErrorReturn()).to.equal(true);
+
+		function tryErrorBreak() {
+			for (let i = 0; i < 10; i++) {
+				try {
+					throw "try error";
+				} finally {
+					break;
+				}
+				return false;
+			}
+			return true;
+		}
+
+		expect(tryErrorBreak()).to.equal(true);
+
+		function catchErrorBreak() {
+			for (let i = 0; i < 1; i++) {
+				try {
+					throw "try error";
+				} catch {
+					throw "catch error";
+				} finally {
+					break;
+				}
+				return false;
+			}
+			return true;
+		}
+
+		expect(catchErrorBreak()).to.equal(true);
+
+		function tryErrorContinue() {
+			for (let i = 0; i < 1; i++) {
+				try {
+					throw "try error";
+				} finally {
+					continue;
+				}
+				return false;
+			}
+			return true;
+		}
+
+		expect(tryErrorContinue()).to.equal(true);
+
+		function catchErrorContinue() {
+			for (let i = 0; i < 1; i++) {
+				try {
+					throw "try error";
+				} catch {
+					throw "catch error";
+				} finally {
+					continue;
+				}
+				return false;
+			}
+			return true;
+		}
+
+		expect(catchErrorContinue()).to.equal(true);
+	});
 };

@@ -219,14 +219,17 @@ function TS.try(try, catch, finally)
 		end
 	end
 
-	-- if catch block threw an error, rethrow it
-	if catchError then
-		error(catchError, 2)
-	end
+	-- if exit type is a control flow, do not rethrow errors
+	if exitType ~= TS.TRY_RETURN and exitType ~= TS.TRY_BREAK and exitType ~= TS.TRY_CONTINUE then
+		-- if catch block threw an error, rethrow it
+		if catchError then
+			error(catchError, 2)
+		end
 
-	-- if try block threw an error and there was no catch block, rethrow it
-	if tryError and not catch then
-		error(tryError, 2)
+		-- if try block threw an error and there was no catch block, rethrow it
+		if tryError and not catch then
+			error(tryError, 2)
+		end
 	end
 
 	return exitType, returns
