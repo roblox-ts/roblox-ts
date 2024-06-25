@@ -37,7 +37,7 @@ export class Prereqs {
 	}
 
 	/**
-	 * Uses `state.pushToVar(expression)` unless `luau.isSimple(expression)`
+	 * Uses `Prereqs.pushToVar(expression)` unless `luau.isSimple(expression)`
 	 * @param expression the expression to push
 	 */
 	public pushToVarIfComplex<T extends luau.Expression>(
@@ -51,7 +51,7 @@ export class Prereqs {
 	}
 
 	/**
-	 * Uses `state.pushToVar(expression)` unless `luau.isAnyIdentifier(expression)`
+	 * Uses `Prereqs.pushToVar(expression)` unless `luau.isAnyIdentifier(expression)`
 	 * @param expression the expression to push
 	 */
 	public pushToVarIfNonId<T extends luau.Expression>(expression: T, name?: string): luau.AnyIdentifier {

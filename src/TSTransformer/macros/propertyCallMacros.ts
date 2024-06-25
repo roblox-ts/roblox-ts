@@ -971,7 +971,7 @@ function wrapComments(methodName: string, callback: PropertyCallMacro): Property
 
 		let size = luau.list.size(innerPrereqs.statements);
 		if (size > 0) {
-			// detect the case of `expression = state.pushToVarIfComplex(expression, "exp");` and put header after
+			// detect the case of `expression = prereqs.pushToVarIfComplex(expression, "exp");` and put header after
 			const wasPushed = wasExpressionPushed(innerPrereqs.statements, callExp);
 			let pushStatement: luau.Statement | undefined;
 			if (wasPushed) {
