@@ -2,6 +2,7 @@ import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformReturnStatementInner } from "TSTransformer/nodes/statements/transformReturnStatement";
 import { transformParameters } from "TSTransformer/nodes/transformParameters";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
@@ -20,8 +21,9 @@ export function transformFunctionExpression(state: TransformState, node: ts.Func
 	if (ts.isFunctionBody(body)) {
 		luau.list.pushList(statements, transformStatementList(state, body, body.statements));
 	} else {
-		const [returnStatements, prereqs] = state.capture(() => transformReturnStatementInner(state, body));
-		luau.list.pushList(statements, prereqs);
+		const prereqs = new Prereqs();
+		const returnStatements = transformReturnStatementInner(state, prereqs, body);
+		luau.list.pushList(statements, prereqs.statements);
 		luau.list.pushList(statements, returnStatements);
 	}
 

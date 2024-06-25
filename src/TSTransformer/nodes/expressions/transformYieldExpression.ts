@@ -1,16 +1,17 @@
 import luau from "@roblox-ts/luau-ast";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import ts from "typescript";
 
-export function transformYieldExpression(state: TransformState, node: ts.YieldExpression) {
+export function transformYieldExpression(state: TransformState, prereqs: Prereqs, node: ts.YieldExpression) {
 	if (!node.expression) {
 		return luau.call(luau.globals.coroutine.yield, []);
 	}
 
-	const expression = transformExpression(state, node.expression);
+	const expression = transformExpression(state, prereqs, node.expression);
 	if (node.asteriskToken) {
 		const loopId = luau.tempId("result");
 
@@ -18,7 +19,7 @@ export function transformYieldExpression(state: TransformState, node: ts.YieldEx
 		let evaluated: luau.Expression = luau.none();
 
 		if (!isUsedAsStatement(node)) {
-			const returnValue = state.pushToVar(undefined, "returnValue");
+			const returnValue = prereqs.pushToVar(undefined, "returnValue");
 			luau.list.unshift(
 				finalizer,
 				luau.create(luau.SyntaxKind.Assignment, {
@@ -30,7 +31,7 @@ export function transformYieldExpression(state: TransformState, node: ts.YieldEx
 			evaluated = returnValue;
 		}
 
-		state.prereq(
+		prereqs.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
 				ids: luau.list.make(loopId),
 				expression: luau.property(convertToIndexableExpression(expression), "next"),

@@ -3,6 +3,7 @@ import { DiagnosticFactory, errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformBlock } from "TSTransformer/nodes/statements/transformBlock";
 import { transformBreakStatement } from "TSTransformer/nodes/statements/transformBreakStatement";
 import { transformClassDeclaration } from "TSTransformer/nodes/statements/transformClassDeclaration";
@@ -35,61 +36,58 @@ const DIAGNOSTIC = (factory: DiagnosticFactory) => (state: TransformState, node:
 	return NO_EMIT();
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type StatementTransformer = (state: TransformState, node: any) => luau.List<luau.Statement>;
-
-/**
- * Definitions for different types of transformations.
- */
-const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, StatementTransformer>([
-	// no emit
-	[ts.SyntaxKind.InterfaceDeclaration, NO_EMIT],
-	[ts.SyntaxKind.TypeAliasDeclaration, NO_EMIT],
-	[ts.SyntaxKind.EmptyStatement, NO_EMIT],
-
-	// banned statements
-	[ts.SyntaxKind.ForInStatement, DIAGNOSTIC(errors.noForInStatement)],
-	[ts.SyntaxKind.LabeledStatement, DIAGNOSTIC(errors.noLabeledStatement)],
-	[ts.SyntaxKind.DebuggerStatement, DIAGNOSTIC(errors.noDebuggerStatement)],
-
-	// regular transforms
-	[ts.SyntaxKind.Block, transformBlock],
-	[ts.SyntaxKind.BreakStatement, transformBreakStatement],
-	[ts.SyntaxKind.ClassDeclaration, transformClassDeclaration],
-	[ts.SyntaxKind.ContinueStatement, transformContinueStatement],
-	[ts.SyntaxKind.DoStatement, transformDoStatement],
-	[ts.SyntaxKind.EnumDeclaration, transformEnumDeclaration],
-	[ts.SyntaxKind.ExportAssignment, transformExportAssignment],
-	[ts.SyntaxKind.ExportDeclaration, transformExportDeclaration],
-	[ts.SyntaxKind.ExpressionStatement, transformExpressionStatement],
-	[ts.SyntaxKind.ForOfStatement, transformForOfStatement],
-	[ts.SyntaxKind.ForStatement, transformForStatement],
-	[ts.SyntaxKind.FunctionDeclaration, transformFunctionDeclaration],
-	[ts.SyntaxKind.IfStatement, transformIfStatement],
-	[ts.SyntaxKind.ImportDeclaration, transformImportDeclaration],
-	[ts.SyntaxKind.ImportEqualsDeclaration, transformImportEqualsDeclaration],
-	[ts.SyntaxKind.ModuleDeclaration, transformModuleDeclaration],
-	[ts.SyntaxKind.ReturnStatement, transformReturnStatement],
-	[ts.SyntaxKind.SwitchStatement, transformSwitchStatement],
-	[ts.SyntaxKind.ThrowStatement, transformThrowStatement],
-	[ts.SyntaxKind.TryStatement, transformTryStatement],
-	[ts.SyntaxKind.VariableStatement, transformVariableStatement],
-	[ts.SyntaxKind.WhileStatement, transformWhileStatement],
-]);
-
 /**
  * Transforms a singular `ts.Statement` in a `luau.list<...>`.
  * @param state The current transform state.
  * @param node The `ts.Statement` to transform.
  */
-export function transformStatement(state: TransformState, node: ts.Statement): luau.List<luau.Statement> {
+export function transformStatement(
+	state: TransformState,
+	prereqs: Prereqs,
+	node: ts.Statement,
+): luau.List<luau.Statement> {
 	// if any modifiers of the node include the `declare` keyword we do not transform
 	// `declare` tells us that the identifier of the node is defined somewhere else and we should trust it
 	const modifiers = ts.canHaveModifiers(node) ? ts.getModifiers(node) : undefined;
 	if (modifiers?.some(v => v.kind === ts.SyntaxKind.DeclareKeyword)) return NO_EMIT();
-	const transformer = TRANSFORMER_BY_KIND.get(node.kind);
-	if (transformer) {
-		return transformer(state, node);
-	}
+	// const transformer = TRANSFORMER_BY_KIND.get(node.kind);
+	// if (transformer) {
+	// 	return transformer(state, prereqs, node);
+	// }
+
+	// no emit
+	if (ts.isInterfaceDeclaration(node)) return NO_EMIT();
+	if (ts.isTypeAliasDeclaration(node)) return NO_EMIT();
+	if (ts.isEmptyStatement(node)) return NO_EMIT();
+
+	// banned statements
+	if (ts.isForInStatement(node)) return DIAGNOSTIC(errors.noForInStatement)(state, node);
+	if (ts.isLabeledStatement(node)) return DIAGNOSTIC(errors.noLabeledStatement)(state, node);
+	if (ts.isDebuggerStatement(node)) return DIAGNOSTIC(errors.noDebuggerStatement)(state, node);
+
+	// regular transforms
+	if (ts.isBlock(node)) return transformBlock(state, node);
+	if (ts.isBreakStatement(node)) return transformBreakStatement(state, prereqs, node);
+	if (ts.isClassDeclaration(node)) return transformClassDeclaration(state, node);
+	if (ts.isContinueStatement(node)) return transformContinueStatement(state, node);
+	if (ts.isDoStatement(node)) return transformDoStatement(state, node);
+	if (ts.isEnumDeclaration(node)) return transformEnumDeclaration(state, prereqs, node);
+	if (ts.isExportAssignment(node)) return transformExportAssignment(state, prereqs, node);
+	if (ts.isExportDeclaration(node)) return transformExportDeclaration(state, node);
+	if (ts.isExpressionStatement(node)) return transformExpressionStatement(state, prereqs, node);
+	if (ts.isForOfStatement(node)) return transformForOfStatement(state, prereqs, node);
+	if (ts.isForStatement(node)) return transformForStatement(state, node);
+	if (ts.isFunctionDeclaration(node)) return transformFunctionDeclaration(state, node);
+	if (ts.isIfStatement(node)) return transformIfStatement(state, prereqs, node);
+	if (ts.isImportDeclaration(node)) return transformImportDeclaration(state, node);
+	if (ts.isImportEqualsDeclaration(node)) return transformImportEqualsDeclaration(state, node);
+	if (ts.isModuleDeclaration(node)) return transformModuleDeclaration(state, node);
+	if (ts.isReturnStatement(node)) return transformReturnStatement(state, prereqs, node);
+	if (ts.isSwitchStatement(node)) return transformSwitchStatement(state, prereqs, node);
+	if (ts.isThrowStatement(node)) return transformThrowStatement(state, prereqs, node);
+	if (ts.isTryStatement(node)) return transformTryStatement(state, node);
+	if (ts.isVariableStatement(node)) return transformVariableStatement(state, node);
+	if (ts.isWhileStatement(node)) return transformWhileStatement(state, node);
+
 	assert(false, `Unknown statement: ${getKindName(node.kind)}`);
 }

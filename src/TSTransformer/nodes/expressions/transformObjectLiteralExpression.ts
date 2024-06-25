@@ -2,6 +2,7 @@ import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
 import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
@@ -13,26 +14,33 @@ import ts from "typescript";
 
 function transformPropertyAssignment(
 	state: TransformState,
+	prereqs: Prereqs,
 	ptr: MapPointer,
 	name: ts.PropertyName,
 	initializer: ts.Expression,
 ) {
-	// eslint-disable-next-line no-autofix/prefer-const
-	let [left, leftPrereqs] = state.capture(() => transformPropertyName(state, name));
-	const [right, rightPrereqs] = state.capture(() => transformExpression(state, initializer));
+	const leftPrereqs = new Prereqs();
+	let left = transformPropertyName(state, leftPrereqs, name);
+	const rightPrereqs = new Prereqs();
+	const right = transformExpression(state, rightPrereqs, initializer);
 
-	if (!luau.list.isEmpty(leftPrereqs) || !luau.list.isEmpty(rightPrereqs)) {
-		disableMapInline(state, ptr);
-		state.prereqList(leftPrereqs);
-		left = state.pushToVar(left, "left");
+	if (!luau.list.isEmpty(leftPrereqs.statements) || !luau.list.isEmpty(rightPrereqs.statements)) {
+		disableMapInline(prereqs, ptr);
+		prereqs.prereqList(leftPrereqs.statements);
+		left = prereqs.pushToVar(left, "left");
 	}
 
-	state.prereqList(rightPrereqs);
+	prereqs.prereqList(rightPrereqs.statements);
 
-	assignToMapPointer(state, ptr, left, right);
+	assignToMapPointer(prereqs, ptr, left, right);
 }
 
-function transformSpreadAssignment(state: TransformState, ptr: MapPointer, property: ts.SpreadAssignment) {
+function transformSpreadAssignment(
+	state: TransformState,
+	prereqs: Prereqs,
+	ptr: MapPointer,
+	property: ts.SpreadAssignment,
+) {
 	const expType = state.typeChecker.getNonOptionalType(state.getType(property.expression));
 	const symbol = getFirstDefinedSymbol(state, expType);
 	if (symbol && state.services.macroManager.isMacroOnlyClass(symbol)) {
@@ -43,11 +51,11 @@ function transformSpreadAssignment(state: TransformState, ptr: MapPointer, prope
 	const definitelyObject = isDefinitelyType(type, isObjectType);
 
 	if (definitelyObject && luau.isMap(ptr.value) && luau.list.isEmpty(ptr.value.fields)) {
-		ptr.value = state.pushToVar(
-			luau.call(luau.globals.table.clone, [transformExpression(state, property.expression)]),
+		ptr.value = prereqs.pushToVar(
+			luau.call(luau.globals.table.clone, [transformExpression(state, prereqs, property.expression)]),
 			ptr.name,
 		);
-		state.prereq(
+		prereqs.prereq(
 			luau.create(luau.SyntaxKind.CallStatement, {
 				// Explicitly remove metatable because things like classes can be spread
 				expression: luau.call(luau.globals.setmetatable, [ptr.value, luau.nil()]),
@@ -56,10 +64,10 @@ function transformSpreadAssignment(state: TransformState, ptr: MapPointer, prope
 		return;
 	}
 
-	disableMapInline(state, ptr);
-	let spreadExp = transformExpression(state, property.expression);
+	disableMapInline(prereqs, ptr);
+	let spreadExp = transformExpression(state, prereqs, property.expression);
 	if (!definitelyObject) {
-		spreadExp = state.pushToVarIfComplex(spreadExp, "spread");
+		spreadExp = prereqs.pushToVarIfComplex(spreadExp, "spread");
 	}
 
 	const keyId = luau.tempId("k");
@@ -81,16 +89,20 @@ function transformSpreadAssignment(state: TransformState, ptr: MapPointer, prope
 
 	if (!definitelyObject) {
 		statement = luau.create(luau.SyntaxKind.IfStatement, {
-			condition: createTruthinessChecks(state, spreadExp, property.expression),
+			condition: createTruthinessChecks(state, prereqs, spreadExp, property.expression),
 			statements: luau.list.make(statement),
 			elseBody: luau.list.make(),
 		});
 	}
 
-	state.prereq(statement);
+	prereqs.prereq(statement);
 }
 
-export function transformObjectLiteralExpression(state: TransformState, node: ts.ObjectLiteralExpression) {
+export function transformObjectLiteralExpression(
+	state: TransformState,
+	prereqs: Prereqs,
+	node: ts.ObjectLiteralExpression,
+) {
 	// starts as luau.Map, becomes luau.TemporaryIdentifier when `disableInline` is called
 	const ptr = createMapPointer("object");
 	for (const property of node.properties) {
@@ -100,13 +112,13 @@ export function transformObjectLiteralExpression(state: TransformState, node: ts
 				DiagnosticService.addDiagnostic(errors.noPrivateIdentifier(property.name));
 				continue;
 			}
-			transformPropertyAssignment(state, ptr, property.name, property.initializer);
+			transformPropertyAssignment(state, prereqs, ptr, property.name, property.initializer);
 		} else if (ts.isShorthandPropertyAssignment(property)) {
-			transformPropertyAssignment(state, ptr, property.name, property.name);
+			transformPropertyAssignment(state, prereqs, ptr, property.name, property.name);
 		} else if (ts.isSpreadAssignment(property)) {
-			transformSpreadAssignment(state, ptr, property);
+			transformSpreadAssignment(state, prereqs, ptr, property);
 		} else if (ts.isMethodDeclaration(property)) {
-			state.prereqList(transformMethodDeclaration(state, property, ptr));
+			prereqs.prereqList(transformMethodDeclaration(state, prereqs, property, ptr));
 		} else {
 			// must be ts.AccessorDeclaration, which is banned
 			DiagnosticService.addDiagnostic(errors.noGetterSetter(property));

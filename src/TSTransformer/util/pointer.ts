@@ -1,5 +1,5 @@
 import luau from "@roblox-ts/luau-ast";
-import { TransformState } from "TSTransformer";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 
 export interface Pointer<T> {
 	name: string;
@@ -18,7 +18,7 @@ export function createArrayPointer(name: string): ArrayPointer {
 }
 
 export function assignToMapPointer(
-	state: TransformState,
+	prereqs: Prereqs,
 	ptr: Pointer<luau.Map | luau.AnyIdentifier>,
 	left: luau.Expression,
 	right: luau.Expression,
@@ -32,7 +32,7 @@ export function assignToMapPointer(
 			}),
 		);
 	} else {
-		state.prereq(
+		prereqs.prereq(
 			luau.create(luau.SyntaxKind.Assignment, {
 				left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 					expression: ptr.value,
@@ -45,20 +45,17 @@ export function assignToMapPointer(
 	}
 }
 
-export function disableMapInline(
-	state: TransformState,
-	ptr: MapPointer,
-): asserts ptr is Pointer<luau.TemporaryIdentifier> {
+export function disableMapInline(prereqs: Prereqs, ptr: MapPointer): asserts ptr is Pointer<luau.TemporaryIdentifier> {
 	if (luau.isMap(ptr.value)) {
-		ptr.value = state.pushToVar(ptr.value, ptr.name);
+		ptr.value = prereqs.pushToVar(ptr.value, ptr.name);
 	}
 }
 
 export function disableArrayInline(
-	state: TransformState,
+	prereqs: Prereqs,
 	ptr: ArrayPointer,
 ): asserts ptr is Pointer<luau.TemporaryIdentifier> {
 	if (luau.isArray(ptr.value)) {
-		ptr.value = state.pushToVar(ptr.value, ptr.name);
+		ptr.value = prereqs.pushToVar(ptr.value, ptr.name);
 	}
 }

@@ -3,6 +3,7 @@ import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { SYMBOL_NAMES, TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformArrayAssignmentPattern } from "TSTransformer/nodes/binding/transformArrayAssignmentPattern";
 import { transformBindingName } from "TSTransformer/nodes/binding/transformBindingName";
 import { transformObjectAssignmentPattern } from "TSTransformer/nodes/binding/transformObjectAssignmentPattern";
@@ -33,6 +34,7 @@ import ts from "typescript";
 
 type LoopBuilder = (
 	state: TransformState,
+	prereqs: Prereqs,
 	statements: luau.List<luau.Statement>,
 	initializer: ts.ForInitializer,
 	exp: luau.Expression,
@@ -41,16 +43,17 @@ type LoopBuilder = (
 function makeForLoopBuilder(
 	callback: (
 		state: TransformState,
+		prereqs: Prereqs,
 		initializer: ts.ForInitializer,
 		exp: luau.Expression,
 		ids: luau.List<luau.AnyIdentifier>,
 		initializers: luau.List<luau.Statement>,
 	) => luau.Expression,
 ): LoopBuilder {
-	return (state, statements, name, exp) => {
+	return (state, prereqs, statements, name, exp) => {
 		const ids = luau.list.make<luau.AnyIdentifier>();
 		const initializers = luau.list.make<luau.Statement>();
-		const expression = callback(state, name, exp, ids, initializers);
+		const expression = callback(state, prereqs, name, exp, ids, initializers);
 		luau.list.unshiftList(statements, initializers);
 		return luau.list.make(luau.create(luau.SyntaxKind.ForStatement, { ids, expression, statements }));
 	};
@@ -58,28 +61,25 @@ function makeForLoopBuilder(
 
 function transformForInitializerExpressionDirect(
 	state: TransformState,
+	prereqs: Prereqs,
 	initializer: ts.Expression,
 	initializers: luau.List<luau.Statement>,
 	value: luau.Expression,
 ) {
 	if (ts.isArrayLiteralExpression(initializer)) {
-		const [parentId, prereqs] = state.capture(() => {
-			const parentId = state.pushToVar(value, "binding");
-			transformArrayAssignmentPattern(state, initializer, parentId);
-			return parentId;
-		});
-		luau.list.pushList(initializers, prereqs);
+		const prereqs = new Prereqs();
+		const parentId = prereqs.pushToVar(value, "binding");
+		transformArrayAssignmentPattern(state, prereqs, initializer, parentId);
+		luau.list.pushList(initializers, prereqs.statements);
 		return parentId;
 	} else if (ts.isObjectLiteralExpression(initializer)) {
-		const [parentId, prereqs] = state.capture(() => {
-			const parentId = state.pushToVar(value, "binding");
-			transformObjectAssignmentPattern(state, initializer, parentId);
-			return parentId;
-		});
-		luau.list.pushList(initializers, prereqs);
+		const prereqs = new Prereqs();
+		const parentId = prereqs.pushToVar(value, "binding");
+		transformObjectAssignmentPattern(state, prereqs, initializer, parentId);
+		luau.list.pushList(initializers, prereqs.statements);
 		return parentId;
 	} else {
-		const expression = transformWritableExpression(state, initializer, false);
+		const expression = transformWritableExpression(state, prereqs, initializer, false);
 		luau.list.push(
 			initializers,
 			luau.create(luau.SyntaxKind.Assignment, {
@@ -93,6 +93,7 @@ function transformForInitializerExpressionDirect(
 
 function transformForInitializer(
 	state: TransformState,
+	prereqs: Prereqs,
 	initializer: ts.ForInitializer,
 	initializers: luau.List<luau.Statement>,
 ) {
@@ -100,21 +101,19 @@ function transformForInitializer(
 		return transformBindingName(state, initializer.declarations[0].name, initializers);
 	} else if (ts.isArrayLiteralExpression(initializer)) {
 		const parentId = luau.tempId("binding");
-		luau.list.pushList(
-			initializers,
-			state.capturePrereqs(() => transformArrayAssignmentPattern(state, initializer, parentId)),
-		);
+		const prereqs = new Prereqs();
+		transformArrayAssignmentPattern(state, prereqs, initializer, parentId);
+		luau.list.pushList(initializers, prereqs.statements);
 		return parentId;
 	} else if (ts.isObjectLiteralExpression(initializer)) {
 		const parentId = luau.tempId("binding");
-		luau.list.pushList(
-			initializers,
-			state.capturePrereqs(() => transformObjectAssignmentPattern(state, initializer, parentId)),
-		);
+		const prereqs = new Prereqs();
+		transformObjectAssignmentPattern(state, prereqs, initializer, parentId);
+		luau.list.pushList(initializers, prereqs.statements);
 		return parentId;
 	} else {
 		const valueId = luau.tempId("v");
-		const expression = transformWritableExpression(state, initializer, false);
+		const expression = transformWritableExpression(state, prereqs, initializer, false);
 		luau.list.push(
 			initializers,
 			luau.create(luau.SyntaxKind.Assignment, {
@@ -127,14 +126,14 @@ function transformForInitializer(
 	}
 }
 
-const buildArrayLoop: LoopBuilder = makeForLoopBuilder((state, initializer, exp, ids, initializers) => {
+const buildArrayLoop: LoopBuilder = makeForLoopBuilder((state, prereqs, initializer, exp, ids, initializers) => {
 	luau.list.push(ids, luau.tempId());
-	luau.list.push(ids, transformForInitializer(state, initializer, initializers));
+	luau.list.push(ids, transformForInitializer(state, prereqs, initializer, initializers));
 	return exp;
 });
 
-const buildSetLoop: LoopBuilder = makeForLoopBuilder((state, initializer, exp, ids, initializers) => {
-	luau.list.push(ids, transformForInitializer(state, initializer, initializers));
+const buildSetLoop: LoopBuilder = makeForLoopBuilder((state, prereqs, initializer, exp, ids, initializers) => {
+	luau.list.push(ids, transformForInitializer(state, prereqs, initializer, initializers));
 	return exp;
 });
 
@@ -165,63 +164,57 @@ function transformInLineArrayAssignmentPattern(
 	ids: luau.List<luau.AnyIdentifier>,
 	initializers: luau.List<luau.Statement>,
 ) {
-	luau.list.pushList(
-		initializers,
-		state.capturePrereqs(() => {
-			for (let element of assignmentPattern.elements) {
-				if (ts.isOmittedExpression(element)) {
-					luau.list.push(ids, luau.tempId());
-				} else if (ts.isSpreadElement(element)) {
-					DiagnosticService.addDiagnostic(errors.noSpreadDestructuring(element));
-				} else {
-					let initializer: ts.Expression | undefined;
-					if (ts.isBinaryExpression(element)) {
-						initializer = skipDownwards(element.right);
-						element = skipDownwards(element.left);
-					}
-
-					const valueId = luau.tempId("binding");
-					if (
-						ts.isIdentifier(element) ||
-						ts.isElementAccessExpression(element) ||
-						ts.isPropertyAccessExpression(element)
-					) {
-						const id = transformWritableExpression(state, element, initializer !== undefined);
-						state.prereq(
-							luau.create(luau.SyntaxKind.Assignment, {
-								left: id,
-								operator: "=",
-								right: valueId,
-							}),
-						);
-						if (initializer) {
-							state.prereq(transformInitializer(state, id, initializer));
-						}
-					} else if (ts.isArrayLiteralExpression(element)) {
-						if (initializer) {
-							state.prereq(transformInitializer(state, valueId, initializer));
-						}
-						transformArrayAssignmentPattern(state, element, valueId);
-					} else if (ts.isObjectLiteralExpression(element)) {
-						if (initializer) {
-							state.prereq(transformInitializer(state, valueId, initializer));
-						}
-						transformObjectAssignmentPattern(state, element, valueId);
-					} else {
-						assert(
-							false,
-							`transformInLineArrayAssignmentPattern invalid element: ${getKindName(element.kind)}`,
-						);
-					}
-
-					luau.list.push(ids, valueId);
-				}
+	const prereqs = new Prereqs();
+	for (let element of assignmentPattern.elements) {
+		if (ts.isOmittedExpression(element)) {
+			luau.list.push(ids, luau.tempId());
+		} else if (ts.isSpreadElement(element)) {
+			DiagnosticService.addDiagnostic(errors.noSpreadDestructuring(element));
+		} else {
+			let initializer: ts.Expression | undefined;
+			if (ts.isBinaryExpression(element)) {
+				initializer = skipDownwards(element.right);
+				element = skipDownwards(element.left);
 			}
-		}),
-	);
+
+			const valueId = luau.tempId("binding");
+			if (
+				ts.isIdentifier(element) ||
+				ts.isElementAccessExpression(element) ||
+				ts.isPropertyAccessExpression(element)
+			) {
+				const id = transformWritableExpression(state, prereqs, element, initializer !== undefined);
+				prereqs.prereq(
+					luau.create(luau.SyntaxKind.Assignment, {
+						left: id,
+						operator: "=",
+						right: valueId,
+					}),
+				);
+				if (initializer) {
+					prereqs.prereq(transformInitializer(state, id, initializer));
+				}
+			} else if (ts.isArrayLiteralExpression(element)) {
+				if (initializer) {
+					prereqs.prereq(transformInitializer(state, valueId, initializer));
+				}
+				transformArrayAssignmentPattern(state, prereqs, element, valueId);
+			} else if (ts.isObjectLiteralExpression(element)) {
+				if (initializer) {
+					prereqs.prereq(transformInitializer(state, valueId, initializer));
+				}
+				transformObjectAssignmentPattern(state, prereqs, element, valueId);
+			} else {
+				assert(false, `transformInLineArrayAssignmentPattern invalid element: ${getKindName(element.kind)}`);
+			}
+
+			luau.list.push(ids, valueId);
+		}
+	}
+	luau.list.pushList(initializers, prereqs.statements);
 }
 
-const buildMapLoop: LoopBuilder = makeForLoopBuilder((state, initializer, exp, ids, initializers) => {
+const buildMapLoop: LoopBuilder = makeForLoopBuilder((state, prereqs, initializer, exp, ids, initializers) => {
 	// TEST
 	if (ts.isVariableDeclarationList(initializer)) {
 		const name = initializer.declarations[0].name;
@@ -244,27 +237,35 @@ const buildMapLoop: LoopBuilder = makeForLoopBuilder((state, initializer, exp, i
 		luau.list.push(
 			initializers,
 			luau.create(luau.SyntaxKind.VariableDeclaration, {
-				left: transformForInitializer(state, initializer, bindingList),
+				left: transformForInitializer(state, prereqs, initializer, bindingList),
 				right: luau.array([keyId, valueId]),
 			}),
 		);
 		luau.list.pushList(initializers, bindingList);
 	} else {
-		transformForInitializerExpressionDirect(state, initializer, initializers, luau.array([keyId, valueId]));
+		transformForInitializerExpressionDirect(
+			state,
+			prereqs,
+			initializer,
+			initializers,
+			luau.array([keyId, valueId]),
+		);
 	}
 
 	return exp;
 });
 
-const buildStringLoop: LoopBuilder = makeForLoopBuilder((state, initializer, exp, ids, initializers) => {
-	luau.list.push(ids, transformForInitializer(state, initializer, initializers));
+const buildStringLoop: LoopBuilder = makeForLoopBuilder((state, prereqs, initializer, exp, ids, initializers) => {
+	luau.list.push(ids, transformForInitializer(state, prereqs, initializer, initializers));
 	return luau.call(luau.globals.string.gmatch, [exp, luau.globals.utf8.charpattern]);
 });
 
-const buildIterableFunctionLoop: LoopBuilder = makeForLoopBuilder((state, initializer, exp, ids, initializers) => {
-	luau.list.push(ids, transformForInitializer(state, initializer, initializers));
-	return exp;
-});
+const buildIterableFunctionLoop: LoopBuilder = makeForLoopBuilder(
+	(state, prereqs, initializer, exp, ids, initializers) => {
+		luau.list.push(ids, transformForInitializer(state, prereqs, initializer, initializers));
+		return exp;
+	},
+);
 
 function makeIterableFunctionLuaTupleShorthand(
 	state: TransformState,
@@ -284,7 +285,7 @@ function makeIterableFunctionLuaTupleShorthand(
 }
 
 const buildIterableFunctionLuaTupleLoop: (type: ts.Type) => LoopBuilder =
-	type => (state, statements, initializer, exp) => {
+	type => (state, prereqs, statements, initializer, exp) => {
 		if (ts.isVariableDeclarationList(initializer)) {
 			// for (const [a, b] of iter())
 			const name = initializer.declarations[0].name;
@@ -326,11 +327,11 @@ const buildIterableFunctionLuaTupleLoop: (type: ts.Type) => LoopBuilder =
 				iteratorReturnIds.push(luau.tempId(name));
 			}
 		} else {
-			const iterFuncId = state.pushToVar(exp, valueToIdStr(exp) || "iterFunc");
+			const iterFuncId = prereqs.pushToVar(exp, valueToIdStr(exp) || "iterFunc");
 			const loopStatements = luau.list.make<luau.Statement>();
 
 			const initializerStatements = luau.list.make<luau.Statement>();
-			const valueId = transformForInitializer(state, initializer, initializerStatements);
+			const valueId = transformForInitializer(state, prereqs, initializer, initializerStatements);
 
 			luau.list.push(
 				loopStatements,
@@ -361,9 +362,9 @@ const buildIterableFunctionLuaTupleLoop: (type: ts.Type) => LoopBuilder =
 			);
 		}
 
-		const tupleId = transformForInitializer(state, initializer, statements);
+		const tupleId = transformForInitializer(state, prereqs, initializer, statements);
 
-		const builder = makeForLoopBuilder((state, initializer, exp, ids, initializers) => {
+		const builder = makeForLoopBuilder((state, prereqs, initializer, exp, ids, initializers) => {
 			for (const id of iteratorReturnIds) {
 				luau.list.push(ids, id);
 			}
@@ -378,10 +379,10 @@ const buildIterableFunctionLuaTupleLoop: (type: ts.Type) => LoopBuilder =
 			return exp;
 		});
 
-		return builder(state, statements, initializer, exp);
+		return builder(state, prereqs, statements, initializer, exp);
 	};
 
-const buildGeneratorLoop: LoopBuilder = makeForLoopBuilder((state, initializer, exp, ids, initializers) => {
+const buildGeneratorLoop: LoopBuilder = makeForLoopBuilder((state, prereqs, initializer, exp, ids, initializers) => {
 	const loopId = luau.tempId("result");
 	luau.list.push(ids, loopId);
 
@@ -399,13 +400,19 @@ const buildGeneratorLoop: LoopBuilder = makeForLoopBuilder((state, initializer, 
 		luau.list.push(
 			initializers,
 			luau.create(luau.SyntaxKind.VariableDeclaration, {
-				left: transformForInitializer(state, initializer, bindingList),
+				left: transformForInitializer(state, prereqs, initializer, bindingList),
 				right: luau.property(loopId, "value"),
 			}),
 		);
 		luau.list.pushList(initializers, bindingList);
 	} else {
-		transformForInitializerExpressionDirect(state, initializer, initializers, luau.property(loopId, "value"));
+		transformForInitializerExpressionDirect(
+			state,
+			prereqs,
+			initializer,
+			initializers,
+			luau.property(loopId, "value"),
+		);
 	}
 
 	return luau.property(convertToIndexableExpression(exp), "next");
@@ -449,16 +456,19 @@ function findRangeMacro(state: TransformState, node: ts.ForOfStatement): ts.Call
 
 export function transformForOfRangeMacro(
 	state: TransformState,
+	prereqs: Prereqs,
 	node: ts.ForOfStatement,
 	macroCall: ts.CallExpression,
 ): luau.List<luau.Statement> {
 	const result = luau.list.make<luau.Statement>();
 
 	const statements = luau.list.make<luau.Statement>();
-	const id = transformForInitializer(state, node.initializer, statements);
+	const id = transformForInitializer(state, prereqs, node.initializer, statements);
 
-	const [[start, end, step], prereqs] = state.capture(() => ensureTransformOrder(state, macroCall.arguments));
-	luau.list.pushList(result, prereqs);
+	const innerPrereqs = new Prereqs();
+
+	const [start, end, step] = ensureTransformOrder(state, innerPrereqs, macroCall.arguments);
+	luau.list.pushList(result, innerPrereqs.statements);
 
 	luau.list.pushList(statements, transformStatementList(state, node.statement, getStatements(node.statement)));
 
@@ -476,7 +486,11 @@ export function transformForOfRangeMacro(
 	return result;
 }
 
-export function transformForOfStatement(state: TransformState, node: ts.ForOfStatement): luau.List<luau.Statement> {
+export function transformForOfStatement(
+	state: TransformState,
+	prereqs: Prereqs,
+	node: ts.ForOfStatement,
+): luau.List<luau.Statement> {
 	if (node.awaitModifier) {
 		DiagnosticService.addDiagnostic(errors.noAwaitForOf(node));
 	}
@@ -490,19 +504,20 @@ export function transformForOfStatement(state: TransformState, node: ts.ForOfSta
 
 	const rangeMacroCall = findRangeMacro(state, node);
 	if (rangeMacroCall) {
-		return transformForOfRangeMacro(state, node, rangeMacroCall);
+		return transformForOfRangeMacro(state, prereqs, node, rangeMacroCall);
 	}
 
 	const result = luau.list.make<luau.Statement>();
 
-	const [exp, expPrereqs] = state.capture(() => transformExpression(state, node.expression));
-	luau.list.pushList(result, expPrereqs);
+	const expPrereqs = new Prereqs();
+	const exp = transformExpression(state, expPrereqs, node.expression);
+	luau.list.pushList(result, expPrereqs.statements);
 
 	const expType = state.getType(node.expression);
 	const statements = transformStatementList(state, node.statement, getStatements(node.statement));
 
 	const loopBuilder = getLoopBuilder(state, node.expression, expType);
-	luau.list.pushList(result, loopBuilder(state, statements, node.initializer, exp));
+	luau.list.pushList(result, loopBuilder(state, prereqs, statements, node.initializer, exp));
 
 	return result;
 }

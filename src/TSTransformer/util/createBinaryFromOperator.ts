@@ -1,5 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
 import { assert } from "Shared/util/assert";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import { getKindName } from "TSTransformer/util/getKindName";
 import { isDefinitelyType, isStringType } from "TSTransformer/util/types";
@@ -56,8 +57,7 @@ function createBinaryAdd(left: luau.Expression, leftType: ts.Type, right: luau.E
 }
 
 export function createBinaryFromOperator(
-	state: TransformState,
-	node: ts.Node,
+	prereqs: Prereqs,
 	left: luau.Expression,
 	leftType: ts.Type,
 	operatorKind: ts.BinaryOperator,
@@ -82,7 +82,7 @@ export function createBinaryFromOperator(
 	}
 
 	if (operatorKind === ts.SyntaxKind.CommaToken) {
-		state.prereqList(wrapExpressionStatement(left));
+		prereqs.prereqList(wrapExpressionStatement(left));
 		return right;
 	}
 
