@@ -31,7 +31,7 @@ function optimizeArraySpreadParameter(
 			const name = element.name;
 			if (ts.isIdentifier(name)) {
 				const paramId = transformIdentifierDefined(state, name);
-				validateIdentifier(state, name);
+				validateIdentifier(name);
 				luau.list.push(parameters, paramId);
 				if (element.initializer) {
 					prereqs.prereq(transformInitializer(state, paramId, element.initializer));
@@ -76,7 +76,7 @@ export function transformParameters(state: TransformState, node: ts.SignatureDec
 		let paramId: luau.Identifier | luau.TemporaryIdentifier;
 		if (ts.isIdentifier(parameter.name)) {
 			paramId = transformIdentifierDefined(state, parameter.name);
-			validateIdentifier(state, parameter.name);
+			validateIdentifier(parameter.name);
 		} else {
 			paramId = luau.tempId("param");
 		}

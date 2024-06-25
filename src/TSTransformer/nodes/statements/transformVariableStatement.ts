@@ -23,7 +23,7 @@ export function transformVariable(
 	identifier: ts.Identifier,
 	right?: luau.Expression,
 ) {
-	validateIdentifier(state, identifier);
+	validateIdentifier(identifier);
 
 	const symbol = state.typeChecker.getSymbolAtLocation(identifier);
 	assert(symbol);
@@ -79,7 +79,7 @@ function transformOptimizedArrayBindingPattern(
 				continue;
 			}
 			if (ts.isIdentifier(element.name)) {
-				validateIdentifier(state, element.name);
+				validateIdentifier(element.name);
 				const id = transformIdentifierDefined(state, element.name);
 				luau.list.push(ids, id);
 				if (element.initializer) {
@@ -109,7 +109,6 @@ function transformOptimizedArrayBindingPattern(
 
 export function transformVariableDeclaration(
 	state: TransformState,
-	prereqs: Prereqs,
 	node: ts.VariableDeclaration,
 ): luau.List<luau.Statement> {
 	const statements = luau.list.make<luau.Statement>();
@@ -181,9 +180,7 @@ export function transformVariableDeclarationList(
 
 	const statements = luau.list.make<luau.Statement>();
 	for (const declaration of node.declarations) {
-		const variablePrereqs = new Prereqs();
-		const variableStatements = transformVariableDeclaration(state, variablePrereqs, declaration);
-		luau.list.pushList(statements, variablePrereqs.statements);
+		const variableStatements = transformVariableDeclaration(state, declaration);
 		luau.list.pushList(statements, variableStatements);
 	}
 

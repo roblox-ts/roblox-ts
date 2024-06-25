@@ -42,7 +42,7 @@ export function transformEnumDeclaration(state: TransformState, prereqs: Prereqs
 		return luau.list.make<luau.Statement>();
 	}
 
-	validateIdentifier(state, node.name);
+	validateIdentifier(node.name);
 
 	const left = transformIdentifierDefined(state, node.name);
 	const isHoisted = symbol !== undefined && state.isHoisted.get(symbol) === true;

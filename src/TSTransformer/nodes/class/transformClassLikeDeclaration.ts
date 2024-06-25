@@ -207,7 +207,7 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 	const isExportDefault = !!ts.getSelectedSyntacticModifierFlags(node, ts.ModifierFlags.ExportDefault);
 
 	if (node.name) {
-		validateIdentifier(state, node.name);
+		validateIdentifier(node.name);
 	}
 
 	/*
