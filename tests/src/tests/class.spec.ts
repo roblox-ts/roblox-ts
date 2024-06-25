@@ -304,4 +304,15 @@ export = () => {
 			}.$(),
 		).to.equal(0);
 	});
+
+	it("should support nested classes which refer to the outer class", () => {
+		class A {
+			static member = class B {
+				method() {
+					return new A();
+				}
+			};
+		}
+		expect(new A.member().method() instanceof A).to.equal(true);
+	})
 };
