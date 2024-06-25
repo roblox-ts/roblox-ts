@@ -1,5 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
+import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { CallMacro, PropertyCallMacro } from "TSTransformer/macros/types";
@@ -11,8 +12,7 @@ import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexa
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { expressionMightMutate } from "TSTransformer/util/expressionMightMutate";
 import { isMethod } from "TSTransformer/util/isMethod";
-import { isSymbolFromRobloxTypes } from "TSTransformer/util/isSymbolFromRobloxTypes";
-import { getFirstDefinedSymbol, isPossiblyType, isUndefinedType } from "TSTransformer/util/types";
+import { getFirstDefinedSymbol, isPossiblyType, isRobloxType, isUndefinedType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
 import { wrapReturnIfLuaTuple } from "TSTransformer/util/wrapReturnIfLuaTuple";
@@ -41,10 +41,15 @@ function runCallMacro(
 				return;
 			}
 
-			const minArgumentCount = signature.minArgumentCount;
+			// use .expression for the tuple type, simply `lastArg` would give the tuple's element type
+			const tupleArgType = state.getType(lastArg.expression);
+			// Since we've excluded vararg macros, TS will have ensured that the spread is from a tuple type
+			assert(state.typeChecker.isTupleType(tupleArgType));
+			const argumentCount = (tupleArgType as ts.TupleTypeReference).target.elementFlags.length;
+
 			const spread = args.pop();
 			const tempIds = luau.list.make<luau.TemporaryIdentifier>();
-			for (let i = args.length; i < minArgumentCount; i++) {
+			for (let i = args.length; i < argumentCount; i++) {
 				const tempId = luau.tempId(`spread${i}`);
 				args.push(tempId);
 				luau.list.push(tempIds, tempId);
@@ -90,11 +95,11 @@ function runCallMacro(
  */
 function fixVoidArgumentsForRobloxFunctions(
 	state: TransformState,
-	symbol: ts.Symbol | undefined,
+	type: ts.Type,
 	args: Array<luau.Expression>,
 	nodeArguments: ReadonlyArray<ts.Expression>,
 ) {
-	if (isSymbolFromRobloxTypes(state, symbol)) {
+	if (isPossiblyType(type, isRobloxType(state))) {
 		for (let i = 0; i < args.length; i++) {
 			const arg = args[i];
 			const nodeArg = nodeArguments[i];
@@ -137,7 +142,7 @@ export function transformCallExpressionInner(
 	}
 
 	const [args, prereqs] = state.capture(() => ensureTransformOrder(state, nodeArguments));
-	fixVoidArgumentsForRobloxFunctions(state, symbol, args, nodeArguments);
+	fixVoidArgumentsForRobloxFunctions(state, expType, args, nodeArguments);
 
 	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, expression, node.expression)) {
 		expression = state.pushToVar(expression, "fn");
@@ -179,7 +184,7 @@ export function transformPropertyCallExpressionInner(
 	}
 
 	const [args, prereqs] = state.capture(() => ensureTransformOrder(state, nodeArguments));
-	fixVoidArgumentsForRobloxFunctions(state, symbol, args, nodeArguments);
+	fixVoidArgumentsForRobloxFunctions(state, expType, args, nodeArguments);
 
 	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, baseExpression, expression.expression)) {
 		baseExpression = state.pushToVar(baseExpression);
@@ -247,7 +252,7 @@ export function transformElementCallExpressionInner(
 		ensureTransformOrder(state, [argumentExpression, ...nodeArguments]),
 	);
 
-	fixVoidArgumentsForRobloxFunctions(state, symbol, args, nodeArguments);
+	fixVoidArgumentsForRobloxFunctions(state, expType, args, nodeArguments);
 
 	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, baseExpression, expression.expression)) {
 		baseExpression = state.pushToVar(baseExpression);

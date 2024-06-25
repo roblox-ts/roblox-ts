@@ -1,11 +1,11 @@
 namespace N {
-	export const a = function(this: typeof N, n: 5) {
+	export const a = function (this: typeof N, n: 5) {
 		return n;
 	};
-	export const b = function(this: void, n: 5) {
+	export const b = function (this: void, n: 5) {
 		return n;
 	};
-	export const c = function(n: 5) {
+	export const c = function (n: 5) {
 		return n;
 	};
 	export const d = (n: 5) => {
@@ -86,7 +86,7 @@ export = () => {
 
 	it("should support function expressions", () => {
 		expect(
-			(function() {
+			(function () {
 				return 123;
 			})(),
 		).to.equal(123);
@@ -136,10 +136,10 @@ export = () => {
 				expect(this).to.equal(undefined);
 				expect(n).to.equal(5);
 			}
-			public e = function(n: 5) {
+			public e = function (n: 5) {
 				expect(n).to.equal(5);
 			};
-			public f = function(this: A, n: 5) {
+			public f = function (this: A, n: 5) {
 				expect(this instanceof A).to.equal(true);
 				expect(n).to.equal(5);
 			};
@@ -161,11 +161,11 @@ export = () => {
 				expect(this).to.equal(o);
 				expect(n).to.equal(5);
 			},
-			c: function(this: void, n: 5) {
+			c: function (this: void, n: 5) {
 				expect(this).to.equal(undefined);
 				expect(n).to.equal(5);
 			},
-			d: function(n: 5) {
+			d: function (n: 5) {
 				expect(this).to.equal(o);
 				expect(n).to.equal(5);
 			},
@@ -176,7 +176,7 @@ export = () => {
 				expect(this).to.equal(o);
 				expect(n).to.equal(5);
 			},
-			g: function(this: {}, n: 5) {
+			g: function (this: {}, n: 5) {
 				expect(this).to.equal(o);
 				expect(n).to.equal(5);
 			},
@@ -187,7 +187,7 @@ export = () => {
 			expect(n).to.equal(5);
 		}
 
-		const g = function(this: void, n: 5) {
+		const g = function (this: void, n: 5) {
 			// expect(this).to.equal(undefined);
 			expect(n).to.equal(5);
 		};
@@ -221,33 +221,33 @@ export = () => {
 		f(5);
 		g(5);
 
-		(function(this: void, n: 5) {
+		(function (this: void, n: 5) {
 			expect(n).to.equal(5);
 		})(5);
 		({
-			x: function(n: 5) {
+			x: function (n: 5) {
 				expect(n).to.equal(5);
 			},
-		}.x(5));
+		}).x(5);
 
 		({
-			x: function(this: void, n: 5) {
+			x: function (this: void, n: 5) {
 				expect(n).to.equal(5);
 			},
-		}.x(5));
+		}).x(5);
 
 		({
-			x: function(this: {}, n: 5) {
+			x: function (this: {}, n: 5) {
 				expect(n).to.equal(5);
 			},
-		}.x(5));
+		}).x(5);
 
 		((n: 5) => {
 			expect(n).to.equal(5);
 		})(5);
 
 		const obj = {
-			saferNum: function(this: void, n: number): number {
+			saferNum: function (this: void, n: number): number {
 				return n === n && n > 0 ? n : 0;
 			}, // wouldn't compile previously because it is a named function
 		};
@@ -273,5 +273,12 @@ export = () => {
 	it("should not wrap argument spread expressions in parentheses", () => {
 		const args: unknown[] = ["123", "456"];
 		expect(select(1, ...args)[1]).to.equal("456");
+	});
+
+	it("should support spreading into a macro with optional arguments", () => {
+		const array = [1, 2, 3, 4, 5];
+		const args = [(value: number, accum: number) => value + accum, 10] as const;
+		const sum = array.reduce(...args);
+		expect(sum).to.equal(25);
 	});
 };
