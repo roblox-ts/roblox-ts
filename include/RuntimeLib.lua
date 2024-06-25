@@ -194,11 +194,13 @@ function TS.try(try, catch, finally)
 		tryError = exitTypeOrTryError
 	end
 
+	local catchSuccess = true
 	local catchError
 
 	-- if try block failed, and catch block exists, execute catch
-	if tryError and catch then
-		local catchSuccess, newExitTypeOrCatchError, newReturns = pcall(catch, tryError)
+	if not trySuccess and catch then
+		local newExitTypeOrCatchError, newReturns
+		catchSuccess, newExitTypeOrCatchError, newReturns = pcall(catch, tryError)
 		local newExitType
 		if catchSuccess then
 			newExitType = newExitTypeOrCatchError
@@ -222,12 +224,12 @@ function TS.try(try, catch, finally)
 	-- if exit type is a control flow, do not rethrow errors
 	if exitType ~= TS.TRY_RETURN and exitType ~= TS.TRY_BREAK and exitType ~= TS.TRY_CONTINUE then
 		-- if catch block threw an error, rethrow it
-		if catchError then
+		if not catchSuccess then
 			error(catchError, 2)
 		end
 
 		-- if try block threw an error and there was no catch block, rethrow it
-		if tryError and not catch then
+		if not trySuccess and not catch then
 			error(tryError, 2)
 		end
 	end

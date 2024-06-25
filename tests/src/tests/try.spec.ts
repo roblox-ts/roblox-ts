@@ -18,6 +18,7 @@ export = () => {
 			return exception;
 		}
 		expect(foo()).to.be.a("string");
+		expect(tostring(foo()).find("bar")[0]).to.be.ok();
 	});
 
 	it("should support try/catch with throwing objects", () => {
@@ -33,13 +34,35 @@ export = () => {
 		expect(foo()).to.be.a("table");
 	});
 
-	it("should support try/catch with return", () => {
+	it("should support try/catch with return in try block", () => {
 		function foo(): unknown {
 			try {
 				return "foo";
 			} catch (e) {}
 		}
-		expect(foo()).to.be.a("string");
+		expect(foo()).to.equal("foo");
+	});
+
+	it("should support try/catch with return in catch block", () => {
+		function foo(): unknown {
+			try {
+				throw undefined;
+			} catch {
+				return "foo";
+			}
+		}
+		expect(foo()).to.equal("foo");
+	});
+
+	it("should support try/catch with return in finally block", () => {
+		function foo(): unknown {
+			try {
+				return 1;
+			} finally {
+				return 2;
+			}
+		}
+		expect(foo()).to.equal(2);
 	});
 
 	it("should support try/catch with break", () => {
