@@ -58,15 +58,7 @@ export function transformArrayLiteralExpression(
 			const spreadExp = transformExpression(state, prereqs, element.expression);
 			const shouldUpdateLengthId = i < node.elements.length - 1;
 			prereqs.prereqList(
-				addIterableToArrayBuilder(
-					state,
-					prereqs,
-					spreadExp,
-					ptr.value,
-					lengthId,
-					amtElementsSinceUpdate,
-					shouldUpdateLengthId,
-				),
+				addIterableToArrayBuilder(spreadExp, ptr.value, lengthId, amtElementsSinceUpdate, shouldUpdateLengthId),
 			);
 		} else {
 			const expressionPrereqs = new Prereqs();

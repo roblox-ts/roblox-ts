@@ -67,7 +67,7 @@ export function transformStatement(
 
 	// regular transforms
 	if (ts.isBlock(node)) return transformBlock(state, node);
-	if (ts.isBreakStatement(node)) return transformBreakStatement(state, prereqs, node);
+	if (ts.isBreakStatement(node)) return transformBreakStatement(state, node);
 	if (ts.isClassDeclaration(node)) return transformClassDeclaration(state, node);
 	if (ts.isContinueStatement(node)) return transformContinueStatement(state, node);
 	if (ts.isDoStatement(node)) return transformDoStatement(state, node);

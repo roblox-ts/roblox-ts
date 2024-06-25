@@ -498,7 +498,7 @@ export function transformForOfStatement(
 	if (ts.isVariableDeclarationList(node.initializer)) {
 		const name = node.initializer.declarations[0].name;
 		if (ts.isIdentifier(name)) {
-			validateIdentifier(state, name);
+			validateIdentifier(name);
 		}
 	}
 

@@ -20,8 +20,6 @@ import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
 import ts from "typescript";
 
 type AddIterableToArrayBuilder = (
-	state: TransformState,
-	prereqs: Prereqs,
 	expression: luau.Expression,
 	arrayId: luau.AnyIdentifier,
 	lengthId: luau.AnyIdentifier,
@@ -30,8 +28,6 @@ type AddIterableToArrayBuilder = (
 ) => luau.List<luau.Statement>;
 
 const addArray: AddIterableToArrayBuilder = (
-	state,
-	prereqs,
 	expression,
 	arrayId,
 	lengthId,
@@ -39,6 +35,8 @@ const addArray: AddIterableToArrayBuilder = (
 	shouldUpdateLengthId,
 ) => {
 	const result = luau.list.make<luau.Statement>();
+
+	const prereqs = new Prereqs();
 
 	const inputArray = prereqs.pushToVarIfNonId(expression, "array");
 	let inputLength: luau.Expression = luau.unary("#", inputArray);
@@ -70,17 +68,12 @@ const addArray: AddIterableToArrayBuilder = (
 		);
 	}
 
+	luau.list.unshiftList(result, prereqs.statements);
+
 	return result;
 };
 
-const addString: AddIterableToArrayBuilder = (
-	state,
-	prereqs,
-	expression,
-	arrayId,
-	lengthId,
-	amtElementsSinceUpdate,
-) => {
+const addString: AddIterableToArrayBuilder = (expression, arrayId, lengthId, amtElementsSinceUpdate) => {
 	const result = luau.list.make<luau.Statement>();
 
 	if (amtElementsSinceUpdate > 0) {
@@ -121,7 +114,7 @@ const addString: AddIterableToArrayBuilder = (
 	return result;
 };
 
-const addSet: AddIterableToArrayBuilder = (state, prereqs, expression, arrayId, lengthId, amtElementsSinceUpdate) => {
+const addSet: AddIterableToArrayBuilder = (expression, arrayId, lengthId, amtElementsSinceUpdate) => {
 	const result = luau.list.make<luau.Statement>();
 
 	if (amtElementsSinceUpdate > 0) {
@@ -163,7 +156,7 @@ const addSet: AddIterableToArrayBuilder = (state, prereqs, expression, arrayId, 
 	return result;
 };
 
-const addMap: AddIterableToArrayBuilder = (state, prereqs, expression, arrayId, lengthId, amtElementsSinceUpdate) => {
+const addMap: AddIterableToArrayBuilder = (expression, arrayId, lengthId, amtElementsSinceUpdate) => {
 	const result = luau.list.make<luau.Statement>();
 
 	if (amtElementsSinceUpdate > 0) {
@@ -205,14 +198,7 @@ const addMap: AddIterableToArrayBuilder = (state, prereqs, expression, arrayId, 
 	return result;
 };
 
-const addIterableFunction: AddIterableToArrayBuilder = (
-	state,
-	prereqs,
-	expression,
-	arrayId,
-	lengthId,
-	amtElementsSinceUpdate,
-) => {
+const addIterableFunction: AddIterableToArrayBuilder = (expression, arrayId, lengthId, amtElementsSinceUpdate) => {
 	const result = luau.list.make<luau.Statement>();
 
 	if (amtElementsSinceUpdate > 0) {
@@ -255,14 +241,14 @@ const addIterableFunction: AddIterableToArrayBuilder = (
 };
 
 const addIterableFunctionLuaTuple: AddIterableToArrayBuilder = (
-	state,
-	prereqs,
 	expression,
 	arrayId,
 	lengthId,
 	amtElementsSinceUpdate,
 ) => {
 	const result = luau.list.make<luau.Statement>();
+
+	const prereqs = new Prereqs();
 
 	if (amtElementsSinceUpdate > 0) {
 		luau.list.push(
@@ -308,17 +294,12 @@ const addIterableFunctionLuaTuple: AddIterableToArrayBuilder = (
 		}),
 	);
 
+	luau.list.unshiftList(result, prereqs.statements);
+
 	return result;
 };
 
-const addGenerator: AddIterableToArrayBuilder = (
-	state,
-	prereqs,
-	expression,
-	arrayId,
-	lengthId,
-	amtElementsSinceUpdate,
-) => {
+const addGenerator: AddIterableToArrayBuilder = (expression, arrayId, lengthId, amtElementsSinceUpdate) => {
 	const result = luau.list.make<luau.Statement>();
 
 	if (amtElementsSinceUpdate > 0) {
