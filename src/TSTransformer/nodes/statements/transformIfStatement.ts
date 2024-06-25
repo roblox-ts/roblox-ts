@@ -28,7 +28,7 @@ export function transformIfStatementInner(
 		elseBody = luau.list.make<luau.Statement>();
 	} else if (ts.isIfStatement(elseStatement)) {
 		const elseIfPrereqs = new Prereqs();
-		const elseIf = transformIfStatementInner(state, prereqs, elseStatement);
+		const elseIf = transformIfStatementInner(state, elseIfPrereqs, elseStatement);
 		if (luau.list.isEmpty(elseIfPrereqs.statements)) {
 			elseBody = elseIf;
 		} else {

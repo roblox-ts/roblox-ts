@@ -305,7 +305,7 @@ function transformOptionalChainInner(
 			}
 			newExpression = wrapReturnIfLuaTuple(state, item.node, luau.call(tempId!, args));
 		} else {
-			newExpression = transformChainItem(state, prereqs, tempId!, item);
+			newExpression = transformChainItem(state, ifStatements, tempId!, item);
 		}
 
 		const newValue = transformOptionalChainInner(state, ifStatements, chain, newExpression, tempId, index + 1);

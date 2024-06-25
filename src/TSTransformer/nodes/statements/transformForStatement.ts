@@ -144,7 +144,6 @@ function transformForStatementFallback(state: TransformState, node: ts.ForStatem
 			}
 
 			for (const declaration of initializer.declarations) {
-				const result = luau.list.make<luau.Statement>();
 				const decPrereqs = new Prereqs();
 				const decStatements = transformVariableDeclaration(state, decPrereqs, declaration);
 				luau.list.pushList(result, decPrereqs.statements);
