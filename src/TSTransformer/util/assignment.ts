@@ -1,5 +1,4 @@
 import luau from "@roblox-ts/luau-ast";
-import { TransformState } from "TSTransformer";
 import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOperator";
 import { isDefinitelyType, isStringType } from "TSTransformer/util/types";

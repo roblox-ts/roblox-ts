@@ -1,7 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
 import { assert } from "Shared/util/assert";
 import { Prereqs } from "TSTransformer/classes/Prereqs";
-import { TransformState } from "TSTransformer/classes/TransformState";
 import { getKindName } from "TSTransformer/util/getKindName";
 import { isDefinitelyType, isStringType } from "TSTransformer/util/types";
 import { wrapExpressionStatement } from "TSTransformer/util/wrapExpressionStatement";
