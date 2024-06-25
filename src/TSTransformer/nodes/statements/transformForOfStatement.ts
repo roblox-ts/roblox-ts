@@ -215,7 +215,6 @@ function transformInLineArrayAssignmentPattern(
 }
 
 const buildMapLoop: LoopBuilder = makeForLoopBuilder((state, prereqs, initializer, exp, ids, initializers) => {
-	// TEST
 	if (ts.isVariableDeclarationList(initializer)) {
 		const name = initializer.declarations[0].name;
 		if (ts.isArrayBindingPattern(name)) {
