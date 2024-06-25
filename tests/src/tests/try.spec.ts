@@ -229,4 +229,30 @@ export = () => {
 		expect(array[0]).to.equal(1);
 		expect(array[1]).to.equal(2);
 	});
+
+	it("should run finally even if catch throws", () => {
+		let ranFinally = false;
+		try {
+			try {
+				throw "try error";
+			} catch {
+				throw "catch error";
+			} finally {
+				ranFinally = true;
+			}
+		} catch {}
+
+		expect(ranFinally).to.equal(true);
+	});
+
+	it("should throw if finally throws", () => {
+		function foo() {
+			try {
+			} finally {
+				throw "bar";
+			}
+		}
+
+		expect(() => foo()).to.throw("bar");
+	});
 };

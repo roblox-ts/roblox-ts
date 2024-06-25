@@ -184,29 +184,51 @@ TS.TRY_RETURN = 1
 TS.TRY_BREAK = 2
 TS.TRY_CONTINUE = 3
 
-function TS.try(func, catch, finally)
-	local err
-	local success, exitType, returns = xpcall(
-		func,
-		function(errInner)
-			err = errInner
+function TS.try(try, catch, finally)
+	-- execute try
+	local trySuccess, exitTypeOrTryError, returns = pcall(try)
+	local exitType, tryError
+	if trySuccess then
+		exitType = exitTypeOrTryError
+	else
+		tryError = exitTypeOrTryError
+	end
+
+	local catchError
+
+	-- if try block failed, and catch block exists, execute catch
+	if tryError and catch then
+		local catchSuccess, newExitTypeOrCatchError, newReturns = pcall(catch, tryError)
+		local newExitType
+		if catchSuccess then
+			newExitType = newExitTypeOrCatchError
+		else
+			catchError = newExitTypeOrCatchError
 		end
-	)
-	if not success and catch then
-		local newExitType, newReturns = catch(err)
+
 		if newExitType then
 			exitType, returns = newExitType, newReturns
 		end
 	end
+
+	-- execute finally
 	if finally then
 		local newExitType, newReturns = finally()
 		if newExitType then
 			exitType, returns = newExitType, newReturns
 		end
 	end
-	if not success and not catch then
-		error(err, 2)
+
+	-- if catch block threw an error, rethrow it
+	if catchError then
+		error(catchError, 2)
 	end
+
+	-- if try block threw an error and there was no catch block, rethrow it
+	if tryError and not catch then
+		error(tryError, 2)
+	end
+
 	return exitType, returns
 end
 
