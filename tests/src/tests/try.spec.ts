@@ -181,4 +181,52 @@ export = () => {
 
 		expect(foo()).to.equal(2);
 	});
+
+	it("should rethrow the error if there's no catch block", () => {
+		function foo() {
+			try {
+				throw "bar";
+			} finally {
+			}
+		}
+
+		expect(() => foo()).to.throw("bar");
+	});
+
+	it("should run try -> catch -> finally in order", () => {
+		const array = new Array<number>();
+		try {
+			let condition = true;
+			try {
+				array.push(1);
+				if (condition) throw "error";
+				array.push(999);
+			} catch {
+				array.push(2);
+			} finally {
+				array.push(3);
+			}
+		} catch {}
+
+		expect(array[0]).to.equal(1);
+		expect(array[1]).to.equal(2);
+		expect(array[2]).to.equal(3);
+	});
+
+	it("should run try -> finally in order", () => {
+		const array = new Array<number>();
+		try {
+			let condition = true;
+			try {
+				array.push(1);
+				if (condition) throw "error";
+				array.push(999);
+			} finally {
+				array.push(2);
+			}
+		} catch {}
+
+		expect(array[0]).to.equal(1);
+		expect(array[1]).to.equal(2);
+	});
 };

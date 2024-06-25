@@ -185,16 +185,15 @@ TS.TRY_BREAK = 2
 TS.TRY_CONTINUE = 3
 
 function TS.try(func, catch, finally)
-	local err, traceback
+	local err
 	local success, exitType, returns = xpcall(
 		func,
 		function(errInner)
 			err = errInner
-			traceback = debug.traceback()
 		end
 	)
 	if not success and catch then
-		local newExitType, newReturns = catch(err, traceback)
+		local newExitType, newReturns = catch(err)
 		if newExitType then
 			exitType, returns = newExitType, newReturns
 		end
@@ -204,6 +203,9 @@ function TS.try(func, catch, finally)
 		if newExitType then
 			exitType, returns = newExitType, newReturns
 		end
+	end
+	if not success and not catch then
+		error(err, 2)
 	end
 	return exitType, returns
 end
