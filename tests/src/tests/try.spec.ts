@@ -18,6 +18,7 @@ export = () => {
 			return exception;
 		}
 		expect(foo()).to.be.a("string");
+		expect(tostring(foo()).find("bar")[0]).to.be.ok();
 	});
 
 	it("should support try/catch with throwing objects", () => {
@@ -33,13 +34,35 @@ export = () => {
 		expect(foo()).to.be.a("table");
 	});
 
-	it("should support try/catch with return", () => {
+	it("should support try/catch with return in try block", () => {
 		function foo(): unknown {
 			try {
 				return "foo";
 			} catch (e) {}
 		}
-		expect(foo()).to.be.a("string");
+		expect(foo()).to.equal("foo");
+	});
+
+	it("should support try/catch with return in catch block", () => {
+		function foo(): unknown {
+			try {
+				throw undefined;
+			} catch {
+				return "foo";
+			}
+		}
+		expect(foo()).to.equal("foo");
+	});
+
+	it("should support try/catch with return in finally block", () => {
+		function foo(): unknown {
+			try {
+				return 1;
+			} finally {
+				return 2;
+			}
+		}
+		expect(foo()).to.equal(2);
 	});
 
 	it("should support try/catch with break", () => {
@@ -180,5 +203,165 @@ export = () => {
 		}
 
 		expect(foo()).to.equal(2);
+	});
+
+	it("should rethrow the error if there's no catch block", () => {
+		function foo() {
+			try {
+				throw "bar";
+			} finally {
+			}
+		}
+
+		expect(() => foo()).to.throw("bar");
+	});
+
+	it("should run try -> catch -> finally in order", () => {
+		const array = new Array<number>();
+		try {
+			let condition = true;
+			try {
+				array.push(1);
+				if (condition) throw "error";
+				array.push(999);
+			} catch {
+				array.push(2);
+			} finally {
+				array.push(3);
+			}
+		} catch {}
+
+		expect(array[0]).to.equal(1);
+		expect(array[1]).to.equal(2);
+		expect(array[2]).to.equal(3);
+	});
+
+	it("should run try -> finally in order", () => {
+		const array = new Array<number>();
+		try {
+			let condition = true;
+			try {
+				array.push(1);
+				if (condition) throw "error";
+				array.push(999);
+			} finally {
+				array.push(2);
+			}
+		} catch {}
+
+		expect(array[0]).to.equal(1);
+		expect(array[1]).to.equal(2);
+	});
+
+	it("should run finally even if catch throws", () => {
+		let ranFinally = false;
+		try {
+			try {
+				throw "try error";
+			} catch {
+				throw "catch error";
+			} finally {
+				ranFinally = true;
+			}
+		} catch {}
+
+		expect(ranFinally).to.equal(true);
+	});
+
+	it("should throw if finally throws", () => {
+		function foo() {
+			try {
+			} finally {
+				throw "bar";
+			}
+		}
+
+		expect(() => foo()).to.throw("bar");
+	});
+
+	it("should discard errors if finally has a control flow statement", () => {
+		function tryErrorReturn() {
+			try {
+				throw "try error";
+			} finally {
+				return true;
+			}
+			return false;
+		}
+
+		expect(tryErrorReturn()).to.equal(true);
+
+		function catchErrorReturn() {
+			try {
+				throw "try error";
+			} catch {
+				throw "catch error";
+			} finally {
+				return true;
+			}
+			return false;
+		}
+
+		expect(catchErrorReturn()).to.equal(true);
+
+		function tryErrorBreak() {
+			for (let i = 0; i < 10; i++) {
+				try {
+					throw "try error";
+				} finally {
+					break;
+				}
+				return false;
+			}
+			return true;
+		}
+
+		expect(tryErrorBreak()).to.equal(true);
+
+		function catchErrorBreak() {
+			for (let i = 0; i < 1; i++) {
+				try {
+					throw "try error";
+				} catch {
+					throw "catch error";
+				} finally {
+					break;
+				}
+				return false;
+			}
+			return true;
+		}
+
+		expect(catchErrorBreak()).to.equal(true);
+
+		function tryErrorContinue() {
+			for (let i = 0; i < 1; i++) {
+				try {
+					throw "try error";
+				} finally {
+					continue;
+				}
+				return false;
+			}
+			return true;
+		}
+
+		expect(tryErrorContinue()).to.equal(true);
+
+		function catchErrorContinue() {
+			for (let i = 0; i < 1; i++) {
+				try {
+					throw "try error";
+				} catch {
+					throw "catch error";
+				} finally {
+					continue;
+				}
+				return false;
+			}
+			return true;
+		}
+
+		expect(catchErrorContinue()).to.equal(true);
 	});
 };
