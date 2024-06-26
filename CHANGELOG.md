@@ -8,14 +8,13 @@
 	- please report any issues [here](https://github.com/roblox-ts/roblox-ts/issues/new)
 	- if necessary, you can run the compiler with `--optimizedLoops=false` to return to the old behavior
 - Improve emit for `a.b()` and `a[b]()` ([#2623][2623])
-- Fix `noMacroExtends` diagnostic ([#2587][2587])
-- Fixed an issue where watch mode + transformer plugins would not pick up .d.ts changes ([#2701][2701])
+- Fixed bug where `noMacroExtends` diagnostic would never be reported ([#2587][2587])
+- Fixed watch mode error for files with "unsupported extensions" ([#2701][2701])
 - Fixed multiline template string bug on Windows ([roblox-ts/luau-ast#483][roblox-ts/luau-ast#483])
 - Fixed template string unicode escape sequence bug ([roblox-ts/luau-ast#483][roblox-ts/luau-ast#483])
 
 ### **Breaking Changes**
 - `@rbxts/roact`
-	- now considered deprecated, but will continue to function
 	- roblox-ts 3.0.0+ will require `@rbxts/roact` 3.0.0+
 	- you should prefer `@rbxts/react` where possible
 - Upgaded bundled `roblox-lua-promise` from 3.2.1 to 4.0.0. See possible breaking changes [here](https://github.com/evaera/roblox-lua-promise/releases).
