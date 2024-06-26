@@ -3,6 +3,7 @@ local fs = require("@lune/fs")
 local luau = require("@lune/luau")
 local process = require("@lune/process")
 local stdio = require("@lune/stdio")
+local task = require("@lune/task")
 
 local testPlacePath = process.args[1]
 
@@ -51,6 +52,7 @@ local function runRobloxScript(script: LuaSourceContainer)
 			script = script,
 			require = robloxRequire,
 			tick = tick,
+			task = task,
 		}),
 	})
 

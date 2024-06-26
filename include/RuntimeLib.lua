@@ -184,27 +184,56 @@ TS.TRY_RETURN = 1
 TS.TRY_BREAK = 2
 TS.TRY_CONTINUE = 3
 
-function TS.try(func, catch, finally)
-	local err, traceback
-	local success, exitType, returns = xpcall(
-		func,
-		function(errInner)
-			err = errInner
-			traceback = debug.traceback()
+function TS.try(try, catch, finally)
+	-- execute try
+	local trySuccess, exitTypeOrTryError, returns = pcall(try)
+	local exitType, tryError
+	if trySuccess then
+		exitType = exitTypeOrTryError
+	else
+		tryError = exitTypeOrTryError
+	end
+
+	local catchSuccess = true
+	local catchError
+
+	-- if try block failed, and catch block exists, execute catch
+	if not trySuccess and catch then
+		local newExitTypeOrCatchError, newReturns
+		catchSuccess, newExitTypeOrCatchError, newReturns = pcall(catch, tryError)
+		local newExitType
+		if catchSuccess then
+			newExitType = newExitTypeOrCatchError
+		else
+			catchError = newExitTypeOrCatchError
 		end
-	)
-	if not success and catch then
-		local newExitType, newReturns = catch(err, traceback)
+
 		if newExitType then
 			exitType, returns = newExitType, newReturns
 		end
 	end
+
+	-- execute finally
 	if finally then
 		local newExitType, newReturns = finally()
 		if newExitType then
 			exitType, returns = newExitType, newReturns
 		end
 	end
+
+	-- if exit type is a control flow, do not rethrow errors
+	if exitType ~= TS.TRY_RETURN and exitType ~= TS.TRY_BREAK and exitType ~= TS.TRY_CONTINUE then
+		-- if catch block threw an error, rethrow it
+		if not catchSuccess then
+			error(catchError, 2)
+		end
+
+		-- if try block threw an error and there was no catch block, rethrow it
+		if not trySuccess and not catch then
+			error(tryError, 2)
+		end
+	end
+
 	return exitType, returns
 end
 

@@ -304,4 +304,30 @@ export = () => {
 			}.$(),
 		).to.equal(0);
 	});
+
+	it("should support nested classes which refer to the outer class", () => {
+		class A {
+			static member = class B {
+				method() {
+					return new A();
+				}
+			};
+		}
+		expect(new A.member().method() instanceof A).to.equal(true);
+	})
+
+	it("should support methods keys that emit prereqs", () => {
+		let i = 0;
+		class A {
+			[++i]() {
+				return "first";
+			}
+			[++i]() {
+				return "second";
+			}
+		}
+		const a = new A();
+		expect((a[1 as never] as (this: A) => string)()).to.equal("first");
+		expect((a[2 as never] as (this: A) => string)()).to.equal("second");
+	});
 };

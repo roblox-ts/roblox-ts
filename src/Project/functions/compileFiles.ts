@@ -36,7 +36,7 @@ function inferProjectType(data: ProjectData, rojoResolver: RojoResolver): Projec
 
 function emitResultFailure(messageText: string): ts.EmitResult {
 	return {
-		emitSkipped: false,
+		emitSkipped: true,
 		diagnostics: [createTextDiagnostic(messageText)],
 	};
 }

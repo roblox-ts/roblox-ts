@@ -93,4 +93,8 @@ world`).to.equal("hello\nworld");
 		const value: unknown = 456;
 		expect(`value = ${value}`).to.equal("value = 456");
 	});
+
+	it("should not escape unicode sequences in template literals", () => {
+		expect(`\u{E001}`).to.equal("\u{E001}")
+	})
 };
