@@ -53,7 +53,7 @@
 		"@types/node": "^20.14.8",
 		"@types/prompts": "^2.4.9",
 		"@types/resolve": "^1.20.6",
-		"@types/ts-expose-internals": "npm:ts-expose-internals@=5.5.1-rc",
+		"@types/ts-expose-internals": "npm:ts-expose-internals@=5.5.2",
 		"@types/yargs": "^17.0.32",
 		"@roblox-ts/luau-ast": "=2.0.0",
 		"@roblox-ts/path-translator": "=1.0.0",
