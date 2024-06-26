@@ -8,13 +8,11 @@ export function createDiagnosticWithLocation(
 	node: ts.Node | SourceFileWithTextRange,
 ): ts.DiagnosticWithLocation {
 	const code = " roblox-ts" as never;
-	const diagnosticType = 0;
 	if ("kind" in node) {
 		return {
 			category,
 			code,
 			messageText,
-			diagnosticType,
 			id,
 			file: node.getSourceFile(),
 			start: node.getStart(),
@@ -25,7 +23,6 @@ export function createDiagnosticWithLocation(
 			category,
 			code,
 			messageText,
-			diagnosticType,
 			id,
 			file: node.sourceFile,
 			start: node.range.pos,

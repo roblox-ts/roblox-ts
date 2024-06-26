@@ -1,5 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
+import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { CallMacro, PropertyCallMacro } from "TSTransformer/macros/types";
@@ -40,10 +41,15 @@ function runCallMacro(
 				return;
 			}
 
-			const minArgumentCount = signature.minArgumentCount;
+			// use .expression for the tuple type, simply `lastArg` would give the tuple's element type
+			const tupleArgType = state.getType(lastArg.expression);
+			// Since we've excluded vararg macros, TS will have ensured that the spread is from a tuple type
+			assert(state.typeChecker.isTupleType(tupleArgType));
+			const argumentCount = (tupleArgType as ts.TupleTypeReference).target.elementFlags.length;
+
 			const spread = args.pop();
 			const tempIds = luau.list.make<luau.TemporaryIdentifier>();
-			for (let i = args.length; i < minArgumentCount; i++) {
+			for (let i = args.length; i < argumentCount; i++) {
 				const tempId = luau.tempId(`spread${i}`);
 				args.push(tempId);
 				luau.list.push(tempIds, tempId);

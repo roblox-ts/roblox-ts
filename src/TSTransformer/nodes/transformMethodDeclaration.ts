@@ -33,17 +33,20 @@ export function transformMethodDeclaration(
 	luau.list.pushList(statements, transformStatementList(state, node.body, node.body.statements));
 
 	let name = transformPropertyName(state, node.name);
-	if (ts.hasDecorators(node) && !luau.isSimple(name)) {
-		const tempId = luau.tempId("key");
-		luau.list.push(
-			result,
-			luau.create(luau.SyntaxKind.VariableDeclaration, {
-				left: tempId,
-				right: name,
-			}),
-		);
-		name = tempId;
-		state.setClassElementObjectKey(node, tempId);
+
+	if (ts.hasDecorators(node) || node.parameters.some(parameter => ts.hasDecorators(parameter))) {
+		if (!luau.isSimplePrimitive(name)) {
+			const tempId = luau.tempId("key");
+			luau.list.push(
+				result,
+				luau.create(luau.SyntaxKind.VariableDeclaration, {
+					left: tempId,
+					right: name,
+				}),
+			);
+			name = tempId;
+		}
+		state.setClassElementObjectKey(node, name);
 	}
 
 	const isAsync = !!ts.getSelectedSyntacticModifierFlags(node, ts.ModifierFlags.Async);

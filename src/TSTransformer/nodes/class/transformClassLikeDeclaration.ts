@@ -316,10 +316,11 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 			}
 		}
 
-		luau.list.pushList(
-			statementsInner,
+		const [statements, prereqs] = state.capture(() =>
 			transformMethodDeclaration(state, method, { name: "name", value: internalName }),
 		);
+		luau.list.pushList(statementsInner, prereqs);
+		luau.list.pushList(statementsInner, statements);
 	}
 
 	const toStringProperty = instanceType.getProperty(MAGIC_TO_STRING_METHOD);
@@ -348,7 +349,11 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 		if (ts.isClassStaticBlockDeclaration(declaration)) {
 			luau.list.pushList(statementsInner, transformBlock(state, declaration.body));
 		} else {
-			luau.list.pushList(statementsInner, transformPropertyDeclaration(state, declaration, internalName));
+			const [statements, prereqs] = state.capture(() =>
+				transformPropertyDeclaration(state, declaration, internalName),
+			);
+			luau.list.pushList(statementsInner, prereqs);
+			luau.list.pushList(statementsInner, statements);
 		}
 	}
 
