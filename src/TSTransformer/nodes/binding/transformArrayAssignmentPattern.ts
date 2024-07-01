@@ -3,6 +3,7 @@ import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformObjectAssignmentPattern } from "TSTransformer/nodes/binding/transformObjectAssignmentPattern";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { transformWritableExpression } from "TSTransformer/nodes/transformWritable";
@@ -13,6 +14,7 @@ import ts from "typescript";
 
 export function transformArrayAssignmentPattern(
 	state: TransformState,
+	prereqs: Prereqs,
 	assignmentPattern: ts.ArrayLiteralExpression,
 	parentId: luau.AnyIdentifier,
 ) {
@@ -25,7 +27,7 @@ export function transformArrayAssignmentPattern(
 	);
 	for (let element of assignmentPattern.elements) {
 		if (ts.isOmittedExpression(element)) {
-			accessor(state, parentId, index, idStack, true);
+			accessor(state, prereqs, parentId, index, idStack, true);
 		} else if (ts.isSpreadElement(element)) {
 			DiagnosticService.addDiagnostic(errors.noSpreadDestructuring(element));
 		} else {
@@ -35,14 +37,14 @@ export function transformArrayAssignmentPattern(
 				element = skipDownwards(element.left);
 			}
 
-			const value = accessor(state, parentId, index, idStack, false);
+			const value = accessor(state, prereqs, parentId, index, idStack, false);
 			if (
 				ts.isIdentifier(element) ||
 				ts.isElementAccessExpression(element) ||
 				ts.isPropertyAccessExpression(element)
 			) {
-				const id = transformWritableExpression(state, element, initializer !== undefined);
-				state.prereq(
+				const id = transformWritableExpression(state, prereqs, element, initializer !== undefined);
+				prereqs.prereq(
 					luau.create(luau.SyntaxKind.Assignment, {
 						left: id,
 						operator: "=",
@@ -50,20 +52,20 @@ export function transformArrayAssignmentPattern(
 					}),
 				);
 				if (initializer) {
-					state.prereq(transformInitializer(state, id, initializer));
+					prereqs.prereq(transformInitializer(state, id, initializer));
 				}
 			} else if (ts.isArrayLiteralExpression(element)) {
-				const id = state.pushToVar(value, "binding");
+				const id = prereqs.pushToVar(value, "binding");
 				if (initializer) {
-					state.prereq(transformInitializer(state, id, initializer));
+					prereqs.prereq(transformInitializer(state, id, initializer));
 				}
-				transformArrayAssignmentPattern(state, element, id);
+				transformArrayAssignmentPattern(state, prereqs, element, id);
 			} else if (ts.isObjectLiteralExpression(element)) {
-				const id = state.pushToVar(value, "binding");
+				const id = prereqs.pushToVar(value, "binding");
 				if (initializer) {
-					state.prereq(transformInitializer(state, id, initializer));
+					prereqs.prereq(transformInitializer(state, id, initializer));
 				}
-				transformObjectAssignmentPattern(state, element, id);
+				transformObjectAssignmentPattern(state, prereqs, element, id);
 			} else {
 				assert(false, `transformArrayAssignmentPattern invalid element: ${getKindName(element.kind)}`);
 			}

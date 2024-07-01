@@ -3,6 +3,7 @@ import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import {
 	isArrayType,
 	isDefinitelyType,
@@ -19,6 +20,7 @@ import ts from "typescript";
 
 type BindingAccessor = (
 	state: TransformState,
+	prereqs: Prereqs,
 	parentId: luau.AnyIdentifier,
 	index: number,
 	idStack: Array<luau.AnyIdentifier>,
@@ -29,17 +31,17 @@ function peek<T>(array: Array<T>): T | undefined {
 	return array[array.length - 1];
 }
 
-const arrayAccessor: BindingAccessor = (state, parentId, index) => {
+const arrayAccessor: BindingAccessor = (state, prereqs, parentId, index) => {
 	return luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 		expression: parentId,
 		index: luau.number(index + 1),
 	});
 };
 
-const stringAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted) => {
+const stringAccessor: BindingAccessor = (state, prereqs, parentId, index, idStack, isOmitted) => {
 	let id: luau.AnyIdentifier;
 	if (idStack.length === 0) {
-		id = state.pushToVar(
+		id = prereqs.pushToVar(
 			luau.call(luau.globals.string.gmatch, [parentId, luau.globals.utf8.charpattern]),
 			"matcher",
 		);
@@ -51,7 +53,7 @@ const stringAccessor: BindingAccessor = (state, parentId, index, idStack, isOmit
 	const callExp = luau.call(id);
 
 	if (isOmitted) {
-		state.prereq(
+		prereqs.prereq(
 			luau.create(luau.SyntaxKind.CallStatement, {
 				expression: callExp,
 			}),
@@ -62,7 +64,7 @@ const stringAccessor: BindingAccessor = (state, parentId, index, idStack, isOmit
 	}
 };
 
-const setAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted) => {
+const setAccessor: BindingAccessor = (state, prereqs, parentId, index, idStack, isOmitted) => {
 	const args = [parentId];
 	const lastId = peek(idStack);
 	if (lastId) {
@@ -70,20 +72,20 @@ const setAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted
 	}
 	const callExp = luau.call(luau.globals.next, args);
 	if (isOmitted) {
-		state.prereq(
+		prereqs.prereq(
 			luau.create(luau.SyntaxKind.CallStatement, {
 				expression: callExp,
 			}),
 		);
 		return luau.none();
 	} else {
-		const id = state.pushToVar(callExp, "value");
+		const id = prereqs.pushToVar(callExp, "value");
 		idStack.push(id);
 		return id;
 	}
 };
 
-const mapAccessor: BindingAccessor = (state, parentId, index, idStack) => {
+const mapAccessor: BindingAccessor = (state, prereqs, parentId, index, idStack) => {
 	const args = [parentId];
 	const lastId = peek(idStack);
 	if (lastId) {
@@ -92,7 +94,7 @@ const mapAccessor: BindingAccessor = (state, parentId, index, idStack) => {
 	const keyId = luau.tempId("k");
 	const valueId = luau.tempId("v");
 	const ids = luau.list.make(keyId, valueId);
-	state.prereq(
+	prereqs.prereq(
 		luau.create(luau.SyntaxKind.VariableDeclaration, {
 			left: ids,
 			right: luau.call(luau.globals.next, args),
@@ -102,10 +104,10 @@ const mapAccessor: BindingAccessor = (state, parentId, index, idStack) => {
 	return luau.create(luau.SyntaxKind.Array, { members: ids });
 };
 
-const iterableFunctionLuaTupleAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted) => {
+const iterableFunctionLuaTupleAccessor: BindingAccessor = (state, prereqs, parentId, index, idStack, isOmitted) => {
 	const callExp = luau.call(parentId);
 	if (isOmitted) {
-		state.prereq(
+		prereqs.prereq(
 			luau.create(luau.SyntaxKind.CallStatement, {
 				expression: callExp,
 			}),
@@ -116,10 +118,10 @@ const iterableFunctionLuaTupleAccessor: BindingAccessor = (state, parentId, inde
 	}
 };
 
-const iterableFunctionAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted) => {
+const iterableFunctionAccessor: BindingAccessor = (state, prereqs, parentId, index, idStack, isOmitted) => {
 	const callExp = luau.call(parentId);
 	if (isOmitted) {
-		state.prereq(
+		prereqs.prereq(
 			luau.create(luau.SyntaxKind.CallStatement, {
 				expression: callExp,
 			}),
@@ -130,10 +132,10 @@ const iterableFunctionAccessor: BindingAccessor = (state, parentId, index, idSta
 	}
 };
 
-const iterAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted) => {
+const iterAccessor: BindingAccessor = (state, prereqs, parentId, index, idStack, isOmitted) => {
 	const callExp = luau.call(luau.property(parentId, "next"));
 	if (isOmitted) {
-		state.prereq(luau.create(luau.SyntaxKind.CallStatement, { expression: callExp }));
+		prereqs.prereq(luau.create(luau.SyntaxKind.CallStatement, { expression: callExp }));
 		return luau.none();
 	} else {
 		return luau.property(callExp, "value");

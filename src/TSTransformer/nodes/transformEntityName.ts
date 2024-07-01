@@ -7,7 +7,7 @@ import ts from "typescript";
 
 export function transformEntityName(state: TransformState, node: ts.EntityName) {
 	if (ts.isIdentifier(node)) {
-		validateIdentifier(state, node);
+		validateIdentifier(node);
 		return transformIdentifier(state, node);
 	} else {
 		return transformQualifiedName(state, node);

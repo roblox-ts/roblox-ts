@@ -3,6 +3,7 @@ import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformClassConstructor } from "TSTransformer/nodes/class/transformClassConstructor";
 import { transformDecorators } from "TSTransformer/nodes/class/transformDecorators";
 import { transformPropertyDeclaration } from "TSTransformer/nodes/class/transformPropertyDeclaration";
@@ -88,11 +89,11 @@ function createBoilerplate(
 		);
 
 		if (extendsNode) {
-			const [extendsExp, extendsExpPrereqs] = state.capture(() =>
-				transformExpression(state, extendsNode.expression),
-			);
+			const prereqs = new Prereqs();
+			const extendsExp = transformExpression(state, prereqs, extendsNode.expression);
+
 			const superId = luau.id("super");
-			luau.list.pushList(statements, extendsExpPrereqs);
+			luau.list.pushList(statements, prereqs.statements);
 			luau.list.push(
 				statements,
 				luau.create(luau.SyntaxKind.VariableDeclaration, {
@@ -206,7 +207,7 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 	const isExportDefault = !!ts.getSelectedSyntacticModifierFlags(node, ts.ModifierFlags.ExportDefault);
 
 	if (node.name) {
-		validateIdentifier(state, node.name);
+		validateIdentifier(node.name);
 	}
 
 	/*
@@ -316,11 +317,13 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 			}
 		}
 
-		const [statements, prereqs] = state.capture(() =>
-			transformMethodDeclaration(state, method, { name: "name", value: internalName }),
-		);
-		luau.list.pushList(statementsInner, prereqs);
-		luau.list.pushList(statementsInner, statements);
+		const methodPrereqs = new Prereqs();
+		const methodStatements = transformMethodDeclaration(state, methodPrereqs, method, {
+			name: "name",
+			value: internalName,
+		});
+		luau.list.pushList(statementsInner, methodPrereqs.statements);
+		luau.list.pushList(statementsInner, methodStatements);
 	}
 
 	const toStringProperty = instanceType.getProperty(MAGIC_TO_STRING_METHOD);
@@ -349,11 +352,10 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 		if (ts.isClassStaticBlockDeclaration(declaration)) {
 			luau.list.pushList(statementsInner, transformBlock(state, declaration.body));
 		} else {
-			const [statements, prereqs] = state.capture(() =>
-				transformPropertyDeclaration(state, declaration, internalName),
-			);
-			luau.list.pushList(statementsInner, prereqs);
-			luau.list.pushList(statementsInner, statements);
+			const decPrereqs = new Prereqs();
+			const decStatements = transformPropertyDeclaration(state, decPrereqs, declaration, internalName);
+			luau.list.pushList(statementsInner, decPrereqs.statements);
+			luau.list.pushList(statementsInner, decStatements);
 		}
 	}
 

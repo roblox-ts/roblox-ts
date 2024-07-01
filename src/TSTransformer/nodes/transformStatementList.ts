@@ -1,5 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformStatement } from "TSTransformer/nodes/statements/transformStatement";
 import { createHoistDeclaration } from "TSTransformer/util/createHoistDeclaration";
 import ts from "typescript";
@@ -39,7 +40,8 @@ export function transformStatementList(
 	for (const statement of statements) {
 		// capture prerequisite statements for the `ts.Statement`
 		// transform the statement into a luau.List<...>
-		const [transformedStatements, prereqStatements] = state.capture(() => transformStatement(state, statement));
+		const prereqs = new Prereqs();
+		const transformedStatements = transformStatement(state, prereqs, statement);
 
 		// iterate through each of the leading comments of the statement
 		if (state.compilerOptions.removeComments !== true) {
@@ -53,7 +55,7 @@ export function transformStatementList(
 			luau.list.push(result, hoistDeclaration);
 		}
 
-		luau.list.pushList(result, prereqStatements);
+		luau.list.pushList(result, prereqs.statements);
 		luau.list.pushList(result, transformedStatements);
 
 		const lastStatement = transformedStatements.tail?.value;
