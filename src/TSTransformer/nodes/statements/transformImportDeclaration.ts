@@ -120,11 +120,7 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 	}
 
 	// ensure we emit something
-	if (
-		!importClause ||
-		(state.compilerOptions.importsNotUsedAsValues === ts.ImportsNotUsedAsValues.Preserve &&
-			luau.list.isEmpty(statements))
-	) {
+	if (!importClause || (state.compilerOptions.verbatimModuleSyntax && luau.list.isEmpty(statements))) {
 		const expression = importExp.get();
 		if (luau.isCallExpression(expression)) {
 			luau.list.push(statements, luau.create(luau.SyntaxKind.CallStatement, { expression }));
