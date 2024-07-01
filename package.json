@@ -5,7 +5,7 @@
 	"main": "out/CLI/index.js",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/roblox-ts/roblox-ts.git"
+		"url": "git+https://github.com/roblox-ts/roblox-ts.git"
 	},
 	"bin": {
 		"rbxtsc": "out/CLI/cli.js"
