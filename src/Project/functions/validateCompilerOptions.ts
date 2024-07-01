@@ -94,6 +94,15 @@ export function validateCompilerOptions(opts: ts.CompilerOptions, projectPath: s
 		errors.push(`${y(`"outDir"`)} must be defined`);
 	}
 
+	// eslint-disable-next-line deprecation/deprecation
+	if (opts.importsNotUsedAsValues !== undefined) {
+		// eslint-disable-next-line deprecation/deprecation
+		const suggestedValue = opts.importsNotUsedAsValues === ts.ImportsNotUsedAsValues.Preserve ? "true" : "false";
+		errors.push(
+			`${y(`"importsNotUsedAsValues"`)} is no longer supported, use ${y(`"verbatimModuleSyntax": ${suggestedValue}`)} instead`,
+		);
+	}
+
 	// throw if errors
 	if (errors.length > 0) {
 		throw new ProjectError(
