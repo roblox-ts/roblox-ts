@@ -26,7 +26,7 @@ export function transformImportEqualsDeclaration(state: TransformState, node: ts
 
 		// ensure we emit something
 		if (
-			state.compilerOptions.importsNotUsedAsValues === ts.ImportsNotUsedAsValues.Preserve &&
+			state.compilerOptions.verbatimModuleSyntax &&
 			luau.list.isEmpty(statements) &&
 			luau.isCallExpression(importExp)
 		) {
