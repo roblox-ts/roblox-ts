@@ -39,6 +39,20 @@ describe("should compile tests project", () => {
 
 	const diagnosticsFolder = path.join(PACKAGE_ROOT, "tests", "src", "diagnostics");
 
+	const diagnosticNames = new Set([...Object.keys(warnings), ...Object.keys(errors)]);
+
+	const untestedDiagnostics = fs.readFileSync(path.join(diagnosticsFolder, "Untested.md"), "utf8");
+	for (const line of untestedDiagnostics.split("\n").filter(line => line.trim())) {
+		const name = line.substring(0, line.indexOf(":"));
+		if (diagnosticNames.has(name)) {
+			diagnosticNames.delete(name);
+		} else {
+			it(`should skip testing diagnostic ${name}`, done => {
+				done(new Error(`Unknown diagnostic \`${name}\``));
+			});
+		}
+	}
+
 	for (const sourceFile of getChangedSourceFiles(program)) {
 		const fileName = path.relative(process.cwd(), sourceFile.fileName);
 		if (isPathDescendantOf(path.normalize(sourceFile.fileName), diagnosticsFolder)) {
@@ -51,6 +65,8 @@ describe("should compile tests project", () => {
 			assert(diagnosticName && errors[diagnosticName], `Diagnostic test for unknown diagnostic ${fileBaseName}`);
 			const expectedId = (errors[diagnosticName] as DiagnosticFactory).id;
 			it(`should compile ${fileName} and report diagnostic ${diagnosticName}`, done => {
+				diagnosticNames.delete(diagnosticName);
+
 				const emitResult = compileFiles(program.getProgram(), data, pathTranslator, [sourceFile]);
 				if (
 					emitResult.diagnostics.length > 0 &&
@@ -74,4 +90,12 @@ describe("should compile tests project", () => {
 			});
 		}
 	}
+
+	it(`should test all diagnostics`, done => {
+		if (diagnosticNames.size === 0) {
+			done();
+		} else {
+			done(new Error(`Did not find tests for diagnostics ${[...diagnosticNames.values()].join()}`));
+		}
+	});
 });
