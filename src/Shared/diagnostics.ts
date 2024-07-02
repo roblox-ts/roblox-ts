@@ -186,22 +186,18 @@ export const errors = {
 
 	// import/export
 	noModuleSpecifierFile: error("Could not find file for import. Did you forget to `npm install`?"),
-	noInvalidModule: error("You can only use npm scopes that are listed in your typeRoots."),
-	noUnscopedModule: errorWithContext(
-		(
-			nodeModulesPath: string,
-			moduleFilename: string,
-			virtualPath: string | undefined,
-			relativePath: string,
-			mappedPath: string | undefined,
-			moduleOutPath: string,
-		) => [
-			"This module is not installed in the right place!",
+	noInvalidScope: error("You can only use npm scopes that are listed in your typeRoots."),
+	noUnscopedModule: error(
+		"Cannot import a module without a scope!",
+		"roblox-ts does not support importing regular npm packages.",
+	),
+	failedSymlinkResolve: errorWithContext(
+		(nodeModulesPath: string, moduleFilename: string, virtualPath: string | undefined, relativePath: string) => [
+			"Failed to resolve symlink to import!",
+			"The following info might help to find the issue",
 			`Packages are expected to be installed under ${nodeModulesPath}`,
-			`This package is located at ${moduleFilename}`,
-			virtualPath ? `Roblox-ts thinks it should be imported through this symlink: ${virtualPath}` : false,
-			mappedPath ? `The package entry point is ${mappedPath}` : false,
-			`So we should import ${moduleOutPath}`,
+			`This package is installed at ${moduleFilename}`,
+			virtualPath ? `roblox-ts thinks it should be imported through this symlink: ${virtualPath}` : false,
 			`The path from node_modules to the package would be ${relativePath}`,
 		],
 	),
