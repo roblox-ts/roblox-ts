@@ -79,9 +79,9 @@ function getNodeModulesImportParts(
 	const moduleScope = relativePath.split(path.sep)[0];
 	assert(moduleScope);
 
-	if (!moduleScope.startsWith("@")) {
+	if (moduleScope === "..") {
 		DiagnosticService.addDiagnostic(
-			errors.noUnscopedModule(
+			errors.noOuterModule(
 				moduleSpecifier,
 				state.data.nodeModulesPath,
 				moduleFilename,
@@ -92,10 +92,13 @@ function getNodeModulesImportParts(
 			),
 		);
 		return [luau.none()];
+	} else if (!moduleScope.startsWith("@")) {
+		DiagnosticService.addDiagnostic(errors.noUnscopedModule(moduleSpecifier));
+		return [luau.none()];
 	}
 
 	if (!validateModule(state, moduleScope)) {
-		DiagnosticService.addDiagnostic(errors.noInvalidModule(moduleSpecifier));
+		DiagnosticService.addDiagnostic(errors.noInvalidScope(moduleSpecifier));
 		return [luau.none()];
 	}
 

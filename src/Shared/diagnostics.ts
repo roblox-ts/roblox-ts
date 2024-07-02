@@ -190,8 +190,12 @@ export const errors = {
 
 	// import/export
 	noModuleSpecifierFile: error("Could not find file for import. Did you forget to `npm install`?"),
-	noInvalidModule: error("You can only use npm scopes that are listed in your typeRoots."),
-	noUnscopedModule: errorWithContext(
+	noInvalidScope: error("You can only use npm scopes that are listed in your typeRoots."),
+	noUnscopedModule: error(
+		"You can only modules that are under a scope.",
+		"Roblox-ts does not support importing regular node.js packages.",
+	),
+	noOuterModule: errorWithContext(
 		(
 			nodeModulesPath: string,
 			moduleFilename: string,
