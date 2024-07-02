@@ -5,7 +5,7 @@ export const PACKAGE_ROOT = path.join(__dirname, "..", "..");
 export const INCLUDE_PATH = path.join(PACKAGE_ROOT, "include");
 
 // intentionally not using PACKAGE_ROOT because playground has webpack issues
-// eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- can't use an import because it's outside the project
 export const COMPILER_VERSION: string = require("../../package.json").version;
 
 export const NODE_MODULES = "node_modules";

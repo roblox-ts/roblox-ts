@@ -26,8 +26,7 @@ export function getParsedCommandLine(data: ProjectData) {
 		throw new DiagnosticError(parsedCommandLine.errors);
 	}
 
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	if ((globalThis as any).RBXTSC_DEV || inspector.url() !== undefined) {
+	if ("RBXTSC_DEV" in globalThis || inspector.url() !== undefined) {
 		parsedCommandLine.options.incremental = false;
 		parsedCommandLine.options.tsBuildInfoFile = undefined;
 	}
