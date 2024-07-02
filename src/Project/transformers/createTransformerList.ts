@@ -99,7 +99,7 @@ export function createTransformerList(
 		try {
 			const modulePath = resolve.sync(config.transform, { basedir: baseDir });
 
-			/* eslint-disable-next-line @typescript-eslint/no-require-imports -- Need to require the transformer */
+			// eslint-disable-next-line @typescript-eslint/no-require-imports -- Need to require the transformer
 			const commonjsModule: PluginFactory | { [key: string]: PluginFactory } = require(modulePath);
 
 			const factoryModule = typeof commonjsModule === "function" ? { default: commonjsModule } : commonjsModule;
