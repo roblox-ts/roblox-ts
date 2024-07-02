@@ -9,7 +9,6 @@ import ts from "typescript";
 export function transformWhileStatement(state: TransformState, node: ts.WhileStatement) {
 	const whileStatements = luau.list.make<luau.Statement>();
 
-	// eslint-disable-next-line no-autofix/prefer-const
 	let [conditionExp, conditionPrereqs] = state.capture(() =>
 		createTruthinessChecks(state, transformExpression(state, node.expression), node.expression),
 	);

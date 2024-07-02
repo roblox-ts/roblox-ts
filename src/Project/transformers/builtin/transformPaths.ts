@@ -1,3 +1,4 @@
+/* eslint-disable eslint-comments/require-description -- file copied from other source and best not to be touched */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-expressions */
 

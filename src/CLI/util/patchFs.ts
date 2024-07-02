@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
+/* eslint-disable @typescript-eslint/ban-ts-comment -- necessary to override readonly functions */
 
 import fs from "fs-extra";
 

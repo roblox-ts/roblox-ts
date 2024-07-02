@@ -35,13 +35,31 @@ const DIAGNOSTIC = (factory: DiagnosticFactory) => (state: TransformState, node:
 	return NO_EMIT();
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type StatementTransformer = (state: TransformState, node: any) => luau.List<luau.Statement>;
+type Validate<T> = {
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any -- typecheck only works with `any`
+	[k in keyof T]: T[k] extends [infer Kind, infer C extends (...args: any) => unknown]
+		? "kind" extends keyof Parameters<C>[1]
+			? Kind extends Parameters<C>[1]["kind"]
+				? T[k]
+				: never
+			: T[k]
+		: never;
+};
 
-/**
- * Definitions for different types of transformations.
- */
-const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, StatementTransformer>([
+function createTransformerMap<
+	T extends Array<
+		[
+			ts.SyntaxKind,
+			{ bivariant(state: TransformState, statement: ts.Statement): luau.List<luau.Statement> }["bivariant"],
+		]
+	>,
+>(
+	values: Validate<[...T]>,
+): Map<ts.SyntaxKind, (state: TransformState, statement: ts.Statement) => luau.List<luau.Statement>> {
+	return new Map(values);
+}
+
+const TRANSFORMER_BY_KIND = createTransformerMap([
 	// no emit
 	[ts.SyntaxKind.InterfaceDeclaration, NO_EMIT],
 	[ts.SyntaxKind.TypeAliasDeclaration, NO_EMIT],

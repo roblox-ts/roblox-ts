@@ -48,10 +48,26 @@ const DIAGNOSTIC = (factory: DiagnosticFactory) => (state: TransformState, node:
 	return NO_EMIT();
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type ExpressionTransformer = (state: TransformState, node: any) => luau.Expression;
+type Validate<T> = {
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any -- typecheck only works with `any`
+	[k in keyof T]: T[k] extends [infer Kind, infer C extends (...args: any) => unknown]
+		? "kind" extends keyof Parameters<C>[1]
+			? Kind extends Parameters<C>[1]["kind"]
+				? T[k]
+				: never
+			: T[k]
+		: never;
+};
 
-const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
+function createTransformerMap<
+	T extends Array<
+		[ts.SyntaxKind, { bivariant(state: TransformState, exp: ts.Expression): luau.Expression }["bivariant"]]
+	>,
+>(values: Validate<[...T]>): Map<ts.SyntaxKind, (state: TransformState, exp: ts.Expression) => luau.Expression> {
+	return new Map(values);
+}
+
+const TRANSFORMER_BY_KIND = createTransformerMap([
 	// banned expressions
 	[ts.SyntaxKind.BigIntLiteral, DIAGNOSTIC(errors.noBigInt)],
 	[ts.SyntaxKind.NullKeyword, DIAGNOSTIC(errors.noNullLiteral)],
