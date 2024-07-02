@@ -72,12 +72,25 @@ function getNodeModulesImportParts(
 	sourceFile: ts.SourceFile,
 	moduleSpecifier: ts.Expression,
 	moduleOutPath: string,
+	moduleFilename: string,
+	mappedPath: string | undefined,
 ) {
-	const moduleScope = path.relative(state.data.nodeModulesPath, moduleOutPath).split(path.sep)[0];
+	const relativePath = path.relative(state.data.nodeModulesPath, moduleOutPath);
+	const moduleScope = relativePath.split(path.sep)[0];
 	assert(moduleScope);
 
 	if (!moduleScope.startsWith("@")) {
-		DiagnosticService.addDiagnostic(errors.noUnscopedModule(moduleSpecifier));
+		DiagnosticService.addDiagnostic(
+			errors.noUnscopedModule(
+				moduleSpecifier,
+				state.data.nodeModulesPath,
+				moduleFilename,
+				state.guessVirtualPath(moduleFilename),
+				relativePath,
+				mappedPath,
+				moduleOutPath,
+			),
+		);
 		return [luau.none()];
 	}
 
@@ -191,11 +204,16 @@ export function getImportParts(state: TransformState, sourceFile: ts.SourceFile,
 	const virtualPath = state.guessVirtualPath(moduleFile.fileName) || moduleFile.fileName;
 
 	if (ts.isInsideNodeModules(virtualPath)) {
-		const moduleOutPath = state.pathTranslator.getImportPath(
-			state.nodeModulesPathMapping.get(getCanonicalFileName(path.normalize(virtualPath))) ?? virtualPath,
-			/* isNodeModule */ true,
+		const mappedPath = state.nodeModulesPathMapping.get(getCanonicalFileName(path.normalize(virtualPath)));
+		const moduleOutPath = state.pathTranslator.getImportPath(mappedPath ?? virtualPath, /* isNodeModule */ true);
+		return getNodeModulesImportParts(
+			state,
+			sourceFile,
+			moduleSpecifier,
+			moduleOutPath,
+			moduleFile.fileName,
+			mappedPath,
 		);
-		return getNodeModulesImportParts(state, sourceFile, moduleSpecifier, moduleOutPath);
 	} else {
 		const moduleOutPath = state.pathTranslator.getImportPath(virtualPath);
 		const moduleRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
