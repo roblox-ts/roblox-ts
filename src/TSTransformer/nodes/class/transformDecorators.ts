@@ -20,7 +20,6 @@ function transformMemberDecorators(
 	if (!name || ts.isPrivateIdentifier(name)) return result;
 
 	for (const decorator of decorators ?? []) {
-		// eslint-disable-next-line no-autofix/prefer-const
 		let [expression, prereqs] = state.capture(() => transformExpression(state, decorator.expression));
 
 		luau.list.pushList(result, prereqs);

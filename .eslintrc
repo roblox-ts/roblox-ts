@@ -5,26 +5,24 @@
 		"useJSXTextNode": true,
 		"ecmaVersion": 2020,
 		"sourceType": "module",
-		"project": "./tsconfig.json"
+		"project": "./tsconfig.json",
 	},
-	"plugins": [
-		"@typescript-eslint",
-		"@typescript-eslint/eslint-plugin",
-		"prettier",
-		"simple-import-sort",
-		"no-autofix",
-		"deprecation"
+	"plugins": ["simple-import-sort", "no-autofix", "deprecation"],
+	"extends": [
+		"eslint:recommended",
+		"plugin:@typescript-eslint/recommended",
+		"plugin:prettier/recommended",
+		"plugin:eslint-comments/recommended",
 	],
-	"extends": ["eslint:recommended", "plugin:@typescript-eslint/recommended", "plugin:prettier/recommended"],
 	"rules": {
-		"prettier/prettier": "warn",
 		"@typescript-eslint/array-type": [
 			"warn",
 			{
 				"default": "generic",
-				"readonly": "generic"
-			}
+				"readonly": "generic",
+			},
 		],
+		"@typescript-eslint/ban-types": "off",
 		"@typescript-eslint/no-floating-promises": ["error", { "ignoreVoid": true }],
 		"@typescript-eslint/no-unused-vars": "warn",
 		"@typescript-eslint/explicit-function-return-type": "off",
@@ -35,18 +33,24 @@
 		"@typescript-eslint/no-non-null-assertion": "off",
 		"@typescript-eslint/no-use-before-define": "off",
 		"@typescript-eslint/explicit-module-boundary-types": "off",
+		"@typescript-eslint/no-var-requires": "off",
 		"@typescript-eslint/no-require-imports": "error",
 		"@typescript-eslint/no-unused-expressions": "warn",
+
 		"curly": ["warn", "multi-line", "consistent"],
-		"no-autofix/prefer-const": "warn",
 		"no-constant-condition": ["error", { "checkLoops": false }],
 		"no-debugger": "off",
 		"no-empty": ["error", { "allowEmptyCatch": true }],
 		"no-extra-boolean-cast": "off",
 		"no-undef-init": "error",
-		"prefer-const": "off",
+		"prefer-const": ["warn", { "destructuring": "all" }],
+
+		"deprecation/deprecation": "warn",
+		"eslint-comments/no-unused-disable": "warn",
+		"eslint-comments/disable-enable-pair": ["error", { "allowWholeFile": true }],
+		"eslint-comments/require-description": "warn",
+		"prettier/prettier": "warn",
 		"simple-import-sort/exports": "warn",
 		"simple-import-sort/imports": "warn",
-		"deprecation/deprecation": "warn"
-	}
+	},
 }

@@ -25,7 +25,6 @@ export function transformFunctionDeclaration(state: TransformState, node: ts.Fun
 
 	const name = node.name ? transformIdentifierDefined(state, node.name) : luau.id("default");
 
-	// eslint-disable-next-line no-autofix/prefer-const
 	let { statements, parameters, hasDotDotDot } = transformParameters(state, node);
 	luau.list.pushList(statements, transformStatementList(state, node.body, node.body.statements));
 

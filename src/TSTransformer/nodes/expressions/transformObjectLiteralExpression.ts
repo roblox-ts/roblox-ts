@@ -17,7 +17,6 @@ function transformPropertyAssignment(
 	name: ts.PropertyName,
 	initializer: ts.Expression,
 ) {
-	// eslint-disable-next-line no-autofix/prefer-const
 	let [left, leftPrereqs] = state.capture(() => transformPropertyName(state, name));
 	const [right, rightPrereqs] = state.capture(() => transformExpression(state, initializer));
 

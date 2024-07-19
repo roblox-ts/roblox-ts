@@ -46,7 +46,6 @@ interface BuildFlags {
 /**
  * Defines the behavior for the `rbxtsc build` command.
  */
-// eslint-disable-next-line @typescript-eslint/ban-types
 export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions>>>({
 	command: ["$0", "build"],
 
