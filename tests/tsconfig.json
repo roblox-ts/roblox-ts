@@ -13,7 +13,9 @@
 		"moduleDetection": "force",
 		"strict": true,
 		"target": "ESNext",
-		"typeRoots": ["node_modules/@rbxts"],
+
+		// flamework is used for diagnostic test `noPackageImportWithoutScope`
+		"typeRoots": ["node_modules/@rbxts", "node_modules/@flamework"],
 
 		// configurable
 		"rootDir": "src",
