@@ -1,5 +1,4 @@
 import luau from "@roblox-ts/luau-ast";
-import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import { MacroList, PropertyCallMacro } from "TSTransformer/macros/types";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
@@ -9,7 +8,7 @@ import { isDefinitelyType, isNumberType, isStringType } from "TSTransformer/util
 import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
 import ts from "typescript";
 
-function makeMathMethod(operator: luau.BinaryOperator): PropertyCallMacro {
+function makeBinaryMacroMethod(operator: luau.BinaryOperator): PropertyCallMacro {
 	return (state, node, expression, args) => {
 		let rhs = args[0];
 		if (!luau.isSimple(rhs)) {
@@ -19,22 +18,10 @@ function makeMathMethod(operator: luau.BinaryOperator): PropertyCallMacro {
 	};
 }
 
-const OPERATOR_TO_NAME_MAP = new Map<luau.BinaryOperator, "add" | "sub" | "mul" | "div" | "idiv">([
-	["+", "add"],
-	["-", "sub"],
-	["*", "mul"],
-	["/", "div"],
-	["//", "idiv"],
-]);
-
-function makeMathSet(...operators: Array<luau.BinaryOperator>) {
-	const result: { [index: string]: PropertyCallMacro } = {};
-	for (const operator of operators) {
-		const methodName = OPERATOR_TO_NAME_MAP.get(operator);
-		assert(methodName);
-		result[methodName] = makeMathMethod(operator);
-	}
-	return result;
+function makeUnaryMacroMethod(operator: luau.UnaryOperator): PropertyCallMacro {
+	return (state, node, expression) => {
+		return luau.unary(operator, expression);
+	};
 }
 
 function makeStringCallback(strCallback: luau.PropertyAccessExpression): PropertyCallMacro {
@@ -917,15 +904,22 @@ const PROMISE_METHODS: MacroList<PropertyCallMacro> = {
 };
 
 export const PROPERTY_CALL_MACROS: { [className: string]: MacroList<PropertyCallMacro> } = {
-	// math classes
-	CFrame: makeMathSet("+", "-", "*"),
-	UDim: makeMathSet("+", "-"),
-	UDim2: makeMathSet("+", "-"),
-	Vector2: makeMathSet("+", "-", "*", "/", "//"),
-	Vector2int16: makeMathSet("+", "-", "*", "/"),
-	Vector3: makeMathSet("+", "-", "*", "/", "//"),
-	Vector3int16: makeMathSet("+", "-", "*", "/"),
-	Number: makeMathSet("//"),
+	Add: { add: makeBinaryMacroMethod("+") },
+	Sub: { sub: makeBinaryMacroMethod("-") },
+	Mul: { mul: makeBinaryMacroMethod("*") },
+	Div: { div: makeBinaryMacroMethod("/") },
+	IDiv: { idiv: makeBinaryMacroMethod("//") },
+	Concat: { concat: makeBinaryMacroMethod("..") },
+	Mod: { mod: makeBinaryMacroMethod("%") },
+	Pow: { pow: makeBinaryMacroMethod("^") },
+	Eq: { eq: makeBinaryMacroMethod("==") },
+	Lt: { lt: makeBinaryMacroMethod("<") },
+	Le: { le: makeBinaryMacroMethod("<=") },
+	Gt: { gt: makeBinaryMacroMethod(">") },
+	Ge: { ge: makeBinaryMacroMethod(">=") },
+
+	Unm: { unm: makeUnaryMacroMethod("-") },
+	Len: { len: makeUnaryMacroMethod("#") },
 
 	String: STRING_CALLBACKS,
 	ArrayLike: ARRAY_LIKE_METHODS,
