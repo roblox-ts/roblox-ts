@@ -1,5 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
 import { SYMBOL_NAMES, TransformState } from "TSTransformer";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isReturnBlockedByTryStatement } from "TSTransformer/util/isBlockedByTryStatement";
@@ -27,6 +28,7 @@ function isTupleMacro(state: TransformState, expression: ts.Expression) {
 
 export function transformReturnStatementInner(
 	state: TransformState,
+	prereqs: Prereqs,
 	returnExp: ts.Expression,
 ): luau.List<luau.Statement> {
 	const result = luau.list.make<luau.Statement>();
@@ -34,11 +36,12 @@ export function transformReturnStatementInner(
 	let expression: luau.Expression | luau.List<luau.Expression>;
 
 	if (ts.isCallExpression(returnExp) && isTupleMacro(state, returnExp)) {
-		const [args, prereqs] = state.capture(() => ensureTransformOrder(state, returnExp.arguments));
-		luau.list.pushList(result, prereqs);
+		const prereqs = new Prereqs();
+		const args = ensureTransformOrder(state, prereqs, returnExp.arguments);
+		luau.list.pushList(result, prereqs.statements);
 		expression = luau.list.make(...args);
 	} else {
-		expression = transformExpression(state, skipDownwards(returnExp));
+		expression = transformExpression(state, prereqs, skipDownwards(returnExp));
 		if (isLuaTupleType(state)(state.getType(returnExp)) && !isTupleReturningCall(state, returnExp, expression)) {
 			if (luau.isArray(expression)) {
 				expression = expression.members;
@@ -68,7 +71,7 @@ export function transformReturnStatementInner(
 	return result;
 }
 
-export function transformReturnStatement(state: TransformState, node: ts.ReturnStatement) {
+export function transformReturnStatement(state: TransformState, prereqs: Prereqs, node: ts.ReturnStatement) {
 	if (!node.expression) {
 		if (isReturnBlockedByTryStatement(node)) {
 			state.markTryUses("usesReturn");
@@ -80,5 +83,5 @@ export function transformReturnStatement(state: TransformState, node: ts.ReturnS
 		}
 		return luau.list.make(luau.create(luau.SyntaxKind.ReturnStatement, { expression: luau.nil() }));
 	}
-	return transformReturnStatementInner(state, node.expression);
+	return transformReturnStatementInner(state, prereqs, node.expression);
 }

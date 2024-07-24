@@ -1,10 +1,11 @@
 import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformInterpolatedStringPart } from "TSTransformer/nodes/transformInterpolatedStringPart";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import ts from "typescript";
 
-export function transformTemplateExpression(state: TransformState, node: ts.TemplateExpression) {
+export function transformTemplateExpression(state: TransformState, prereqs: Prereqs, node: ts.TemplateExpression) {
 	const parts = luau.list.make<luau.InterpolatedStringPart | luau.Expression>();
 
 	if (node.head.text.length > 0) {
@@ -13,6 +14,7 @@ export function transformTemplateExpression(state: TransformState, node: ts.Temp
 
 	const orderedExpressions = ensureTransformOrder(
 		state,
+		prereqs,
 		node.templateSpans.map(templateSpan => templateSpan.expression),
 	);
 

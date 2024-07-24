@@ -2,6 +2,7 @@ import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformWritableExpression } from "TSTransformer/nodes/transformWritable";
 import { assertNever } from "TSTransformer/util/assertNever";
@@ -10,20 +11,24 @@ import { isDefinitelyType, isNumberType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import ts from "typescript";
 
-export function transformPostfixUnaryExpression(state: TransformState, node: ts.PostfixUnaryExpression) {
+export function transformPostfixUnaryExpression(
+	state: TransformState,
+	prereqs: Prereqs,
+	node: ts.PostfixUnaryExpression,
+) {
 	validateNotAnyType(state, node.operand);
 
-	const writable = transformWritableExpression(state, node.operand, true);
+	const writable = transformWritableExpression(state, prereqs, node.operand, true);
 	const origValue = luau.tempId("original");
 
-	state.prereq(
+	prereqs.prereq(
 		luau.create(luau.SyntaxKind.VariableDeclaration, {
 			left: origValue,
 			right: writable,
 		}),
 	);
 
-	state.prereq(
+	prereqs.prereq(
 		luau.create(luau.SyntaxKind.Assignment, {
 			left: writable,
 			operator:
@@ -39,13 +44,17 @@ export function transformPostfixUnaryExpression(state: TransformState, node: ts.
 	return origValue;
 }
 
-export function transformPrefixUnaryExpression(state: TransformState, node: ts.PrefixUnaryExpression) {
+export function transformPrefixUnaryExpression(
+	state: TransformState,
+	prereqs: Prereqs,
+	node: ts.PrefixUnaryExpression,
+) {
 	validateNotAnyType(state, node.operand);
 
 	if (node.operator === ts.SyntaxKind.PlusPlusToken || node.operator === ts.SyntaxKind.MinusMinusToken) {
-		const writable = transformWritableExpression(state, node.operand, true);
+		const writable = transformWritableExpression(state, prereqs, node.operand, true);
 		const operator: luau.AssignmentOperator = node.operator === ts.SyntaxKind.PlusPlusToken ? "+=" : "-=";
-		state.prereq(
+		prereqs.prereq(
 			luau.create(luau.SyntaxKind.Assignment, {
 				left: writable,
 				operator,
@@ -55,17 +64,24 @@ export function transformPrefixUnaryExpression(state: TransformState, node: ts.P
 		return writable;
 	} else if (node.operator === ts.SyntaxKind.PlusToken) {
 		DiagnosticService.addDiagnostic(errors.noUnaryPlus(node));
-		return transformExpression(state, node.operand);
+		return transformExpression(state, prereqs, node.operand);
 	} else if (node.operator === ts.SyntaxKind.MinusToken) {
 		if (!isDefinitelyType(state.getType(node.operand), isNumberType)) {
 			DiagnosticService.addDiagnostic(errors.noNonNumberUnaryMinus(node));
 		}
-		return luau.unary("-", transformExpression(state, node.operand));
+		return luau.unary("-", transformExpression(state, prereqs, node.operand));
 	} else if (node.operator === ts.SyntaxKind.ExclamationToken) {
-		const checks = createTruthinessChecks(state, transformExpression(state, node.operand), node.operand);
+		const checks = createTruthinessChecks(
+			state,
+			prereqs,
+			transformExpression(state, prereqs, node.operand),
+			node.operand,
+		);
 		return luau.unary("not", checks);
 	} else if (node.operator === ts.SyntaxKind.TildeToken) {
-		return luau.call(luau.property(luau.globals.bit32, "bnot"), [transformExpression(state, node.operand)]);
+		return luau.call(luau.property(luau.globals.bit32, "bnot"), [
+			transformExpression(state, prereqs, node.operand),
+		]);
 	}
 	return assertNever(node.operator, "transformPrefixUnaryExpression");
 }

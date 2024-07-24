@@ -1,13 +1,23 @@
 import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
 import { getStatements } from "TSTransformer/util/getStatements";
 import ts from "typescript";
 
-export function transformIfStatementInner(state: TransformState, node: ts.IfStatement): luau.IfStatement {
-	const condition = createTruthinessChecks(state, transformExpression(state, node.expression), node.expression);
+export function transformIfStatementInner(
+	state: TransformState,
+	prereqs: Prereqs,
+	node: ts.IfStatement,
+): luau.IfStatement {
+	const condition = createTruthinessChecks(
+		state,
+		prereqs,
+		transformExpression(state, prereqs, node.expression),
+		node.expression,
+	);
 
 	const statements = transformStatementList(state, node.thenStatement, getStatements(node.thenStatement));
 
@@ -17,12 +27,13 @@ export function transformIfStatementInner(state: TransformState, node: ts.IfStat
 	if (elseStatement === undefined) {
 		elseBody = luau.list.make<luau.Statement>();
 	} else if (ts.isIfStatement(elseStatement)) {
-		const [elseIf, elseIfPrereqs] = state.capture(() => transformIfStatementInner(state, elseStatement));
-		if (luau.list.isEmpty(elseIfPrereqs)) {
+		const elseIfPrereqs = new Prereqs();
+		const elseIf = transformIfStatementInner(state, elseIfPrereqs, elseStatement);
+		if (luau.list.isEmpty(elseIfPrereqs.statements)) {
 			elseBody = elseIf;
 		} else {
 			const elseIfStatements = luau.list.make<luau.Statement>();
-			luau.list.pushList(elseIfStatements, elseIfPrereqs);
+			luau.list.pushList(elseIfStatements, elseIfPrereqs.statements);
 			luau.list.push(elseIfStatements, elseIf);
 			elseBody = elseIfStatements;
 		}
@@ -37,6 +48,6 @@ export function transformIfStatementInner(state: TransformState, node: ts.IfStat
 	});
 }
 
-export function transformIfStatement(state: TransformState, node: ts.IfStatement) {
-	return luau.list.make(transformIfStatementInner(state, node));
+export function transformIfStatement(state: TransformState, prereqs: Prereqs, node: ts.IfStatement) {
+	return luau.list.make(transformIfStatementInner(state, prereqs, node));
 }

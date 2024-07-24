@@ -3,6 +3,7 @@ import { DiagnosticFactory, errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformArrayLiteralExpression } from "TSTransformer/nodes/expressions/transformArrayLiteralExpression";
 import { transformAwaitExpression } from "TSTransformer/nodes/expressions/transformAwaitExpression";
 import { transformBinaryExpression } from "TSTransformer/nodes/expressions/transformBinaryExpression";
@@ -48,66 +49,57 @@ const DIAGNOSTIC = (factory: DiagnosticFactory) => (state: TransformState, node:
 	return NO_EMIT();
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type ExpressionTransformer = (state: TransformState, node: any) => luau.Expression;
-
-const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
+export function transformExpression(state: TransformState, prereqs: Prereqs, node: ts.Expression): luau.Expression {
 	// banned expressions
-	[ts.SyntaxKind.BigIntLiteral, DIAGNOSTIC(errors.noBigInt)],
-	[ts.SyntaxKind.NullKeyword, DIAGNOSTIC(errors.noNullLiteral)],
-	[ts.SyntaxKind.PrivateIdentifier, DIAGNOSTIC(errors.noPrivateIdentifier)],
-	[ts.SyntaxKind.RegularExpressionLiteral, DIAGNOSTIC(errors.noRegex)],
-	[ts.SyntaxKind.TypeOfExpression, DIAGNOSTIC(errors.noTypeOfExpression)],
+	if (ts.isBigIntLiteral(node)) return DIAGNOSTIC(errors.noBigInt)(state, node);
+	if (node.kind === ts.SyntaxKind.NullKeyword) return DIAGNOSTIC(errors.noNullLiteral)(state, node);
+	if (ts.isPrivateIdentifier(node)) return DIAGNOSTIC(errors.noPrivateIdentifier)(state, node);
+	if (ts.isRegularExpressionLiteral(node)) return DIAGNOSTIC(errors.noRegex)(state, node);
+	if (ts.isTypeOfExpression(node)) return DIAGNOSTIC(errors.noTypeOfExpression)(state, node);
 
 	// skip transforms
-	[ts.SyntaxKind.ImportKeyword, NO_EMIT],
+	if (ts.isImportKeyword(node)) return NO_EMIT();
 
 	// regular transforms
-	[ts.SyntaxKind.ArrayLiteralExpression, transformArrayLiteralExpression],
-	[ts.SyntaxKind.ArrowFunction, transformFunctionExpression],
-	[ts.SyntaxKind.AsExpression, transformTypeExpression],
-	[ts.SyntaxKind.AwaitExpression, transformAwaitExpression],
-	[ts.SyntaxKind.BinaryExpression, transformBinaryExpression],
-	[ts.SyntaxKind.CallExpression, transformCallExpression],
-	[ts.SyntaxKind.ClassExpression, transformClassExpression],
-	[ts.SyntaxKind.ConditionalExpression, transformConditionalExpression],
-	[ts.SyntaxKind.DeleteExpression, transformDeleteExpression],
-	[ts.SyntaxKind.ElementAccessExpression, transformElementAccessExpression],
-	[ts.SyntaxKind.ExpressionWithTypeArguments, transformTypeExpression],
-	[ts.SyntaxKind.FalseKeyword, transformFalseKeyword],
-	[ts.SyntaxKind.FunctionExpression, transformFunctionExpression],
-	[ts.SyntaxKind.Identifier, transformIdentifier],
-	[ts.SyntaxKind.JsxElement, transformJsxElement],
-	[ts.SyntaxKind.JsxExpression, transformJsxExpression],
-	[ts.SyntaxKind.JsxFragment, transformJsxFragment],
-	[ts.SyntaxKind.JsxSelfClosingElement, transformJsxSelfClosingElement],
-	[ts.SyntaxKind.NewExpression, transformNewExpression],
-	[ts.SyntaxKind.NonNullExpression, transformTypeExpression],
-	[ts.SyntaxKind.NoSubstitutionTemplateLiteral, transformNoSubstitutionTemplateLiteral],
-	[ts.SyntaxKind.NumericLiteral, transformNumericLiteral],
-	[ts.SyntaxKind.ObjectLiteralExpression, transformObjectLiteralExpression],
-	[ts.SyntaxKind.OmittedExpression, transformOmittedExpression],
-	[ts.SyntaxKind.ParenthesizedExpression, transformParenthesizedExpression],
-	[ts.SyntaxKind.PostfixUnaryExpression, transformPostfixUnaryExpression],
-	[ts.SyntaxKind.PrefixUnaryExpression, transformPrefixUnaryExpression],
-	[ts.SyntaxKind.PropertyAccessExpression, transformPropertyAccessExpression],
-	[ts.SyntaxKind.SatisfiesExpression, transformTypeExpression],
-	[ts.SyntaxKind.SpreadElement, transformSpreadElement],
-	[ts.SyntaxKind.StringLiteral, transformStringLiteral],
-	[ts.SyntaxKind.SuperKeyword, transformSuperKeyword],
-	[ts.SyntaxKind.TaggedTemplateExpression, transformTaggedTemplateExpression],
-	[ts.SyntaxKind.TemplateExpression, transformTemplateExpression],
-	[ts.SyntaxKind.ThisKeyword, transformThisExpression],
-	[ts.SyntaxKind.TrueKeyword, transformTrueKeyword],
-	[ts.SyntaxKind.TypeAssertionExpression, transformTypeExpression],
-	[ts.SyntaxKind.VoidExpression, transformVoidExpression],
-	[ts.SyntaxKind.YieldExpression, transformYieldExpression],
-]);
+	if (ts.isArrayLiteralExpression(node)) return transformArrayLiteralExpression(state, prereqs, node);
+	if (ts.isArrowFunction(node)) return transformFunctionExpression(state, node);
+	if (ts.isAsExpression(node)) return transformTypeExpression(state, prereqs, node);
+	if (ts.isAwaitExpression(node)) return transformAwaitExpression(state, prereqs, node);
+	if (ts.isBinaryExpression(node)) return transformBinaryExpression(state, prereqs, node);
+	if (ts.isCallExpression(node)) return transformCallExpression(state, prereqs, node);
+	if (ts.isClassExpression(node)) return transformClassExpression(state, prereqs, node);
+	if (ts.isConditionalExpression(node)) return transformConditionalExpression(state, prereqs, node);
+	if (ts.isDeleteExpression(node)) return transformDeleteExpression(state, prereqs, node);
+	if (ts.isElementAccessExpression(node)) return transformElementAccessExpression(state, prereqs, node);
+	if (ts.isExpressionWithTypeArguments(node)) return transformTypeExpression(state, prereqs, node);
+	if (node.kind === ts.SyntaxKind.FalseKeyword) return transformFalseKeyword();
+	if (ts.isFunctionExpression(node)) return transformFunctionExpression(state, node);
+	if (ts.isIdentifier(node)) return transformIdentifier(state, node);
+	if (ts.isJsxElement(node)) return transformJsxElement(state, prereqs, node);
+	if (ts.isJsxExpression(node)) return transformJsxExpression(state, prereqs, node);
+	if (ts.isJsxFragment(node)) return transformJsxFragment(state, prereqs, node);
+	if (ts.isJsxSelfClosingElement(node)) return transformJsxSelfClosingElement(state, prereqs, node);
+	if (ts.isNewExpression(node)) return transformNewExpression(state, prereqs, node);
+	if (ts.isNonNullExpression(node)) return transformTypeExpression(state, prereqs, node);
+	if (ts.isNoSubstitutionTemplateLiteral(node)) return transformNoSubstitutionTemplateLiteral(node);
+	if (ts.isNumericLiteral(node)) return transformNumericLiteral(node);
+	if (ts.isObjectLiteralExpression(node)) return transformObjectLiteralExpression(state, prereqs, node);
+	if (ts.isOmittedExpression(node)) return transformOmittedExpression();
+	if (ts.isParenthesizedExpression(node)) return transformParenthesizedExpression(state, prereqs, node);
+	if (ts.isPostfixUnaryExpression(node)) return transformPostfixUnaryExpression(state, prereqs, node);
+	if (ts.isPrefixUnaryExpression(node)) return transformPrefixUnaryExpression(state, prereqs, node);
+	if (ts.isPropertyAccessExpression(node)) return transformPropertyAccessExpression(state, prereqs, node);
+	if (ts.isSatisfiesExpression(node)) return transformTypeExpression(state, prereqs, node);
+	if (ts.isSpreadElement(node)) return transformSpreadElement(state, prereqs, node);
+	if (ts.isStringLiteral(node)) return transformStringLiteral(node);
+	if (ts.isSuperKeyword(node)) return transformSuperKeyword();
+	if (ts.isTaggedTemplateExpression(node)) return transformTaggedTemplateExpression(state, prereqs, node);
+	if (ts.isTemplateExpression(node)) return transformTemplateExpression(state, prereqs, node);
+	if (node.kind === ts.SyntaxKind.ThisKeyword) return transformThisExpression(state, node as ts.ThisExpression);
+	if (node.kind === ts.SyntaxKind.TrueKeyword) return transformTrueKeyword();
+	if (ts.isTypeAssertionExpression(node)) return transformTypeExpression(state, prereqs, node);
+	if (ts.isVoidExpression(node)) return transformVoidExpression(state, prereqs, node);
+	if (ts.isYieldExpression(node)) return transformYieldExpression(state, prereqs, node);
 
-export function transformExpression(state: TransformState, node: ts.Expression): luau.Expression {
-	const transformer = TRANSFORMER_BY_KIND.get(node.kind);
-	if (transformer) {
-		return transformer(state, node);
-	}
 	assert(false, `Unknown expression: ${getKindName(node.kind)}`);
 }

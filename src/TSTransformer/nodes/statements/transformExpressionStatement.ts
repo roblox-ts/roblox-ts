@@ -1,5 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformLogicalOrCoalescingAssignmentExpressionStatement } from "TSTransformer/nodes/transformLogicalOrCoalescingAssignmentExpression";
 import { transformWritableAssignment, transformWritableExpression } from "TSTransformer/nodes/transformWritable";
@@ -12,9 +13,10 @@ import ts from "typescript";
 
 function transformUnaryExpressionStatement(
 	state: TransformState,
+	prereqs: Prereqs,
 	node: ts.PrefixUnaryExpression | ts.PostfixUnaryExpression,
 ) {
-	const writable = transformWritableExpression(state, node.operand, false);
+	const writable = transformWritableExpression(state, prereqs, node.operand, false);
 	const operator: luau.AssignmentOperator = node.operator === ts.SyntaxKind.PlusPlusToken ? "+=" : "-=";
 	return luau.create(luau.SyntaxKind.Assignment, {
 		left: writable,
@@ -25,6 +27,7 @@ function transformUnaryExpressionStatement(
 
 export function transformExpressionStatementInner(
 	state: TransformState,
+	prereqs: Prereqs,
 	expression: ts.Expression,
 ): luau.List<luau.Statement> {
 	if (ts.isBinaryExpression(expression)) {
@@ -45,6 +48,7 @@ export function transformExpressionStatementInner(
 			);
 			const { writable, readable, value } = transformWritableAssignment(
 				state,
+				prereqs,
 				expression.left,
 				expression.right,
 				operator === undefined,
@@ -61,8 +65,7 @@ export function transformExpressionStatementInner(
 			} else {
 				return luau.list.make(
 					createCompoundAssignmentStatement(
-						state,
-						expression,
+						prereqs,
 						writable,
 						writableType,
 						readable,
@@ -77,13 +80,13 @@ export function transformExpressionStatementInner(
 		(ts.isPrefixUnaryExpression(expression) || ts.isPostfixUnaryExpression(expression)) &&
 		isUnaryAssignmentOperator(expression.operator)
 	) {
-		return luau.list.make(transformUnaryExpressionStatement(state, expression));
+		return luau.list.make(transformUnaryExpressionStatement(state, prereqs, expression));
 	}
 
-	return wrapExpressionStatement(transformExpression(state, expression));
+	return wrapExpressionStatement(transformExpression(state, prereqs, expression));
 }
 
-export function transformExpressionStatement(state: TransformState, node: ts.ExpressionStatement) {
+export function transformExpressionStatement(state: TransformState, prereqs: Prereqs, node: ts.ExpressionStatement) {
 	const expression = skipDownwards(node.expression);
-	return transformExpressionStatementInner(state, expression);
+	return transformExpressionStatementInner(state, prereqs, expression);
 }

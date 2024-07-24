@@ -1,6 +1,7 @@
 import luau from "@roblox-ts/luau-ast";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import ts from "typescript";
@@ -20,10 +21,10 @@ function transformMemberDecorators(
 	if (!name || ts.isPrivateIdentifier(name)) return result;
 
 	for (const decorator of decorators ?? []) {
-		// eslint-disable-next-line no-autofix/prefer-const
-		let [expression, prereqs] = state.capture(() => transformExpression(state, decorator.expression));
+		const expressionPrereqs = new Prereqs();
+		let expression = transformExpression(state, expressionPrereqs, decorator.expression);
 
-		luau.list.pushList(result, prereqs);
+		luau.list.pushList(result, expressionPrereqs.statements);
 
 		if (multipleDecorators && !luau.isSimple(expression)) {
 			const tempId = luau.tempId("decorator");

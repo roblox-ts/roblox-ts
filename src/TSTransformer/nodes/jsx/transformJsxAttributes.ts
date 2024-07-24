@@ -2,6 +2,7 @@ import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
 import { assignToMapPointer, disableMapInline, MapPointer } from "TSTransformer/util/pointer";
@@ -10,13 +11,14 @@ import ts from "typescript";
 
 function createJsxAttributeLoop(
 	state: TransformState,
+	prereqs: Prereqs,
 	attributesPtrValue: luau.AnyIdentifier,
 	expression: luau.Expression,
 	tsExpression: ts.Expression,
 ) {
 	const definitelyObject = isDefinitelyType(state.getType(tsExpression), isObjectType);
 	if (!definitelyObject) {
-		expression = state.pushToVarIfComplex(expression, "attribute");
+		expression = prereqs.pushToVarIfComplex(expression, "attribute");
 	}
 
 	const keyId = luau.tempId("k");
@@ -38,7 +40,7 @@ function createJsxAttributeLoop(
 
 	if (!definitelyObject) {
 		statement = luau.create(luau.SyntaxKind.IfStatement, {
-			condition: createTruthinessChecks(state, expression, tsExpression),
+			condition: createTruthinessChecks(state, prereqs, expression, tsExpression),
 			statements: luau.list.make(statement),
 			elseBody: luau.list.make(),
 		});
@@ -47,30 +49,39 @@ function createJsxAttributeLoop(
 	return statement;
 }
 
-function transformJsxAttribute(state: TransformState, attribute: ts.JsxAttribute, attributesPtr: MapPointer) {
+function transformJsxAttribute(
+	state: TransformState,
+	prereqs: Prereqs,
+	attribute: ts.JsxAttribute,
+	attributesPtr: MapPointer,
+) {
 	let initializer: ts.Expression | undefined = attribute.initializer;
 	if (initializer && ts.isJsxExpression(initializer)) {
 		initializer = initializer.expression;
 	}
 
-	const [init, initPrereqs] = initializer
-		? state.capture(() => transformExpression(state, initializer!))
-		: [luau.bool(true), luau.list.make<luau.Statement>()];
+	const initPrereqs = new Prereqs();
+	const init = initializer ? transformExpression(state, initPrereqs, initializer) : luau.bool(true);
 
-	if (!luau.list.isEmpty(initPrereqs)) {
-		disableMapInline(state, attributesPtr);
-		state.prereqList(initPrereqs);
+	if (!luau.list.isEmpty(initPrereqs.statements)) {
+		disableMapInline(prereqs, attributesPtr);
+		prereqs.prereqList(initPrereqs.statements);
 	}
 
 	const text = ts.isIdentifier(attribute.name) ? attribute.name.text : ts.getTextOfJsxNamespacedName(attribute.name);
 	const name = luau.string(text);
-	assignToMapPointer(state, attributesPtr, name, init);
+	assignToMapPointer(prereqs, attributesPtr, name, init);
 }
 
-export function transformJsxAttributes(state: TransformState, attributes: ts.JsxAttributes, attributesPtr: MapPointer) {
+export function transformJsxAttributes(
+	state: TransformState,
+	prereqs: Prereqs,
+	attributes: ts.JsxAttributes,
+	attributesPtr: MapPointer,
+) {
 	for (const attribute of attributes.properties) {
 		if (ts.isJsxAttribute(attribute)) {
-			transformJsxAttribute(state, attribute, attributesPtr);
+			transformJsxAttribute(state, prereqs, attribute, attributesPtr);
 		} else {
 			// spread attributes: `<frame { ...x }/>`
 
@@ -80,14 +91,14 @@ export function transformJsxAttributes(state: TransformState, attributes: ts.Jsx
 				DiagnosticService.addDiagnostic(errors.noMacroObjectSpread(attribute));
 			}
 
-			const expression = transformExpression(state, attribute.expression);
+			const expression = transformExpression(state, prereqs, attribute.expression);
 
 			if (attribute === attributes.properties[0] && isDefinitelyType(expType, isObjectType)) {
-				attributesPtr.value = state.pushToVar(
+				attributesPtr.value = prereqs.pushToVar(
 					luau.call(luau.globals.table.clone, [expression]),
 					attributesPtr.name,
 				);
-				state.prereq(
+				prereqs.prereq(
 					luau.create(luau.SyntaxKind.CallStatement, {
 						// Explicitly remove metatable because things like classes can be spread
 						expression: luau.call(luau.globals.setmetatable, [attributesPtr.value, luau.nil()]),
@@ -96,8 +107,10 @@ export function transformJsxAttributes(state: TransformState, attributes: ts.Jsx
 				continue;
 			}
 
-			disableMapInline(state, attributesPtr);
-			state.prereq(createJsxAttributeLoop(state, attributesPtr.value, expression, attribute.expression));
+			disableMapInline(prereqs, attributesPtr);
+			prereqs.prereq(
+				createJsxAttributeLoop(state, prereqs, attributesPtr.value, expression, attribute.expression),
+			);
 		}
 	}
 }
