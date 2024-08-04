@@ -20,6 +20,10 @@ export function transformPropertyDeclaration(
 		return luau.list.make<luau.Statement>();
 	}
 
+	if (ts.hasDecorators(node)) {
+		state.setClassElementObjectKey(node, luau.string(node.name.getText()));
+	}
+
 	if (!node.initializer) {
 		return luau.list.make<luau.Statement>();
 	}
