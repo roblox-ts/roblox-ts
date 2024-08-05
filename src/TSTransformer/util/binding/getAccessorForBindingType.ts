@@ -23,7 +23,7 @@ type BindingAccessor = (
 	index: number,
 	idStack: Array<luau.AnyIdentifier>,
 	isOmitted: boolean,
-	isSpread: boolean,
+	isSpread?: boolean, // spreading might not exist for this binding type
 ) => luau.Expression;
 
 function peek<T>(array: Array<T>): T | undefined {
