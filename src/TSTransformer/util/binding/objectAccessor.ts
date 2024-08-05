@@ -6,7 +6,7 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { addIndexDiagnostics } from "TSTransformer/util/addIndexDiagnostics";
 import { addOneIfArrayType } from "TSTransformer/util/addOneIfArrayType";
 import { assertNever } from "TSTransformer/util/assertNever";
-import spreadDestructObject from "TSTransformer/util/spreadDestruction/spreadDestructObject";
+import { spreadDestructObject } from "TSTransformer/util/spreadDestruction";
 import ts from "typescript";
 
 export const objectAccessor = (

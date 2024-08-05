@@ -2,7 +2,7 @@ import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import ts from "typescript";
 
-export default function spreadDestructObject(
+export function spreadDestructObject(
 	state: TransformState,
 	parentId: luau.AnyIdentifier,
 	preSpreadNames: Array<ts.PropertyName>,

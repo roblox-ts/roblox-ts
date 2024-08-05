@@ -3,9 +3,7 @@ import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
-import spreadDestructArray from "TSTransformer/util/spreadDestruction/spreadDestructArray";
-import spreadDestructMap from "TSTransformer/util/spreadDestruction/spreadDestructMap";
-import spreadDestructSet from "TSTransformer/util/spreadDestruction/spreadDestructSet";
+import { spreadDestructArray, spreadDestructMap, spreadDestructSet } from "TSTransformer/util/spreadDestruction";
 import {
 	isArrayType,
 	isDefinitelyType,

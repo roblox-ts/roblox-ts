@@ -1,7 +1,7 @@
 import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer/classes/TransformState";
 
-export default function spreadDestructArray(state: TransformState, parentId: luau.AnyIdentifier, index: number) {
+export function spreadDestructArray(state: TransformState, parentId: luau.AnyIdentifier, index: number) {
 	const restId = state.pushToVar(luau.array(), "rest");
 	state.prereq(
 		luau.create(luau.SyntaxKind.CallStatement, {

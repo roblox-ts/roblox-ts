@@ -1,7 +1,7 @@
 import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer/classes/TransformState";
 
-export default function spreadDestructSet(
+export function spreadDestructSet(
 	state: TransformState,
 	parentId: luau.AnyIdentifier,
 	idStack: Array<luau.AnyIdentifier>,
