@@ -23,13 +23,31 @@ type BindingAccessor = (
 	index: number,
 	idStack: Array<luau.AnyIdentifier>,
 	isOmitted: boolean,
+	isSpread: boolean,
 ) => luau.Expression;
 
 function peek<T>(array: Array<T>): T | undefined {
 	return array[array.length - 1];
 }
 
-const arrayAccessor: BindingAccessor = (state, parentId, index) => {
+const arrayAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted, isSpread) => {
+	if (isSpread) {
+		const restId = state.pushToVar(luau.array(), "rest");
+		state.prereq(
+			luau.create(luau.SyntaxKind.CallStatement, {
+				expression: luau.call(luau.globals.table.move, [
+					parentId,
+					luau.number(index + 1),
+					luau.unary("#", parentId),
+					luau.number(1),
+					restId,
+				]),
+			}),
+		);
+
+		return restId;
+	}
+
 	return luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 		expression: parentId,
 		index: luau.number(index + 1),
@@ -83,7 +101,7 @@ const setAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted
 	}
 };
 
-const mapAccessor: BindingAccessor = (state, parentId, index, idStack) => {
+const mapAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted, isSpread) => {
 	const args = [parentId];
 	const lastId = peek(idStack);
 	if (lastId) {
