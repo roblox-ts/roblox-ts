@@ -5,6 +5,9 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import ts from "typescript";
 
+// eslint-disable-next-line no-restricted-imports
+import { transformPropertyName } from "../transformPropertyName";
+
 function transformMemberDecorators(
 	state: TransformState,
 	node: ts.ClassLikeDeclaration | ts.MethodDeclaration | ts.PropertyDeclaration | ts.ParameterDeclaration,
@@ -121,7 +124,7 @@ function transformPropertyDecorators(
 		// decorator(Class, "name")
 		return luau.list.make(
 			luau.create(luau.SyntaxKind.CallStatement, {
-				expression: luau.call(expression, [classId, key]),
+				expression: luau.call(expression, [classId, transformPropertyName(state, member.name)]),
 			}),
 		);
 	});

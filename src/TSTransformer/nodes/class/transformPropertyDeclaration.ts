@@ -15,6 +15,14 @@ export function transformPropertyDeclaration(
 		return luau.list.make<luau.Statement>();
 	}
 
+	if (ts.hasDecorators(node)) {
+		const propertyName = transformPropertyName(state, node.name);
+
+		if (luau.isSimple(propertyName)) {
+			state.setClassElementObjectKey(node, propertyName);
+		}
+	}
+
 	if (ts.isPrivateIdentifier(node.name)) {
 		DiagnosticService.addDiagnostic(errors.noPrivateIdentifier(node));
 		return luau.list.make<luau.Statement>();
