@@ -40,7 +40,7 @@ function transformMemberDecorators(
 		let key: luau.Expression | undefined;
 		if (ts.isMethodDeclaration(node) || ts.isPropertyDeclaration(node)) {
 			key = state.getClassElementObjectKey(node);
-			assert(key);
+			//assert(key);
 		}
 
 		luau.list.unshiftList(finalizers, callback(convertToIndexableExpression(expression), key));
@@ -115,13 +115,13 @@ function transformPropertyDecorators(
 	member: ts.PropertyDeclaration,
 	classId: luau.AnyIdentifier,
 ): luau.List<luau.Statement> {
-	return transformMemberDecorators(state, member, (expression, key) => {
-		assert(key);
+	return transformMemberDecorators(state, member, expression => {
+		//assert(key);
 
 		// decorator(Class, "name")
 		return luau.list.make(
 			luau.create(luau.SyntaxKind.CallStatement, {
-				expression: luau.call(expression, [classId, key]),
+				expression: luau.call(expression, [classId, luau.string(member.name.getText())]),
 			}),
 		);
 	});

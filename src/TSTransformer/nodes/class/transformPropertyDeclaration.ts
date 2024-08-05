@@ -11,6 +11,10 @@ export function transformPropertyDeclaration(
 	node: ts.PropertyDeclaration,
 	name: luau.AnyIdentifier,
 ) {
+	if (ts.hasDecorators(node)) {
+		state.setClassElementObjectKey(node, name);
+	}
+
 	if (!ts.hasStaticModifier(node)) {
 		return luau.list.make<luau.Statement>();
 	}
@@ -18,10 +22,6 @@ export function transformPropertyDeclaration(
 	if (ts.isPrivateIdentifier(node.name)) {
 		DiagnosticService.addDiagnostic(errors.noPrivateIdentifier(node));
 		return luau.list.make<luau.Statement>();
-	}
-
-	if (ts.hasDecorators(node)) {
-		state.setClassElementObjectKey(node, luau.string(node.name.getText()));
 	}
 
 	if (!node.initializer) {
