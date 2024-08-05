@@ -44,8 +44,13 @@ export const objectAccessor = (
 						),
 						elseBody: luau.list.make(),
 						statements: luau.list.make(
-							luau.create(luau.SyntaxKind.CallStatement, {
-								expression: luau.call(luau.globals.table.insert, [rest, valueId]),
+							luau.create(luau.SyntaxKind.Assignment, {
+								left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+									expression: rest,
+									index: keyId,
+								}),
+								operator: "=",
+								right: valueId,
 							}),
 						),
 					}),
