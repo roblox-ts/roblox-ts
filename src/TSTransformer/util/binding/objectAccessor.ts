@@ -6,6 +6,7 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { addIndexDiagnostics } from "TSTransformer/util/addIndexDiagnostics";
 import { addOneIfArrayType } from "TSTransformer/util/addOneIfArrayType";
 import { assertNever } from "TSTransformer/util/assertNever";
+import spreadDestructObject from "TSTransformer/util/spreadDestruction/spreadDestructObject";
 import ts from "typescript";
 
 export const objectAccessor = (
@@ -17,47 +18,7 @@ export const objectAccessor = (
 ): luau.Expression => {
 	addIndexDiagnostics(state, name, state.getType(name));
 	if (preSpreadNames !== undefined) {
-		const extracted = state.pushToVar(
-			luau.set(
-				preSpreadNames.map(name => {
-					return luau.string(name.getText());
-				}),
-			),
-			"extracted",
-		);
-		const rest = state.pushToVar(luau.map(), "rest");
-		const keyId = luau.tempId("k");
-		const valueId = luau.tempId("v");
-
-		state.prereq(
-			luau.create(luau.SyntaxKind.ForStatement, {
-				ids: luau.list.make(keyId, valueId),
-				expression: parentId,
-				statements: luau.list.make(
-					luau.create(luau.SyntaxKind.IfStatement, {
-						condition: luau.unary(
-							"not",
-							luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-								expression: extracted,
-								index: keyId,
-							}),
-						),
-						elseBody: luau.list.make(),
-						statements: luau.list.make(
-							luau.create(luau.SyntaxKind.Assignment, {
-								left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-									expression: rest,
-									index: keyId,
-								}),
-								operator: "=",
-								right: valueId,
-							}),
-						),
-					}),
-				),
-			}),
-		);
-		return rest;
+		return spreadDestructObject(state, parentId, preSpreadNames);
 	} else if (ts.isIdentifier(name)) {
 		return luau.property(parentId, name.text);
 	} else if (ts.isComputedPropertyName(name)) {

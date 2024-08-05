@@ -3,6 +3,9 @@ import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
+import spreadDestructArray from "TSTransformer/util/spreadDestruction/spreadDestructArray";
+import spreadDestructMap from "TSTransformer/util/spreadDestruction/spreadDestructMap";
+import spreadDestructSet from "TSTransformer/util/spreadDestruction/spreadDestructSet";
 import {
 	isArrayType,
 	isDefinitelyType,
@@ -32,20 +35,7 @@ function peek<T>(array: Array<T>): T | undefined {
 
 const arrayAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted, isSpread) => {
 	if (isSpread) {
-		const restId = state.pushToVar(luau.array(), "rest");
-		state.prereq(
-			luau.create(luau.SyntaxKind.CallStatement, {
-				expression: luau.call(luau.globals.table.move, [
-					parentId,
-					luau.number(index + 1),
-					luau.unary("#", parentId),
-					luau.number(1),
-					restId,
-				]),
-			}),
-		);
-
-		return restId;
+		return spreadDestructArray(state, parentId, index);
 	}
 
 	return luau.create(luau.SyntaxKind.ComputedIndexExpression, {
@@ -82,34 +72,7 @@ const stringAccessor: BindingAccessor = (state, parentId, index, idStack, isOmit
 
 const setAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted, isSpread) => {
 	if (isSpread) {
-		const extracted = state.pushToVar(luau.set(idStack), "extracted");
-		const rest = state.pushToVar(luau.array(), "rest");
-
-		const keyId = luau.tempId("k");
-		const loop = luau.create(luau.SyntaxKind.ForStatement, {
-			ids: luau.list.make(keyId, luau.tempId("v")),
-			expression: parentId,
-			statements: luau.list.make(
-				luau.create(luau.SyntaxKind.IfStatement, {
-					condition: luau.unary(
-						"not",
-						luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-							expression: extracted,
-							index: keyId,
-						}),
-					),
-					elseBody: luau.list.make(),
-					statements: luau.list.make(
-						luau.create(luau.SyntaxKind.CallStatement, {
-							expression: luau.call(luau.globals.table.insert, [rest, keyId]),
-						}),
-					),
-				}),
-			),
-		});
-
-		state.prereq(loop);
-		return rest;
+		return spreadDestructSet(state, parentId, idStack);
 	}
 
 	const args = [parentId];
@@ -134,40 +97,7 @@ const setAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted
 
 const mapAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted, isSpread) => {
 	if (isSpread) {
-		const extracted = state.pushToVar(luau.set(idStack), "extracted");
-		const rest = state.pushToVar(luau.array(), "rest");
-
-		const keyId = luau.tempId("k");
-		const valueId = luau.tempId("v");
-		const loop = luau.create(luau.SyntaxKind.ForStatement, {
-			ids: luau.list.make(keyId, valueId),
-			expression: parentId,
-			statements: luau.list.make(
-				luau.create(luau.SyntaxKind.IfStatement, {
-					condition: luau.unary(
-						"not",
-						luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-							expression: extracted,
-							index: keyId,
-						}),
-					),
-					elseBody: luau.list.make(),
-					statements: luau.list.make(
-						luau.create(luau.SyntaxKind.CallStatement, {
-							expression: luau.call(luau.globals.table.insert, [
-								rest,
-								luau.create(luau.SyntaxKind.Array, {
-									members: luau.list.make(keyId, valueId),
-								}),
-							]),
-						}),
-					),
-				}),
-			),
-		});
-
-		state.prereq(loop);
-		return rest;
+		return spreadDestructMap(state, parentId, idStack);
 	}
 	const args = [parentId];
 	const lastId = peek(idStack);
