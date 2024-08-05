@@ -82,6 +82,14 @@ export function transformClassConstructor(
 		if (ts.isPropertyDeclaration(member) && !ts.hasStaticModifier(member)) {
 			transformFirstSuper();
 
+			if (ts.hasDecorators(member)) {
+				const propertyName = transformPropertyName(state, member.name);
+
+				if (luau.isSimple(propertyName)) {
+					state.setClassElementObjectKey(member, propertyName);
+				}
+			}
+
 			const name = member.name;
 			if (ts.isPrivateIdentifier(name)) {
 				DiagnosticService.addDiagnostic(errors.noPrivateIdentifier(node));
