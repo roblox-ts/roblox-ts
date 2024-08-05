@@ -12,7 +12,11 @@ export function transformPropertyDeclaration(
 	name: luau.AnyIdentifier,
 ) {
 	if (ts.hasDecorators(node)) {
-		state.setClassElementObjectKey(node, name);
+		const propertyName = transformPropertyName(state, node.name);
+
+		if (luau.isSimple(propertyName)) {
+			state.setClassElementObjectKey(node, propertyName);
+		}
 	}
 
 	if (!ts.hasStaticModifier(node)) {
