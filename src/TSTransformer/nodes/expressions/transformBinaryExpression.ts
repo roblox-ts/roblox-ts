@@ -45,8 +45,6 @@ function transformOptimizedArrayAssignmentPattern(
 		for (let element of assignmentPattern.elements) {
 			if (ts.isOmittedExpression(element)) {
 				luau.list.push(writes, luau.tempId());
-			} else if (ts.isSpreadElement(element)) {
-				DiagnosticService.addDiagnostic(errors.noSpreadDestructuring(element));
 			} else {
 				let initializer: ts.Expression | undefined;
 				if (ts.isBinaryExpression(element)) {

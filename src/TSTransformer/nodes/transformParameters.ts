@@ -22,10 +22,6 @@ function optimizeArraySpreadParameter(
 		if (ts.isOmittedExpression(element)) {
 			luau.list.push(parameters, luau.tempId());
 		} else {
-			if (element.dotDotDotToken) {
-				DiagnosticService.addDiagnostic(errors.noSpreadDestructuring(element));
-				return;
-			}
 			const name = element.name;
 			if (ts.isIdentifier(name)) {
 				const paramId = transformIdentifierDefined(state, name);

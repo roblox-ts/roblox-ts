@@ -66,10 +66,6 @@ function transformOptimizedArrayBindingPattern(
 				if (ts.isOmittedExpression(element)) {
 					luau.list.push(ids, luau.tempId());
 				} else {
-					if (element.dotDotDotToken) {
-						DiagnosticService.addDiagnostic(errors.noSpreadDestructuring(element));
-						return;
-					}
 					if (ts.isIdentifier(element.name)) {
 						validateIdentifier(state, element.name);
 						const id = transformIdentifierDefined(state, element.name);
