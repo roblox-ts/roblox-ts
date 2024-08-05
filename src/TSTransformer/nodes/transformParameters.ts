@@ -1,7 +1,5 @@
 import luau from "@roblox-ts/luau-ast";
-import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
-import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformArrayBindingPattern } from "TSTransformer/nodes/binding/transformArrayBindingPattern";
 import { transformObjectBindingPattern } from "TSTransformer/nodes/binding/transformObjectBindingPattern";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
