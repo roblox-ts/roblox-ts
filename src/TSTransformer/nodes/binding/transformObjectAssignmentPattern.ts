@@ -1,8 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
-import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
-import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformArrayAssignmentPattern } from "TSTransformer/nodes/binding/transformArrayAssignmentPattern";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { transformWritableExpression } from "TSTransformer/nodes/transformWritable";
@@ -37,9 +35,6 @@ export function transformObjectAssignmentPattern(
 			if (property.objectAssignmentInitializer) {
 				state.prereq(transformInitializer(state, id, property.objectAssignmentInitializer));
 			}
-		} else if (ts.isSpreadAssignment(property)) {
-			DiagnosticService.addDiagnostic(errors.noSpreadDestructuring(property));
-			return;
 		} else if (ts.isPropertyAssignment(property)) {
 			const name = property.name;
 			let init = property.initializer;

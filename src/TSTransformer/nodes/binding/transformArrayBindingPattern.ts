@@ -1,7 +1,5 @@
 import luau from "@roblox-ts/luau-ast";
-import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
-import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformObjectBindingPattern } from "TSTransformer/nodes/binding/transformObjectBindingPattern";
 import { transformVariable } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
@@ -19,16 +17,14 @@ export function transformArrayBindingPattern(
 	let index = 0;
 	const idStack = new Array<luau.AnyIdentifier>();
 	const accessor = getAccessorForBindingType(state, bindingPattern, state.getType(bindingPattern));
+
 	for (const element of bindingPattern.elements) {
 		if (ts.isOmittedExpression(element)) {
-			accessor(state, parentId, index, idStack, true);
+			accessor(state, parentId, index, idStack, true, false);
 		} else {
-			if (element.dotDotDotToken) {
-				DiagnosticService.addDiagnostic(errors.noSpreadDestructuring(element));
-				return;
-			}
 			const name = element.name;
-			const value = accessor(state, parentId, index, idStack, false);
+			const value = accessor(state, parentId, index, idStack, false, element.dotDotDotToken !== undefined);
+
 			if (ts.isIdentifier(name)) {
 				const id = transformVariable(state, name, value);
 				if (element.initializer) {

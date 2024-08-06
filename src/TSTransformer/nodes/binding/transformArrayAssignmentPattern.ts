@@ -1,8 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
-import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
-import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformObjectAssignmentPattern } from "TSTransformer/nodes/binding/transformObjectAssignmentPattern";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { transformWritableExpression } from "TSTransformer/nodes/transformWritable";
@@ -25,9 +23,7 @@ export function transformArrayAssignmentPattern(
 	);
 	for (let element of assignmentPattern.elements) {
 		if (ts.isOmittedExpression(element)) {
-			accessor(state, parentId, index, idStack, true);
-		} else if (ts.isSpreadElement(element)) {
-			DiagnosticService.addDiagnostic(errors.noSpreadDestructuring(element));
+			accessor(state, parentId, index, idStack, true, false);
 		} else {
 			let initializer: ts.Expression | undefined;
 			if (ts.isBinaryExpression(element)) {
@@ -35,7 +31,7 @@ export function transformArrayAssignmentPattern(
 				element = skipDownwards(element.left);
 			}
 
-			const value = accessor(state, parentId, index, idStack, false);
+			const value = accessor(state, parentId, index, idStack, false, ts.isSpreadElement(element));
 			if (
 				ts.isIdentifier(element) ||
 				ts.isElementAccessExpression(element) ||
