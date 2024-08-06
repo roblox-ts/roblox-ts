@@ -14,7 +14,7 @@ export function transformObjectBindingPattern(
 	parentId: luau.AnyIdentifier,
 ) {
 	validateNotAnyType(state, bindingPattern);
-	const preSpreadNames = new Array<ts.PropertyName>();
+	const preSpreadNames = new Array<luau.Expression>();
 	for (const element of bindingPattern.elements) {
 		const name = element.name;
 		const prop = element.propertyName;
@@ -28,7 +28,7 @@ export function transformObjectBindingPattern(
 				prop ?? name,
 				isSpread ? preSpreadNames : undefined,
 			);
-			preSpreadNames.push(prop ?? name);
+			preSpreadNames.push(value);
 			const id = transformVariable(state, name, value);
 			if (element.initializer) {
 				state.prereq(transformInitializer(state, id, element.initializer));
@@ -44,7 +44,7 @@ export function transformObjectBindingPattern(
 				prop,
 				isSpread ? preSpreadNames : undefined,
 			);
-			preSpreadNames.push(prop);
+			preSpreadNames.push(value);
 			const id = state.pushToVar(value, "binding");
 			if (element.initializer) {
 				state.prereq(transformInitializer(state, id, element.initializer));

@@ -14,7 +14,7 @@ export const objectAccessor = (
 	parentId: luau.AnyIdentifier,
 	type: ts.Type,
 	name: ts.PropertyName,
-	preSpreadNames?: Array<ts.PropertyName>,
+	preSpreadNames?: Array<luau.Expression>,
 ): luau.Expression => {
 	addIndexDiagnostics(state, name, state.getType(name));
 	if (preSpreadNames !== undefined) {

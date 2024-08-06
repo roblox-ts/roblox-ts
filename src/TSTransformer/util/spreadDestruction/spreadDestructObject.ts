@@ -1,16 +1,15 @@
 import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer/classes/TransformState";
-import ts from "typescript";
 
 export function spreadDestructObject(
 	state: TransformState,
 	parentId: luau.AnyIdentifier,
-	preSpreadNames: Array<ts.PropertyName>,
+	preSpreadNames: Array<luau.Expression>,
 ) {
 	const extracted = state.pushToVar(
 		luau.set(
-			preSpreadNames.map(name => {
-				return luau.string(name.getText());
+			preSpreadNames.map(expression => {
+				return luau.isPropertyAccessExpression(expression) ? luau.string(expression.name) : expression;
 			}),
 		),
 		"extracted",
