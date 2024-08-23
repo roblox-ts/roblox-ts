@@ -11,33 +11,34 @@ export function spreadDestructMap(
 
 	const keyId = luau.tempId("k");
 	const valueId = luau.tempId("v");
-	const loop = luau.create(luau.SyntaxKind.ForStatement, {
-		ids: luau.list.make(keyId, valueId),
-		expression: parentId,
-		statements: luau.list.make(
-			luau.create(luau.SyntaxKind.IfStatement, {
-				condition: luau.unary(
-					"not",
-					luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-						expression: extracted,
-						index: keyId,
-					}),
-				),
-				elseBody: luau.list.make(),
-				statements: luau.list.make(
-					luau.create(luau.SyntaxKind.CallStatement, {
-						expression: luau.call(luau.globals.table.insert, [
-							rest,
-							luau.create(luau.SyntaxKind.Array, {
-								members: luau.list.make(keyId, valueId),
-							}),
-						]),
-					}),
-				),
-			}),
-		),
-	});
 
-	state.prereq(loop);
+	state.prereq(
+		luau.create(luau.SyntaxKind.ForStatement, {
+			ids: luau.list.make(keyId, valueId),
+			expression: parentId,
+			statements: luau.list.make(
+				luau.create(luau.SyntaxKind.IfStatement, {
+					condition: luau.unary(
+						"not",
+						luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+							expression: extracted,
+							index: keyId,
+						}),
+					),
+					elseBody: luau.list.make(),
+					statements: luau.list.make(
+						luau.create(luau.SyntaxKind.CallStatement, {
+							expression: luau.call(luau.globals.table.insert, [
+								rest,
+								luau.create(luau.SyntaxKind.Array, {
+									members: luau.list.make(keyId, valueId),
+								}),
+							]),
+						}),
+					),
+				}),
+			),
+		}),
+	);
 	return rest;
 }

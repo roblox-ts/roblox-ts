@@ -18,32 +18,33 @@ export function spreadDestructObject(
 	const keyId = luau.tempId("k");
 	const valueId = luau.tempId("v");
 
-	const loop = luau.create(luau.SyntaxKind.ForStatement, {
-		ids: luau.list.make(keyId, valueId),
-		expression: parentId,
-		statements: luau.list.make(
-			luau.create(luau.SyntaxKind.IfStatement, {
-				condition: luau.unary(
-					"not",
-					luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-						expression: extracted,
-						index: keyId,
-					}),
-				),
-				elseBody: luau.list.make(),
-				statements: luau.list.make(
-					luau.create(luau.SyntaxKind.Assignment, {
-						left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-							expression: rest,
+	state.prereq(
+		luau.create(luau.SyntaxKind.ForStatement, {
+			ids: luau.list.make(keyId, valueId),
+			expression: parentId,
+			statements: luau.list.make(
+				luau.create(luau.SyntaxKind.IfStatement, {
+					condition: luau.unary(
+						"not",
+						luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+							expression: extracted,
 							index: keyId,
 						}),
-						operator: "=",
-						right: valueId,
-					}),
-				),
-			}),
-		),
-	});
-	state.prereq(loop);
+					),
+					elseBody: luau.list.make(),
+					statements: luau.list.make(
+						luau.create(luau.SyntaxKind.Assignment, {
+							left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+								expression: rest,
+								index: keyId,
+							}),
+							operator: "=",
+							right: valueId,
+						}),
+					),
+				}),
+			),
+		}),
+	);
 	return rest;
 }
