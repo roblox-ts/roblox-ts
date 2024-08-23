@@ -9,7 +9,10 @@ export function spreadDestructObject(
 	const extracted = state.pushToVar(
 		luau.set(
 			preSpreadNames.map(expression => {
-				return luau.isPropertyAccessExpression(expression) ? luau.string(expression.name) : expression;
+				if (luau.isPropertyAccessExpression(expression)) return luau.string(expression.name);
+				if (luau.isComputedIndexExpression(expression)) return expression.index;
+
+				return expression;
 			}),
 		),
 		"extracted",
