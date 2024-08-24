@@ -6,6 +6,7 @@ import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { transformWritableExpression } from "TSTransformer/nodes/transformWritable";
 import { getAccessorForBindingType } from "TSTransformer/util/binding/getAccessorForBindingType";
 import { getKindName } from "TSTransformer/util/getKindName";
+import { getSpreadDestructorForType } from "TSTransformer/util/spreadDestruction";
 import { skipDownwards } from "TSTransformer/util/traversal";
 import ts from "typescript";
 
@@ -23,7 +24,7 @@ export function transformArrayAssignmentPattern(
 	);
 	for (let element of assignmentPattern.elements) {
 		if (ts.isOmittedExpression(element)) {
-			accessor(state, parentId, index, idStack, true, false);
+			accessor(state, parentId, index, idStack, true);
 		} else {
 			let initializer: ts.Expression | undefined;
 			if (ts.isBinaryExpression(element)) {
@@ -31,7 +32,16 @@ export function transformArrayAssignmentPattern(
 				element = skipDownwards(element.left);
 			}
 
-			const value = accessor(state, parentId, index, idStack, false, ts.isSpreadElement(element));
+			const destructor = ts.isSpreadElement(element)
+				? getSpreadDestructorForType(
+						state,
+						assignmentPattern,
+						state.typeChecker.getTypeOfAssignmentPattern(assignmentPattern),
+					)
+				: undefined;
+			const value = destructor
+				? destructor(state, parentId, index, idStack)
+				: accessor(state, parentId, index, idStack, false);
 			if (
 				ts.isIdentifier(element) ||
 				ts.isElementAccessExpression(element) ||

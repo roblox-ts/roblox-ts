@@ -4,6 +4,7 @@ import { TransformState } from "TSTransformer/classes/TransformState";
 export function spreadDestructSet(
 	state: TransformState,
 	parentId: luau.AnyIdentifier,
+	index: number,
 	idStack: Array<luau.AnyIdentifier>,
 ) {
 	const extracted = state.pushToVar(luau.set(idStack), "extracted");

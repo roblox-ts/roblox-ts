@@ -4,6 +4,7 @@ import { transformObjectBindingPattern } from "TSTransformer/nodes/binding/trans
 import { transformVariable } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { getAccessorForBindingType } from "TSTransformer/util/binding/getAccessorForBindingType";
+import { getSpreadDestructorForType } from "TSTransformer/util/spreadDestruction";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import ts from "typescript";
 
@@ -20,10 +21,15 @@ export function transformArrayBindingPattern(
 
 	for (const element of bindingPattern.elements) {
 		if (ts.isOmittedExpression(element)) {
-			accessor(state, parentId, index, idStack, true, false);
+			accessor(state, parentId, index, idStack, true);
 		} else {
 			const name = element.name;
-			const value = accessor(state, parentId, index, idStack, false, element.dotDotDotToken !== undefined);
+			const destructor = element.dotDotDotToken
+				? getSpreadDestructorForType(state, bindingPattern, state.getType(bindingPattern))
+				: undefined;
+			const value = destructor
+				? destructor(state, parentId, index, idStack)
+				: accessor(state, parentId, index, idStack, false);
 
 			if (ts.isIdentifier(name)) {
 				const id = transformVariable(state, name, value);

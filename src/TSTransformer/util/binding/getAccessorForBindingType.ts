@@ -3,7 +3,6 @@ import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
-import { spreadDestructArray, spreadDestructMap, spreadDestructSet } from "TSTransformer/util/spreadDestruction";
 import {
 	isArrayType,
 	isDefinitelyType,
@@ -24,18 +23,13 @@ type BindingAccessor = (
 	index: number,
 	idStack: Array<luau.AnyIdentifier>,
 	isOmitted: boolean,
-	isSpread: boolean, // spreading might not exist for this binding type
 ) => luau.Expression;
 
 function peek<T>(array: Array<T>): T | undefined {
 	return array[array.length - 1];
 }
 
-const arrayAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted, isSpread) => {
-	if (isSpread) {
-		return spreadDestructArray(state, parentId, index);
-	}
-
+const arrayAccessor: BindingAccessor = (state, parentId, index) => {
 	return luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 		expression: parentId,
 		index: luau.number(index + 1),
@@ -68,11 +62,7 @@ const stringAccessor: BindingAccessor = (state, parentId, index, idStack, isOmit
 	}
 };
 
-const setAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted, isSpread) => {
-	if (isSpread) {
-		return spreadDestructSet(state, parentId, idStack);
-	}
-
+const setAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted) => {
 	const args = [parentId];
 	const lastId = peek(idStack);
 	if (lastId) {
@@ -93,10 +83,7 @@ const setAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted
 	}
 };
 
-const mapAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted, isSpread) => {
-	if (isSpread) {
-		return spreadDestructMap(state, parentId, idStack);
-	}
+const mapAccessor: BindingAccessor = (state, parentId, index, idStack) => {
 	const args = [parentId];
 	const lastId = peek(idStack);
 	if (lastId) {

@@ -5,6 +5,7 @@ import { transformArrayBindingPattern } from "TSTransformer/nodes/binding/transf
 import { transformVariable } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { objectAccessor } from "TSTransformer/util/binding/objectAccessor";
+import { spreadDestructObject } from "TSTransformer/util/spreadDestruction";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import ts from "typescript";
 
@@ -20,14 +21,12 @@ export function transformObjectBindingPattern(
 		const prop = element.propertyName;
 		const isSpread = element.dotDotDotToken !== undefined;
 
+		const destructor = isSpread ? spreadDestructObject : undefined;
+
 		if (ts.isIdentifier(name)) {
-			const value = objectAccessor(
-				state,
-				parentId,
-				state.getType(bindingPattern),
-				prop ?? name,
-				isSpread ? preSpreadNames : undefined,
-			);
+			const value = destructor
+				? destructor(state, parentId, preSpreadNames)
+				: objectAccessor(state, parentId, state.getType(bindingPattern), prop ?? name);
 			preSpreadNames.push(value);
 			const id = transformVariable(state, name, value);
 			if (element.initializer) {
@@ -37,13 +36,9 @@ export function transformObjectBindingPattern(
 			// if name is not identifier, it must be a binding pattern
 			// in that case, prop is guaranteed to exist
 			assert(prop);
-			const value = objectAccessor(
-				state,
-				parentId,
-				state.getType(bindingPattern),
-				prop,
-				isSpread ? preSpreadNames : undefined,
-			);
+			const value = destructor
+				? destructor(state, parentId, preSpreadNames)
+				: objectAccessor(state, parentId, state.getType(bindingPattern), prop);
 			preSpreadNames.push(value);
 			const id = state.pushToVar(value, "binding");
 			if (element.initializer) {

@@ -6,7 +6,6 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { addIndexDiagnostics } from "TSTransformer/util/addIndexDiagnostics";
 import { addOneIfArrayType } from "TSTransformer/util/addOneIfArrayType";
 import { assertNever } from "TSTransformer/util/assertNever";
-import { spreadDestructObject } from "TSTransformer/util/spreadDestruction";
 import ts from "typescript";
 
 export const objectAccessor = (
@@ -14,12 +13,9 @@ export const objectAccessor = (
 	parentId: luau.AnyIdentifier,
 	type: ts.Type,
 	name: ts.PropertyName,
-	preSpreadNames?: Array<luau.Expression>,
 ): luau.Expression => {
 	addIndexDiagnostics(state, name, state.getType(name));
-	if (preSpreadNames !== undefined) {
-		return spreadDestructObject(state, parentId, preSpreadNames);
-	} else if (ts.isIdentifier(name)) {
+	if (ts.isIdentifier(name)) {
 		return luau.property(parentId, name.text);
 	} else if (ts.isComputedPropertyName(name)) {
 		return luau.create(luau.SyntaxKind.ComputedIndexExpression, {
