@@ -14,6 +14,7 @@ export function transformObjectAssignmentPattern(
 	state: TransformState,
 	assignmentPattern: ts.ObjectLiteralExpression,
 	parentId: luau.AnyIdentifier,
+	type?: ts.Type,
 ) {
 	const preSpreadNames = new Array<luau.Expression>();
 	for (const property of assignmentPattern.properties) {
@@ -22,7 +23,7 @@ export function transformObjectAssignmentPattern(
 			const value = objectAccessor(
 				state,
 				parentId,
-				state.typeChecker.getTypeOfAssignmentPattern(assignmentPattern),
+				type ?? state.typeChecker.getTypeOfAssignmentPattern(assignmentPattern),
 				name,
 			);
 			preSpreadNames.push(value);
@@ -41,6 +42,7 @@ export function transformObjectAssignmentPattern(
 		} else if (ts.isSpreadAssignment(property)) {
 			const value = spreadDestructObject(state, parentId, preSpreadNames);
 			const expression = property.expression;
+			const passedType = type ?? state.typeChecker.getTypeOfAssignmentPattern(assignmentPattern);
 
 			if (
 				ts.isIdentifier(expression) ||
@@ -56,7 +58,10 @@ export function transformObjectAssignmentPattern(
 					}),
 				);
 			} else if (ts.isObjectLiteralExpression(expression)) {
-				transformObjectAssignmentPattern(state, expression, value); // errors here because of incorrect impl of typeChecker.getTypeOfAssignmentPattern
+				/** errors when we call this recursively without passing down the type,
+				 * because of incorrect impl of typeChecker.getTypeOfAssignmentPattern.
+				 * it can't handle an assignment pattern if the parent is a spreadElement*/
+				transformObjectAssignmentPattern(state, expression, value, passedType);
 			} else if (ts.isArrayLiteralExpression(expression)) {
 				transformArrayAssignmentPattern(state, expression, value);
 			} else {
@@ -77,7 +82,7 @@ export function transformObjectAssignmentPattern(
 			const value = objectAccessor(
 				state,
 				parentId,
-				state.typeChecker.getTypeOfAssignmentPattern(assignmentPattern),
+				type ?? state.typeChecker.getTypeOfAssignmentPattern(assignmentPattern),
 				name,
 			);
 			preSpreadNames.push(value);
