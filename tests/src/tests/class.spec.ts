@@ -43,6 +43,33 @@ export = () => {
 		expect(v1.z).to.equal(0);
 	});
 
+	it("should initialize properties after super call", () => {
+		const order: Array<number> = [];
+
+		class Super {
+			constructor() {
+				order.push(1);
+			}
+		}
+
+		class Class extends Super {
+			parameter = order.push(2);
+
+			constructor() {
+				order.push(0);
+				super();
+				order.push(3);
+			}
+		}
+
+		new Class();
+
+		expect(order[0]).to.equal(0);
+		expect(order[1]).to.equal(1);
+		expect(order[2]).to.equal(2);
+		expect(order[3]).to.equal(3);
+	});
+
 	it("should expose a public method", () => {
 		class Greeter {
 			public greeting: string;

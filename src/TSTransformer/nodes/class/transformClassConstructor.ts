@@ -21,7 +21,8 @@ export function transformClassConstructor(
 
 	let bodyStatements = originNode ? getStatements(originNode.body) : [];
 
-	let removeFirstSuper = false;
+	let removeToFirstSuper = false;
+	let superIndex = -1;
 
 	let parameters = luau.list.make<luau.AnyIdentifier>();
 	let hasDotDotDot = false;
@@ -52,12 +53,17 @@ export function transformClassConstructor(
 
 	// property parameters must come after the first super() call
 	function transformFirstSuper() {
-		if (!removeFirstSuper) {
-			removeFirstSuper = true;
+		if (!removeToFirstSuper) {
+			removeToFirstSuper = true;
 			if (bodyStatements.length > 0) {
-				const firstStatement = bodyStatements[0];
-				if (ts.isExpressionStatement(firstStatement) && ts.isSuperCall(firstStatement.expression)) {
-					luau.list.pushList(statements, transformStatementList(state, originNode?.body, [firstStatement]));
+				superIndex = bodyStatements.findIndex(
+					statement => ts.isExpressionStatement(statement) && ts.isSuperCall(statement.expression),
+				);
+				for (let i = 0; i <= superIndex; i++) {
+					luau.list.pushList(
+						statements,
+						transformStatementList(state, originNode?.body, [bodyStatements[i]]),
+					);
 				}
 			}
 		}
@@ -113,12 +119,9 @@ export function transformClassConstructor(
 		}
 	}
 
-	// if removeFirstSuper and first statement is `super()`, remove it
-	if (removeFirstSuper && bodyStatements.length > 0) {
-		const firstStatement = bodyStatements[0];
-		if (ts.isExpressionStatement(firstStatement) && ts.isSuperCall(firstStatement.expression)) {
-			bodyStatements = bodyStatements.slice(1);
-		}
+	// if removeToFirstSuper and first statement is `super()`, remove up to it
+	if (removeToFirstSuper && superIndex !== -1) {
+		bodyStatements = bodyStatements.slice(superIndex + 1);
 	}
 
 	luau.list.pushList(statements, transformStatementList(state, originNode?.body, bodyStatements));
