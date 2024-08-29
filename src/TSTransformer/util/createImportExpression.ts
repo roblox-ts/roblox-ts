@@ -188,7 +188,7 @@ export function getImportParts(state: TransformState, sourceFile: ts.SourceFile,
 		return [luau.none()];
 	}
 
-	const virtualPath = state.guessVirtualPath(moduleFile.fileName);
+	const virtualPath = state.guessVirtualPath(moduleFile.fileName) || moduleFile.fileName;
 
 	if (ts.isInsideNodeModules(virtualPath)) {
 		const moduleOutPath = state.pathTranslator.getImportPath(

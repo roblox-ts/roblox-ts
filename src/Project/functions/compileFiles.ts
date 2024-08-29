@@ -41,21 +41,6 @@ function emitResultFailure(messageText: string): ts.EmitResult {
 	};
 }
 
-function getReverseSymlinkMap(program: ts.Program) {
-	const result = new Map<string, string>();
-
-	const directoriesMap = program.getSymlinkCache?.()?.getSymlinkedDirectories();
-	if (directoriesMap) {
-		directoriesMap.forEach((dir, fsPath) => {
-			if (typeof dir !== "boolean") {
-				result.set(dir.real, fsPath);
-			}
-		});
-	}
-
-	return result;
-}
-
 /**
  * 'transpiles' TypeScript project into a logically identical Luau project.
  *
@@ -91,8 +76,6 @@ export function compileFiles(
 
 	const pkgRojoResolvers = compilerOptions.typeRoots!.map(RojoResolver.synthetic);
 	const nodeModulesPathMapping = createNodeModulesPathMapping(compilerOptions.typeRoots!);
-
-	const reverseSymlinkMap = getReverseSymlinkMap(program);
 
 	const projectType = data.projectOptions.type ?? inferProjectType(data, rojoResolver);
 
@@ -184,7 +167,6 @@ export function compileFiles(
 				rojoResolver,
 				pkgRojoResolvers,
 				nodeModulesPathMapping,
-				reverseSymlinkMap,
 				runtimeLibRbxPath,
 				typeChecker,
 				projectType,
