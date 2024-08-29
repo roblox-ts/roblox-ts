@@ -20,7 +20,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install NPM Dependencies
-        uses: bahmutov/npm-install@v1.7.4
+        uses: bahmutov/npm-install@v1
 
       - name: Update Test Types
         run: npm run update-test-types
