@@ -6,9 +6,7 @@ import prettierPlugin from "eslint-plugin-prettier";
 import simpleImportSort from "eslint-plugin-simple-import-sort";
 import tseslint from "typescript-eslint";
 
-const compat = new FlatCompat({
-	baseDirectory: __dirname,
-});
+const compat = new FlatCompat({ baseDirectory: __dirname });
 
 export default tseslint.config(
 	eslint.configs.recommended,
@@ -22,9 +20,7 @@ export default tseslint.config(
 				ecmaVersion: "latest",
 				sourceType: "module",
 				project: ["./tsconfig.json", "./tsconfig.eslint.json", "./src/*/tsconfig.json"],
-				ecmaFeatures: {
-					jsx: true,
-				},
+				ecmaFeatures: { jsx: true },
 			},
 		},
 		plugins: {
