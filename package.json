@@ -60,6 +60,7 @@
 	},
 	"devDependencies": {
 		"@eslint-community/eslint-plugin-eslint-comments": "^4.4.0",
+		"@types/eslint__eslintrc": "^2.1.2",
 		"@types/eslint__js": "^8.42.3",
 		"@types/eslint-config-prettier": "^6.11.3",
 		"@types/fs-extra": "^11.0.4",
