@@ -2,7 +2,6 @@ import { FlatCompat } from "@eslint/eslintrc";
 import eslint from "@eslint/js";
 import comments from "@eslint-community/eslint-plugin-eslint-comments";
 import prettierConfig from "eslint-config-prettier";
-import noAutofix from "eslint-plugin-no-autofix";
 import prettierPlugin from "eslint-plugin-prettier";
 import simpleImportSort from "eslint-plugin-simple-import-sort";
 import tseslint from "typescript-eslint";
@@ -32,7 +31,6 @@ export default tseslint.config(
 			"@typescript-eslint": tseslint.plugin,
 			prettier: prettierPlugin,
 			"simple-import-sort": simpleImportSort,
-			"no-autofix": noAutofix,
 			"eslint-comments": comments,
 		},
 		rules: {

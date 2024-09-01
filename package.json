@@ -61,6 +61,7 @@
 	"devDependencies": {
 		"@eslint-community/eslint-plugin-eslint-comments": "^4.4.0",
 		"@types/eslint__js": "^8.42.3",
+		"@types/eslint-config-prettier": "^6.11.3",
 		"@types/fs-extra": "^11.0.4",
 		"@types/mocha": "^10.0.7",
 		"@types/node": "^22.5.2",
@@ -70,7 +71,6 @@
 		"@types/yargs": "^17.0.33",
 		"eslint": "^9.9.1",
 		"eslint-config-prettier": "^9.1.0",
-		"eslint-plugin-no-autofix": "^2.0.0",
 		"eslint-plugin-prettier": "^5.2.1",
 		"eslint-plugin-simple-import-sort": "^12.1.1",
 		"jiti": "^1.21.6",
