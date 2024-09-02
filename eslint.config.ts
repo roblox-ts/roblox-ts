@@ -30,13 +30,7 @@ export default tseslint.config(
 			"eslint-comments": comments,
 		},
 		rules: {
-			"@typescript-eslint/array-type": [
-				"warn",
-				{
-					default: "generic",
-					readonly: "generic",
-				},
-			],
+			"@typescript-eslint/array-type": ["warn", { default: "generic", readonly: "generic" }],
 			"@typescript-eslint/no-floating-promises": ["error", { ignoreVoid: true }],
 			"@typescript-eslint/no-unused-vars": "warn",
 			"@typescript-eslint/explicit-function-return-type": "off",
