@@ -246,7 +246,6 @@ function transformForStatementFallback(state: TransformState, node: ts.ForStatem
 		);
 	}
 
-	// eslint-disable-next-line no-autofix/prefer-const
 	let [conditionExp, conditionPrereqs] = state.capture(() => {
 		if (condition) {
 			return createTruthinessChecks(state, transformExpression(state, condition), condition);
@@ -472,7 +471,6 @@ function transformForStatementOptimized(state: TransformState, node: ts.ForState
 	const [start, startPrereqs] = state.capture(() => transformExpression(state, decInit));
 	luau.list.pushList(result, startPrereqs);
 
-	// eslint-disable-next-line no-autofix/prefer-const
 	let [end, endPrereqs] = state.capture(() => transformExpression(state, condition.right));
 	luau.list.pushList(result, endPrereqs);
 
