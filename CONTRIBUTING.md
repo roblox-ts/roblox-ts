@@ -56,11 +56,11 @@ Effectively, this folder is a tiny **roblox-ts** game. Testing process is as fol
 2. Use `rojo build` to create `/tests/test.rbxl`
 3. Use `lune` to execute the tests
 
-You can run this process yourself if you have Roblox Studio and [foreman](https://github.com/Roblox/foreman) installed. (Only works on Windows and MacOS)
+You can run this process yourself if you have [rokit](https://github.com/rojo-rbx/rokit) installed.
 
 ```sh
 # install rojo + lune
-foreman install
+rokit install
 # Compile tests, build .rbxl, run with lune
 npm test
 ```

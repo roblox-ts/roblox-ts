@@ -46,7 +46,7 @@ interface BuildFlags {
 /**
  * Defines the behavior for the `rbxtsc build` command.
  */
-export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions>>>({
+export = ts.identity<yargs.CommandModule<object, BuildFlags & Partial<ProjectOptions>>>({
 	command: ["$0", "build"],
 
 	describe: "Build a project",
