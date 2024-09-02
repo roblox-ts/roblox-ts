@@ -40,7 +40,6 @@ export function fixupWhitespaceAndDecodeEntities(text: string): string | undefin
 			if (firstNonWhitespace !== -1 && lastNonWhitespace !== -1) {
 				acc = addLineOfJsxText(
 					acc,
-					// eslint-disable-next-line @typescript-eslint/no-deprecated
 					text.substr(firstNonWhitespace, lastNonWhitespace - firstNonWhitespace + 1),
 				);
 			}
@@ -58,7 +57,6 @@ export function fixupWhitespaceAndDecodeEntities(text: string): string | undefin
 
 	return firstNonWhitespace !== -1
 		? // Last line had a non-whitespace character. Emit the 'trimLeft', meaning keep trailing whitespace.
-			// eslint-disable-next-line @typescript-eslint/no-deprecated
 			addLineOfJsxText(acc, text.substr(firstNonWhitespace))
 		: // Last line was all whitespace, so ignore it
 			acc;
