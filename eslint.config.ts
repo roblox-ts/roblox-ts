@@ -56,11 +56,6 @@ export default tseslint.config(
 			"prettier/prettier": "warn",
 			"simple-import-sort/exports": "warn",
 			"simple-import-sort/imports": "warn",
-		},
-	},
-	{
-		files: ["src/**/*.ts", "src/**/*.tsx"],
-		rules: {
 			"no-console": "warn",
 			"no-restricted-imports": ["error", { patterns: [".*"] }],
 		},
