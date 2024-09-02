@@ -26,7 +26,7 @@ export function getParsedCommandLine(data: ProjectData) {
 		throw new DiagnosticError(parsedCommandLine.errors);
 	}
 
-	if ("RBXTSC_DEV" in globalThis || inspector.url() !== undefined) {
+	if ((globalThis as unknown as { RBXTSC_DEV: boolean }).RBXTSC_DEV || inspector.url() !== undefined) {
 		parsedCommandLine.options.incremental = false;
 		parsedCommandLine.options.tsBuildInfoFile = undefined;
 	}
