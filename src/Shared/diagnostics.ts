@@ -83,8 +83,8 @@ function warningText(...messages: Array<string>) {
 }
 
 export function getDiagnosticId(diagnostic: ts.Diagnostic): number {
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	return (diagnostic as any).id;
+	// id is added in createDiagnosticWithLocation
+	return (diagnostic as unknown as { id: number }).id;
 }
 
 /**
