@@ -46,7 +46,6 @@ export default tseslint.config(
 			curly: ["warn", "multi-line", "consistent"],
 			"no-constant-condition": ["error", { checkLoops: false }],
 			"no-debugger": "off",
-			"no-empty": "error",
 			"no-extra-boolean-cast": "off",
 			"no-undef-init": "error",
 			"prefer-const": ["warn", { destructuring: "all" }],
