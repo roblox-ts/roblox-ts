@@ -42,8 +42,6 @@ export default tseslint.config(
 			"no-extra-boolean-cast": "off",
 
 			// warn
-			"@typescript-eslint/array-type": ["error", { default: "generic", readonly: "generic" }],
-			"@typescript-eslint/no-deprecated": "warn",
 			"@typescript-eslint/no-unused-expressions": "warn",
 			"@typescript-eslint/no-unused-vars": "warn",
 			"eslint-comments/disable-enable-pair": ["warn", { allowWholeFile: true }],
@@ -58,6 +56,8 @@ export default tseslint.config(
 			curly: ["warn", "multi-line", "consistent"],
 
 			// error
+			"@typescript-eslint/array-type": ["error", { default: "generic", readonly: "generic" }],
+			"@typescript-eslint/no-deprecated": "error",
 			"@typescript-eslint/no-floating-promises": ["error", { ignoreVoid: true }],
 			"@typescript-eslint/no-require-imports": "error",
 			"no-constant-condition": ["error", { checkLoops: false }],
