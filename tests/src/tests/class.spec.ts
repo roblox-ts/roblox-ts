@@ -314,7 +314,7 @@ export = () => {
 			};
 		}
 		expect(new A.member().method() instanceof A).to.equal(true);
-	})
+	});
 
 	it("should support methods keys that emit prereqs", () => {
 		let i = 0;
