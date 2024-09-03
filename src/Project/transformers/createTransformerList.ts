@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-var-requires */
-/* eslint-disable @typescript-eslint/no-require-imports */
 import resolve from "resolve";
 import { warnings } from "Shared/diagnostics";
 import { TransformerPluginConfig } from "Shared/types";
@@ -100,6 +98,8 @@ export function createTransformerList(
 
 		try {
 			const modulePath = resolve.sync(config.transform, { basedir: baseDir });
+
+			// eslint-disable-next-line @typescript-eslint/no-require-imports -- need to require the transformer
 			const commonjsModule: PluginFactory | { [key: string]: PluginFactory } = require(modulePath);
 
 			const factoryModule = typeof commonjsModule === "function" ? { default: commonjsModule } : commonjsModule;

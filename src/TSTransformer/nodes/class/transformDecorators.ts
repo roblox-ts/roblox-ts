@@ -3,22 +3,20 @@ import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import ts from "typescript";
 
 function transformMemberDecorators(
 	state: TransformState,
 	node: ts.ClassLikeDeclaration | ts.MethodDeclaration | ts.PropertyDeclaration | ts.ParameterDeclaration,
-	callback: (expression: luau.IndexableExpression, key?: luau.Expression) => luau.List<luau.Statement>,
+	callback: (expression: luau.IndexableExpression) => luau.List<luau.Statement>,
 ): luau.List<luau.Statement> {
 	const result = luau.list.make<luau.Statement>();
 	const finalizers = luau.list.make<luau.Statement>();
 
 	const decorators = ts.getDecorators(node);
 	const multipleDecorators = decorators !== undefined && decorators.length > 1;
-
-	const name = node.name;
-	if (!name || ts.isPrivateIdentifier(name)) return result;
 
 	for (const decorator of decorators ?? []) {
 		const expressionPrereqs = new Prereqs();
@@ -38,13 +36,7 @@ function transformMemberDecorators(
 			expression = tempId;
 		}
 
-		let key: luau.Expression | undefined;
-		if (ts.isMethodDeclaration(node) || ts.isPropertyDeclaration(node)) {
-			key = state.getClassElementObjectKey(node);
-			assert(key);
-		}
-
-		luau.list.unshiftList(finalizers, callback(convertToIndexableExpression(expression), key));
+		luau.list.unshiftList(finalizers, callback(convertToIndexableExpression(expression)));
 	}
 
 	luau.list.pushList(result, finalizers);
@@ -57,9 +49,7 @@ function transformMethodDecorators(
 	member: ts.MethodDeclaration,
 	classId: luau.AnyIdentifier,
 ): luau.List<luau.Statement> {
-	return transformMemberDecorators(state, member, (expression, key) => {
-		assert(key);
-
+	return transformMemberDecorators(state, member, expression => {
 		const result = luau.list.make<luau.Statement>();
 
 		// local _descriptor = decorator(Class, "name", { value = Class.name })
@@ -68,6 +58,8 @@ function transformMethodDecorators(
 		// end
 
 		const descriptorId = luau.tempId("descriptor");
+		const key = state.getClassElementObjectKey(member);
+		assert(key, "Did not find method key for method decorator");
 
 		luau.list.push(
 			result,
@@ -116,8 +108,9 @@ function transformPropertyDecorators(
 	member: ts.PropertyDeclaration,
 	classId: luau.AnyIdentifier,
 ): luau.List<luau.Statement> {
-	return transformMemberDecorators(state, member, (expression, key) => {
-		assert(key);
+	return transformMemberDecorators(state, member, expression => {
+		// typescript enforces that property keys are static, so they shouldn't have prereqs
+		const key = state.noPrereqs(() => transformPropertyName(state, member.name));
 
 		// decorator(Class, "name")
 		return luau.list.make(
@@ -135,16 +128,14 @@ function transformParameterDecorators(
 ): luau.List<luau.Statement> {
 	const result = luau.list.make<luau.Statement>();
 
-	const memberName = member.name;
-	const key: luau.Expression | undefined =
-		memberName !== undefined ? state.getClassElementObjectKey(member) : luau.nil();
-
 	for (let i = 0; i < member.parameters.length; i++) {
 		const parameter = member.parameters[i];
 		luau.list.pushList(
 			result,
 			transformMemberDecorators(state, parameter, expression => {
-				assert(key, `Missing key for parameter decorator at index ${i}`);
+				// No member.name means it's the constructor, so the name argument should be nil
+				const key = member.name ? state.getClassElementObjectKey(member) : luau.nil();
+				assert(key, "Did not find method key for parameter decorator");
 
 				// decorator(Class, "name", 0)
 				return luau.list.make(
