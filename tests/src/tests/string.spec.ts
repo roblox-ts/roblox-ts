@@ -113,16 +113,19 @@ export = () => {
 
 		const obj = {
 			[`str
-			ing`]: "foo"
+			ing`]: "foo",
 		};
 
+		// prettier-ignore
 		expect(obj[`str
 			ing`]).to.equal("foo");
 		expect(obj[key]).to.equal("foo");
 
+		// prettier-ignore
 		obj[`str
 			ing`] = "bar";
 
+		// prettier-ignore
 		expect(obj[`str
 			ing`]).to.equal("bar");
 		expect(obj[key]).to.equal("bar");
