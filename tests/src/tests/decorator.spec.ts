@@ -153,4 +153,22 @@ export = () => {
 
 		expect(buzz).to.equal(`Foo0`);
 	});
+
+	it("should support complex property decorators", () => {
+		enum baz {
+			buzz = "bizz"
+		};
+		let bizz: string | undefined;
+
+		function foobar(object: Foo, propertyKey: string) {
+			bizz = `${tostring(object)}${propertyKey}`;
+		};
+
+		class Foo {
+			@foobar
+			public [baz.buzz] = "Hello, world!";
+		};
+
+		expect(bizz).to.equal("Foobizz");
+	});
 };
