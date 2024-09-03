@@ -110,7 +110,9 @@ function transformPropertyDecorators(
 ): luau.List<luau.Statement> {
 	return transformMemberDecorators(state, member, expression => {
 		// typescript enforces that property keys are static, so they shouldn't have prereqs
-		const key = state.noPrereqs(() => transformPropertyName(state, member.name));
+		const prereqs = new Prereqs();
+		const key = transformPropertyName(state, prereqs, member.name);
+		assert(luau.list.isEmpty(prereqs.statements));
 
 		// decorator(Class, "name")
 		return luau.list.make(
