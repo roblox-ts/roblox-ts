@@ -116,7 +116,8 @@ export = () => {
 			const myTrolly = getFruitsOrUndefined();
 
 			expect(delete myTrolly?.apples).to.equal(true);
-			expect(delete myTrolly?.pears).to.equal(true);
+			// prettier-ignore
+			expect(delete (myTrolly?.pears)).to.equal(true);
 		});
 
 		it("should return true for element access", () => {
