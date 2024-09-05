@@ -51,7 +51,7 @@ export function createAssignmentExpression(
 
 export function createCompoundAssignmentStatement(
 	state: TransformState,
-	node: ts.Node,
+	node: ts.BinaryExpression,
 	writable: luau.WritableExpression,
 	writableType: ts.Type,
 	readable: luau.WritableExpression,
@@ -68,7 +68,7 @@ export function createCompoundAssignmentStatement(
 
 export function createCompoundAssignmentExpression(
 	state: TransformState,
-	node: ts.Node,
+	node: ts.BinaryExpression,
 	writable: luau.WritableExpression,
 	writableType: ts.Type,
 	readable: luau.WritableExpression,
