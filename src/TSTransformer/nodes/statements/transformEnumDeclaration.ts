@@ -16,10 +16,7 @@ function needsInverseEntry(state: TransformState, member: ts.EnumMember) {
 }
 
 export function transformEnumDeclaration(state: TransformState, node: ts.EnumDeclaration) {
-	if (
-		!!ts.getSelectedSyntacticModifierFlags(node, ts.ModifierFlags.Const) &&
-		state.compilerOptions.preserveConstEnums !== true
-	) {
+	if (ts.hasSyntacticModifier(node, ts.ModifierFlags.Const) && state.compilerOptions.preserveConstEnums !== true) {
 		return luau.list.make<luau.Statement>();
 	}
 
@@ -29,8 +26,7 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 		hasMultipleDefinitions(
 			symbol,
 			declaration =>
-				ts.isEnumDeclaration(declaration) &&
-				!ts.getSelectedSyntacticModifierFlags(declaration, ts.ModifierFlags.Const),
+				ts.isEnumDeclaration(declaration) && !ts.hasSyntacticModifier(declaration, ts.ModifierFlags.Const),
 		)
 	) {
 		DiagnosticService.addDiagnosticWithCache(

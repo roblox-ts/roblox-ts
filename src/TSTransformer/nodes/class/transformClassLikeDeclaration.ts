@@ -43,7 +43,7 @@ function createBoilerplate(
 	className: luau.Identifier | luau.TemporaryIdentifier,
 	isClassExpression: boolean,
 ) {
-	const isAbstract = !!ts.getSelectedSyntacticModifierFlags(node, ts.ModifierFlags.Abstract);
+	const isAbstract = ts.hasAbstractModifier(node);
 	const statements = luau.list.make<luau.Statement>();
 
 	/* boilerplate:
@@ -203,7 +203,7 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 	const isClassExpression = ts.isClassExpression(node);
 	const statements = luau.list.make<luau.Statement>();
 
-	const isExportDefault = !!ts.getSelectedSyntacticModifierFlags(node, ts.ModifierFlags.ExportDefault);
+	const isExportDefault = ts.hasSyntacticModifier(node, ts.ModifierFlags.ExportDefault);
 
 	if (node.name) {
 		validateIdentifier(state, node.name);
@@ -305,7 +305,7 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 				DiagnosticService.addDiagnostic(errors.noClassMetamethods(method.name));
 			}
 
-			if (!!ts.getSelectedSyntacticModifierFlags(method, ts.ModifierFlags.Static)) {
+			if (ts.hasStaticModifier(method)) {
 				if (instanceType.getProperty(method.name.text) !== undefined) {
 					DiagnosticService.addDiagnostic(errors.noInstanceMethodCollisions(method));
 				}

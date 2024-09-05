@@ -6,26 +6,58 @@ import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import ts from "typescript";
 
+type HasDecorators = Exclude<ts.HasDecorators, ts.AccessorDeclaration>;
+
+function canInlineDecoratorInitializer(node: HasDecorators) {
+	// if we have more than one decorator, we can't inline the initializer
+	if ((ts.getDecorators(node)?.length ?? 0) > 1) {
+		return false;
+	}
+
+	// if we are a method and have a parameter decorator, we can't inline the initializer
+	if (ts.isMethodDeclaration(node)) {
+		for (const parameter of node.parameters) {
+			if ((ts.getDecorators(parameter)?.length ?? 0) > 0) {
+				return false;
+			}
+		}
+	}
+
+	if (ts.isClassDeclaration(node)) {
+		for (const member of node.members) {
+			if (ts.isConstructorDeclaration(member)) {
+				for (const parameter of member.parameters) {
+					if ((ts.getDecorators(parameter)?.length ?? 0) > 0) {
+						return false;
+					}
+				}
+			}
+		}
+	}
+
+	return true;
+}
+
 function transformMemberDecorators(
 	state: TransformState,
-	node: ts.ClassLikeDeclaration | ts.MethodDeclaration | ts.PropertyDeclaration | ts.ParameterDeclaration,
+	node: HasDecorators,
 	callback: (expression: luau.IndexableExpression) => luau.List<luau.Statement>,
-): luau.List<luau.Statement> {
-	const result = luau.list.make<luau.Statement>();
+): [initializers: luau.List<luau.Statement>, finalizers: luau.List<luau.Statement>] {
+	const initializers = luau.list.make<luau.Statement>();
 	const finalizers = luau.list.make<luau.Statement>();
 
 	const decorators = ts.getDecorators(node);
-	const multipleDecorators = decorators !== undefined && decorators.length > 1;
+	const canInline = canInlineDecoratorInitializer(node);
 
 	for (const decorator of decorators ?? []) {
 		let [expression, prereqs] = state.capture(() => transformExpression(state, decorator.expression));
 
-		luau.list.pushList(result, prereqs);
+		luau.list.pushList(initializers, prereqs);
 
-		if (multipleDecorators && !luau.isSimple(expression)) {
+		if (!canInline && !luau.isSimple(expression)) {
 			const tempId = luau.tempId("decorator");
 			luau.list.push(
-				result,
+				initializers,
 				luau.create(luau.SyntaxKind.VariableDeclaration, {
 					left: tempId,
 					right: expression,
@@ -37,9 +69,7 @@ function transformMemberDecorators(
 		luau.list.unshiftList(finalizers, callback(convertToIndexableExpression(expression)));
 	}
 
-	luau.list.pushList(result, finalizers);
-
-	return result;
+	return [initializers, finalizers];
 }
 
 function transformMethodDecorators(
@@ -47,7 +77,7 @@ function transformMethodDecorators(
 	member: ts.MethodDeclaration,
 	classId: luau.AnyIdentifier,
 ): luau.List<luau.Statement> {
-	return transformMemberDecorators(state, member, expression => {
+	const [initializers, finalizers] = transformMemberDecorators(state, member, expression => {
 		const result = luau.list.make<luau.Statement>();
 
 		// local _descriptor = decorator(Class, "name", { value = Class.name })
@@ -99,6 +129,12 @@ function transformMethodDecorators(
 
 		return result;
 	});
+
+	const result = luau.list.make<luau.Statement>();
+	luau.list.pushList(result, initializers);
+	luau.list.pushList(result, transformParameterDecorators(state, member, classId));
+	luau.list.pushList(result, finalizers);
+	return result;
 }
 
 function transformPropertyDecorators(
@@ -106,7 +142,7 @@ function transformPropertyDecorators(
 	member: ts.PropertyDeclaration,
 	classId: luau.AnyIdentifier,
 ): luau.List<luau.Statement> {
-	return transformMemberDecorators(state, member, expression => {
+	const [initializers, finalizers] = transformMemberDecorators(state, member, expression => {
 		// typescript enforces that property keys are static, so they shouldn't have prereqs
 		const key = state.noPrereqs(() => transformPropertyName(state, member.name));
 
@@ -117,6 +153,11 @@ function transformPropertyDecorators(
 			}),
 		);
 	});
+
+	const result = luau.list.make<luau.Statement>();
+	luau.list.pushList(result, initializers);
+	luau.list.pushList(result, finalizers);
+	return result;
 }
 
 function transformParameterDecorators(
@@ -124,27 +165,30 @@ function transformParameterDecorators(
 	member: ts.MethodDeclaration | ts.ConstructorDeclaration,
 	classId: luau.AnyIdentifier,
 ): luau.List<luau.Statement> {
-	const result = luau.list.make<luau.Statement>();
+	const initializers = luau.list.make<luau.Statement>();
+	const finalizers = luau.list.make<luau.Statement>();
 
 	for (let i = 0; i < member.parameters.length; i++) {
 		const parameter = member.parameters[i];
-		luau.list.pushList(
-			result,
-			transformMemberDecorators(state, parameter, expression => {
-				// No member.name means it's the constructor, so the name argument should be nil
-				const key = member.name ? state.getClassElementObjectKey(member) : luau.nil();
-				assert(key, "Did not find method key for parameter decorator");
+		const [paramInitializers, paramFinalizers] = transformMemberDecorators(state, parameter, expression => {
+			// No member.name means it's the constructor, so the name argument should be nil
+			const key = member.name ? state.getClassElementObjectKey(member) : luau.nil();
+			assert(key, "Did not find method key for parameter decorator");
 
-				// decorator(Class, "name", 0)
-				return luau.list.make(
-					luau.create(luau.SyntaxKind.CallStatement, {
-						expression: luau.call(expression, [classId, key, luau.number(i)]),
-					}),
-				);
-			}),
-		);
+			// decorator(Class, "name", 0)
+			return luau.list.make(
+				luau.create(luau.SyntaxKind.CallStatement, {
+					expression: luau.call(expression, [classId, key, luau.number(i)]),
+				}),
+			);
+		});
+		luau.list.pushList(initializers, paramInitializers);
+		luau.list.unshiftList(finalizers, paramFinalizers);
 	}
 
+	const result = luau.list.make<luau.Statement>();
+	luau.list.pushList(result, initializers);
+	luau.list.pushList(result, finalizers);
 	return result;
 }
 
@@ -153,7 +197,7 @@ function transformClassDecorators(
 	node: ts.ClassLikeDeclaration,
 	classId: luau.AnyIdentifier,
 ): luau.List<luau.Statement> {
-	return transformMemberDecorators(state, node, expression =>
+	const [initializers, finalizers] = transformMemberDecorators(state, node, expression =>
 		// Class = decorator(Class) or Class
 		luau.list.make(
 			luau.create(luau.SyntaxKind.Assignment, {
@@ -163,6 +207,18 @@ function transformClassDecorators(
 			}),
 		),
 	);
+
+	const result = luau.list.make<luau.Statement>();
+	luau.list.pushList(result, initializers);
+
+	for (const member of node.members) {
+		if (ts.isConstructorDeclaration(member)) {
+			luau.list.pushList(result, transformParameterDecorators(state, member, classId));
+		}
+	}
+
+	luau.list.pushList(result, finalizers);
+	return result;
 }
 
 export function transformDecorators(
@@ -176,10 +232,9 @@ export function transformDecorators(
 
 	// Instance Decorators
 	for (const member of node.members) {
-		if (!ts.getSelectedSyntacticModifierFlags(member, ts.ModifierFlags.Static)) {
+		if (!ts.hasStaticModifier(member)) {
 			if (ts.isMethodDeclaration(member)) {
 				luau.list.pushList(result, transformMethodDecorators(state, member, classId));
-				luau.list.pushList(result, transformParameterDecorators(state, member, classId));
 			} else if (ts.isPropertyDeclaration(member)) {
 				luau.list.pushList(result, transformPropertyDecorators(state, member, classId));
 			}
@@ -188,20 +243,12 @@ export function transformDecorators(
 
 	// Static Decorators
 	for (const member of node.members) {
-		if (!!ts.getSelectedSyntacticModifierFlags(member, ts.ModifierFlags.Static)) {
+		if (ts.hasStaticModifier(member)) {
 			if (ts.isMethodDeclaration(member)) {
 				luau.list.pushList(result, transformMethodDecorators(state, member, classId));
-				luau.list.pushList(result, transformParameterDecorators(state, member, classId));
 			} else if (ts.isPropertyDeclaration(member)) {
 				luau.list.pushList(result, transformPropertyDecorators(state, member, classId));
 			}
-		}
-	}
-
-	// Constructor Parameter Decorators
-	for (const member of node.members) {
-		if (ts.isConstructorDeclaration(member)) {
-			luau.list.pushList(result, transformParameterDecorators(state, member, classId));
 		}
 	}
 
