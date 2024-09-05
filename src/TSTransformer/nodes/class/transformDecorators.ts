@@ -9,12 +9,12 @@ import ts from "typescript";
 type HasDecorators = Exclude<ts.HasDecorators, ts.AccessorDeclaration>;
 
 function canInlineDecoratorInitializer(node: HasDecorators) {
-	// if we have more than one decorator, we can't inline the initializer
+	// more than one decorator
 	if ((ts.getDecorators(node)?.length ?? 0) > 1) {
 		return false;
 	}
 
-	// if we are a method and have a parameter decorator, we can't inline the initializer
+	// method declaration and have any parameter decorators
 	if (ts.isMethodDeclaration(node)) {
 		for (const parameter of node.parameters) {
 			if ((ts.getDecorators(parameter)?.length ?? 0) > 0) {
@@ -23,7 +23,7 @@ function canInlineDecoratorInitializer(node: HasDecorators) {
 		}
 	}
 
-	// if we are a class declaration and have any constructor parameter decorators
+	// class declaration and have any constructor parameter decorators
 	if (ts.isClassDeclaration(node)) {
 		for (const member of node.members) {
 			if (ts.isConstructorDeclaration(member)) {
