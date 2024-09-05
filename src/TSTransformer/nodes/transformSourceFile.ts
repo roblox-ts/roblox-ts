@@ -103,7 +103,7 @@ function handleExports(
 				continue;
 			}
 
-			if (originalSymbol.valueDeclaration) {
+			if (originalSymbol.valueDeclaration && originalSymbol.valueDeclaration.getSourceFile() === sourceFile) {
 				const statement = getAncestor(originalSymbol.valueDeclaration, ts.isStatement);
 				const modifiers = statement && ts.canHaveModifiers(statement) ? ts.getModifiers(statement) : undefined;
 				if (modifiers?.some(v => v.kind === ts.SyntaxKind.DeclareKeyword)) {
