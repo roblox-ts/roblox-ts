@@ -2,7 +2,7 @@ export = () => {
 	it("should support static parameter decorators", () => {
 		let buzz: string | undefined;
 
-		function foobar(object: Foo, methodKey: string, paramNum: number) {
+		function foobar(object: typeof Foo, methodKey: string, paramNum: number) {
 			buzz = `${object}${methodKey}${paramNum}`;
 		}
 
@@ -18,7 +18,7 @@ export = () => {
 	it("should support non-static parameter decorators", () => {
 		let buzz: string | undefined;
 
-		function foobar(object: Foo, methodKey: string, paramNum: number) {
+		function foobar(object: unknown, methodKey: string, paramNum: number) {
 			buzz = `${object}${methodKey}${paramNum}`;
 		}
 
@@ -33,9 +33,9 @@ export = () => {
 	});
 
 	it("should support class decorators", () => {
-		let buzz: Foo | undefined;
+		let buzz: typeof Foo | undefined;
 
-		function foobar(object: Foo) {
+		function foobar(object: typeof Foo) {
 			buzz = object;
 		}
 
@@ -48,7 +48,7 @@ export = () => {
 	it("should support static method decorators", () => {
 		let buzz: string | undefined;
 
-		function foobar(object: Foo, methodKey: string) {
+		function foobar(object: typeof Foo, methodKey: string) {
 			buzz = `${object}${methodKey}`;
 		}
 
@@ -63,7 +63,7 @@ export = () => {
 	it("should support non-static method decorators", () => {
 		let buzz: string | undefined;
 
-		function foobar(object: Foo, methodKey: string) {
+		function foobar(object: unknown, methodKey: string) {
 			buzz = `${tostring(object)}${methodKey}`;
 		}
 
@@ -79,7 +79,7 @@ export = () => {
 		const barName = "bar";
 		let buzz: string | undefined;
 
-		function foobar(object: Foo, methodKey: string) {
+		function foobar(object: unknown, methodKey: string) {
 			buzz = `${tostring(object)}${methodKey}`;
 		}
 
@@ -94,7 +94,7 @@ export = () => {
 	it("should support static property decorators", () => {
 		let buzz: string | undefined;
 
-		function foobar(object: Foo, propertyKey: string) {
+		function foobar(object: typeof Foo, propertyKey: string) {
 			buzz = `${object}${propertyKey}`;
 		}
 
@@ -109,7 +109,7 @@ export = () => {
 	it("should support non-static property decorators", () => {
 		let buzz: string | undefined;
 
-		function foobar(object: Foo, propertyKey: string) {
+		function foobar(object: unknown, propertyKey: string) {
 			buzz = `${tostring(object)}${propertyKey}`;
 		}
 
@@ -125,7 +125,7 @@ export = () => {
 		const barName = "bar";
 		let buzz: string | undefined;
 
-		function foobar(object: Foo, propertyKey: string) {
+		function foobar(object: unknown, propertyKey: string) {
 			buzz = `${tostring(object)}${propertyKey}`;
 		}
 
@@ -140,7 +140,7 @@ export = () => {
 	it("should support constructor parameter decorators", () => {
 		let buzz: string | undefined;
 
-		function foobar(object: Foo, _: unknown, paramNum: number) {
+		function foobar(object: typeof Foo, _: unknown, paramNum: number) {
 			buzz = `${tostring(object)}${paramNum}`;
 		}
 
@@ -160,7 +160,7 @@ export = () => {
 		}
 		let bizz: string | undefined;
 
-		function foobar(object: Foo, propertyKey: string) {
+		function foobar(object: unknown, propertyKey: string) {
 			bizz = `${tostring(object)}${propertyKey}`;
 		}
 
