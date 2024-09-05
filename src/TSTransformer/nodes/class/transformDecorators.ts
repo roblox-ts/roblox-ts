@@ -23,6 +23,7 @@ function canInlineDecoratorInitializer(node: HasDecorators) {
 		}
 	}
 
+	// if we are a class declaration and have any constructor parameter decorators
 	if (ts.isClassDeclaration(node)) {
 		for (const member of node.members) {
 			if (ts.isConstructorDeclaration(member)) {
