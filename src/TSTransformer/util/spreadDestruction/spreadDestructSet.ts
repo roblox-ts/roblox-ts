@@ -13,7 +13,7 @@ export function spreadDestructSet(
 
 	state.prereq(
 		luau.create(luau.SyntaxKind.ForStatement, {
-			ids: luau.list.make(keyId, luau.tempId("v")),
+			ids: luau.list.make(keyId),
 			expression: parentId,
 			statements: luau.list.make(
 				luau.create(luau.SyntaxKind.IfStatement, {
