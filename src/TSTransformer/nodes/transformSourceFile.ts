@@ -10,6 +10,7 @@ import { isSymbolMutable } from "TSTransformer/util/isSymbolMutable";
 import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
 import { getAncestor } from "TSTransformer/util/traversal";
 import ts from "typescript";
+import { terminalWidth } from "yargs";
 
 function getExportPair(state: TransformState, exportSymbol: ts.Symbol): [name: string, id: luau.AnyIdentifier] {
 	const declaration = exportSymbol.getDeclarations()?.[0];
@@ -67,6 +68,23 @@ function getIgnoredExportSymbols(state: TransformState, sourceFile: ts.SourceFil
 }
 
 /**
+ * used to ignore exports in the form of `export declare const x: T;`
+ * however, this should still allow exports which are declare + export separately, i.e.
+ * ```ts
+ * declare const x: number;
+ * export { x };
+ * ```
+ * this mimics TypeScript behavior
+ */
+function isExportSymbolOnlyFromDeclare(exportSymbol: ts.Symbol) {
+	return exportSymbol.declarations?.every(declaration => {
+		const statement = getAncestor(declaration, ts.isStatement);
+		const modifiers = statement && ts.canHaveModifiers(statement) ? ts.getModifiers(statement) : undefined;
+		return modifiers?.some(v => v.kind === ts.SyntaxKind.DeclareKeyword);
+	});
+}
+
+/**
  * Adds export information to the end of the tree.
  * @param state The current transform state.
  * @param symbol The symbol of the file.
@@ -103,13 +121,8 @@ function handleExports(
 				continue;
 			}
 
-			if (originalSymbol.valueDeclaration && originalSymbol.valueDeclaration.getSourceFile() === sourceFile) {
-				const statement = getAncestor(originalSymbol.valueDeclaration, ts.isStatement);
-				const modifiers = statement && ts.canHaveModifiers(statement) ? ts.getModifiers(statement) : undefined;
-				if (modifiers?.some(v => v.kind === ts.SyntaxKind.DeclareKeyword)) {
-					continue;
-				}
-			}
+			// ignore exports in the form of `export declare const x: T;`
+			if (isExportSymbolOnlyFromDeclare(exportSymbol)) continue;
 
 			exportPairs.push(getExportPair(state, exportSymbol));
 		}
