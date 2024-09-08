@@ -18,10 +18,7 @@ export = () => {
 	});
 
 	it("should support get and set", () => {
-		const map = new Map<string, number>()
-			.set("a", 1)
-			.set("b", 2)
-			.set("c", 3);
+		const map = new Map<string, number>().set("a", 1).set("b", 2).set("c", 3);
 		map.get("a");
 		expect(map.get("a")).to.equal(1);
 		expect(map.get("b")).to.equal(2);
@@ -32,10 +29,7 @@ export = () => {
 	});
 
 	it("should support has", () => {
-		const map = new Map<string, number>()
-			.set("a", 1)
-			.set("b", 2)
-			.set("c", 3);
+		const map = new Map<string, number>().set("a", 1).set("b", 2).set("c", 3);
 		map.has("a");
 		expect(map.has("a")).to.equal(true);
 		expect(map.has("b")).to.equal(true);
@@ -44,30 +38,21 @@ export = () => {
 	});
 
 	it("should support delete", () => {
-		const map = new Map<string, number>()
-			.set("a", 1)
-			.set("b", 2)
-			.set("c", 3);
+		const map = new Map<string, number>().set("a", 1).set("b", 2).set("c", 3);
 		const hadA = map.delete("a");
 		expect(hadA).to.equal(true);
 		expect(map.get("a")).never.to.be.ok();
 	});
 
 	it("should support size", () => {
-		const map = new Map<string, number>()
-			.set("a", 1)
-			.set("b", 2)
-			.set("c", 3);
+		const map = new Map<string, number>().set("a", 1).set("b", 2).set("c", 3);
 		expect(map.size()).to.equal(3);
 		map.delete("b");
 		expect(map.size()).to.equal(2);
 	});
 
 	it("should support clear", () => {
-		const map = new Map<string, number>()
-			.set("a", 1)
-			.set("b", 2)
-			.set("c", 3);
+		const map = new Map<string, number>().set("a", 1).set("b", 2).set("c", 3);
 		map.clear();
 		expect(map.has("a")).to.equal(false);
 		expect(map.has("b")).to.equal(false);
@@ -83,10 +68,7 @@ export = () => {
 		let hitB = 0;
 		let hitC = 0;
 
-		const map = new Map<string, number>()
-			.set("a", 1)
-			.set("b", 2)
-			.set("c", 3);
+		const map = new Map<string, number>().set("a", 1).set("b", 2).set("c", 3);
 
 		map.forEach((value, key, obj) => {
 			if (key === "a" && value === 1) {

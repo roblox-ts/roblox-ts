@@ -1,9 +1,11 @@
 {
 	"[typescript]": {
-		"editor.defaultFormatter": "dbaeumer.vscode-eslint"
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
 	},
 	"editor.formatOnSave": true,
-	"eslint.format.enable": true,
+	"eslint.options": {
+		"flags": ["unstable_ts_config"]
+	},
 	"files.eol": "\n",
 	"typescript.tsdk": "node_modules/typescript/lib",
 	"typescript.preferences.importModuleSpecifier": "non-relative",

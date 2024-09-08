@@ -1,4 +1,4 @@
-/* eslint-disable eslint-comments/require-description --
+/* eslint-disable @typescript-eslint/no-deprecated --
  * This file is a copy of the `fixupWhitespaceAndDecodeEntities` function from TypeScript's JSX transformer.
  * https://github.com/microsoft/TypeScript/blob/e2bf8b437d063392264ef20c55076cf0922ea2b6/src/compiler/transformers/jsx.ts#L557-L635
  *
@@ -40,7 +40,6 @@ export function fixupWhitespaceAndDecodeEntities(text: string): string | undefin
 			if (firstNonWhitespace !== -1 && lastNonWhitespace !== -1) {
 				acc = addLineOfJsxText(
 					acc,
-					// eslint-disable-next-line deprecation/deprecation
 					text.substr(firstNonWhitespace, lastNonWhitespace - firstNonWhitespace + 1),
 				);
 			}
@@ -58,7 +57,6 @@ export function fixupWhitespaceAndDecodeEntities(text: string): string | undefin
 
 	return firstNonWhitespace !== -1
 		? // Last line had a non-whitespace character. Emit the 'trimLeft', meaning keep trailing whitespace.
-			// eslint-disable-next-line deprecation/deprecation
 			addLineOfJsxText(acc, text.substr(firstNonWhitespace))
 		: // Last line was all whitespace, so ignore it
 			acc;
