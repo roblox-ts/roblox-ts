@@ -75,12 +75,14 @@ function getIgnoredExportSymbols(state: TransformState, sourceFile: ts.SourceFil
  * ```
  * this mimics TypeScript behavior
  */
-function isExportSymbolOnlyFromDeclare(exportSymbol: ts.Symbol) {
-	return exportSymbol.declarations?.every(declaration => {
-		const statement = getAncestor(declaration, ts.isStatement);
-		const modifiers = statement && ts.canHaveModifiers(statement) ? ts.getModifiers(statement) : undefined;
-		return modifiers?.some(v => v.kind === ts.SyntaxKind.DeclareKeyword);
-	});
+function isExportSymbolOnlyFromDeclare(exportSymbol: ts.Symbol): boolean {
+	return (
+		exportSymbol.declarations?.every(declaration => {
+			const statement = getAncestor(declaration, ts.isStatement);
+			const modifiers = statement && ts.canHaveModifiers(statement) ? ts.getModifiers(statement) : undefined;
+			return modifiers?.some(v => v.kind === ts.SyntaxKind.DeclareKeyword);
+		}) ?? false
+	);
 }
 
 /**
