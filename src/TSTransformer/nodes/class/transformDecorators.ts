@@ -4,20 +4,25 @@ import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
+import { expressionMightMutate } from "TSTransformer/util/expressionMightMutate";
 import ts from "typescript";
 
 type HasDecorators = Exclude<ts.HasDecorators, ts.AccessorDeclaration>;
 
+function countDecorators(node: HasDecorators) {
+	return ts.getDecorators(node)?.length ?? 0;
+}
+
 function canInlineDecoratorInitializer(node: HasDecorators) {
 	// more than one decorator
-	if ((ts.getDecorators(node)?.length ?? 0) > 1) {
+	if (countDecorators(node) > 1) {
 		return false;
 	}
 
-	// method declaration and have any parameter decorators
-	if (ts.isMethodDeclaration(node)) {
+	// method declaration and have any parameter decorators, check `node.body` to skip overload signatures
+	if (ts.isMethodDeclaration(node) && node.body) {
 		for (const parameter of node.parameters) {
-			if ((ts.getDecorators(parameter)?.length ?? 0) > 0) {
+			if (countDecorators(parameter) > 0) {
 				return false;
 			}
 		}
@@ -28,7 +33,7 @@ function canInlineDecoratorInitializer(node: HasDecorators) {
 		for (const member of node.members) {
 			if (ts.isConstructorDeclaration(member)) {
 				for (const parameter of member.parameters) {
-					if ((ts.getDecorators(parameter)?.length ?? 0) > 0) {
+					if (countDecorators(parameter) > 0) {
 						return false;
 					}
 				}
@@ -55,7 +60,7 @@ function transformMemberDecorators(
 
 		luau.list.pushList(initializers, prereqs);
 
-		if (!canInline && !luau.isSimple(expression)) {
+		if (!canInline && !expressionMightMutate(state, expression, decorator.expression)) {
 			const tempId = luau.tempId("decorator");
 			luau.list.push(
 				initializers,
@@ -212,10 +217,10 @@ function transformClassDecorators(
 	const result = luau.list.make<luau.Statement>();
 	luau.list.pushList(result, initializers);
 
-	for (const member of node.members) {
-		if (ts.isConstructorDeclaration(member)) {
-			luau.list.pushList(result, transformParameterDecorators(state, member, classId));
-		}
+	// check `member.body` to skip overload signatures
+	const constructor = node.members.filter(ts.isConstructorDeclaration).find(member => member.body);
+	if (constructor) {
+		luau.list.pushList(result, transformParameterDecorators(state, constructor, classId));
 	}
 
 	luau.list.pushList(result, finalizers);
@@ -234,7 +239,8 @@ export function transformDecorators(
 	// Instance Decorators
 	for (const member of node.members) {
 		if (!ts.hasStaticModifier(member)) {
-			if (ts.isMethodDeclaration(member)) {
+			// check `member.body` to skip overload signatures
+			if (ts.isMethodDeclaration(member) && member.body) {
 				luau.list.pushList(result, transformMethodDecorators(state, member, classId));
 			} else if (ts.isPropertyDeclaration(member)) {
 				luau.list.pushList(result, transformPropertyDecorators(state, member, classId));
@@ -245,7 +251,8 @@ export function transformDecorators(
 	// Static Decorators
 	for (const member of node.members) {
 		if (ts.hasStaticModifier(member)) {
-			if (ts.isMethodDeclaration(member)) {
+			// check `member.body` to skip overload signatures
+			if (ts.isMethodDeclaration(member) && member.body) {
 				luau.list.pushList(result, transformMethodDecorators(state, member, classId));
 			} else if (ts.isPropertyDeclaration(member)) {
 				luau.list.pushList(result, transformPropertyDecorators(state, member, classId));

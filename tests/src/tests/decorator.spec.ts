@@ -210,6 +210,7 @@ export = () => {
 		@classDecorator(2)
 		@classDecorator(3)
 		class Foo {
+			constructor(param1: string, param2: string);
 			constructor(
 				@constructorParameterDecorator(1)
 				@constructorParameterDecorator(2)
@@ -221,11 +222,13 @@ export = () => {
 				param2: string,
 			) {}
 
+			method(): void;
 			@methodDecorator(1)
 			@methodDecorator(2)
 			@methodDecorator(3)
 			method() {}
 
+			static staticMethod(): void;
 			@staticMethodDecorator(1)
 			@staticMethodDecorator(2)
 			@staticMethodDecorator(3)
@@ -241,6 +244,7 @@ export = () => {
 			@staticPropertyDecorator(3)
 			static staticProperty = "value";
 
+			methodWithParameters(param1: string, param2: string): void;
 			@methodDecorator(1)
 			@methodDecorator(2)
 			@methodDecorator(3)
@@ -255,6 +259,7 @@ export = () => {
 				param2: string,
 			) {}
 
+			static staticMethodWithParameters(param1: string, param2: string): void;
 			@staticMethodDecorator(1)
 			@staticMethodDecorator(2)
 			@staticMethodDecorator(3)
