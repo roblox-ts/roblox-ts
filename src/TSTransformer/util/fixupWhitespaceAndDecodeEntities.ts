@@ -1,4 +1,4 @@
-/**
+/* eslint-disable eslint-comments/require-description --
  * This file is a copy of the `fixupWhitespaceAndDecodeEntities` function from TypeScript's JSX transformer.
  * https://github.com/microsoft/TypeScript/blob/e2bf8b437d063392264ef20c55076cf0922ea2b6/src/compiler/transformers/jsx.ts#L557-L635
  *

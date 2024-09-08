@@ -21,7 +21,7 @@ export function createProjectData(tsConfigPath: string, projectOptions: ProjectO
 	try {
 		const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath).toString());
 		isPackage = PACKAGE_REGEX.test(pkgJson.name ?? "");
-	} catch (e) {
+	} catch {
 		// errors if no pkgJson, so assume not a package
 	}
 
