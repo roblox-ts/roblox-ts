@@ -65,7 +65,7 @@
 		"@types/eslint-config-prettier": "^6.11.3",
 		"@types/fs-extra": "^11.0.4",
 		"@types/mocha": "^10.0.7",
-		"@types/node": "^22.5.3",
+		"@types/node": "^22.5.4",
 		"@types/prompts": "^2.4.9",
 		"@types/resolve": "^1.20.6",
 		"@types/ts-expose-internals": "npm:ts-expose-internals@=5.5.3",
