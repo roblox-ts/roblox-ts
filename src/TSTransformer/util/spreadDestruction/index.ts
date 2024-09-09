@@ -32,6 +32,8 @@ export function getSpreadDestructorForType(state: TransformState, node: ts.Node,
 		return spreadDestructGenerator;
 	}
 
-	DiagnosticService.addDiagnostic(errors.unsupportedSpreadDestructing(node));
-	return () => luau.none();
+	return () => {
+		DiagnosticService.addDiagnostic(errors.unsupportedSpreadDestructing(node))
+		return luau.none();
+	};
 }
