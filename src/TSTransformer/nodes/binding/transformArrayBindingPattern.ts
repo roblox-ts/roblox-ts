@@ -26,7 +26,8 @@ export function transformArrayBindingPattern(
 		} else {
 			const name = element.name;
 
-			const value = ts.isSpreadElement(element)
+			const isSpreadElement = element.dotDotDotToken !== undefined;
+			const value = isSpreadElement
 				? destructor(state, parentId, index, idStack)
 				: accessor(state, parentId, index, idStack, false);
 
