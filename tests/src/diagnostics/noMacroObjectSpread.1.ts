@@ -1,3 +1,3 @@
 const obj = {
 	...new Map(),
-}
+};

@@ -17,7 +17,8 @@ export = () => {
 	it("should support prereqs in elseif", () => {
 		const array = [1];
 		if (true) {
-		} else if (array.pop() === 1) {}
+		} else if (array.pop() === 1) {
+		}
 		expect(array.size()).to.equal(1);
 	});
 };
