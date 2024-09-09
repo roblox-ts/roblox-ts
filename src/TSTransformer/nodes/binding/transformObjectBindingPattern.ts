@@ -21,11 +21,9 @@ export function transformObjectBindingPattern(
 		const prop = element.propertyName;
 		const isSpread = element.dotDotDotToken !== undefined;
 
-		const destructor = isSpread ? spreadDestructObject : undefined;
-
 		if (ts.isIdentifier(name)) {
-			const value = destructor
-				? destructor(state, parentId, preSpreadNames)
+			const value = isSpread
+				? spreadDestructObject(state, parentId, preSpreadNames)
 				: objectAccessor(state, parentId, state.getType(bindingPattern), prop ?? name);
 			preSpreadNames.push(value);
 			const id = transformVariable(state, name, value);
@@ -36,8 +34,8 @@ export function transformObjectBindingPattern(
 			// if name is not identifier, it must be a binding pattern
 			// in that case, prop is guaranteed to exist
 			assert(prop);
-			const value = destructor
-				? destructor(state, parentId, preSpreadNames)
+			const value = isSpread
+				? spreadDestructObject(state, parentId, preSpreadNames)
 				: objectAccessor(state, parentId, state.getType(bindingPattern), prop);
 			preSpreadNames.push(value);
 			const id = state.pushToVar(value, "binding");
