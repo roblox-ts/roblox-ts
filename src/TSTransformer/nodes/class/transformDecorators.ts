@@ -60,7 +60,7 @@ function transformMemberDecorators(
 
 		luau.list.pushList(initializers, prereqs);
 
-		if (!canInline && !expressionMightMutate(state, expression, decorator.expression)) {
+		if (!canInline && expressionMightMutate(state, expression, decorator.expression)) {
 			const tempId = luau.tempId("decorator");
 			luau.list.push(
 				initializers,
