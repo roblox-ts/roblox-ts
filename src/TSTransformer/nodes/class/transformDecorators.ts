@@ -1,4 +1,5 @@
 import luau from "@roblox-ts/luau-ast";
+import exp from "constants";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
@@ -13,30 +14,43 @@ function countDecorators(node: HasDecorators) {
 	return ts.getDecorators(node)?.length ?? 0;
 }
 
-function canInlineDecoratorInitializer(node: HasDecorators) {
-	// more than one decorator
-	if (countDecorators(node) > 1) {
-		return false;
+function findConstructor(node: ts.ClassLikeDeclaration): ts.ConstructorDeclaration | undefined {
+	return node.members.find((member): member is ts.ConstructorDeclaration => {
+		return ts.isConstructorDeclaration(member) && member.body !== undefined;
+	});
+}
+
+function shouldInline(
+	state: TransformState,
+	isLastDecorator: boolean,
+	decorator: ts.Decorator,
+	expression: luau.Expression,
+): boolean {
+	// immutable expressions can be inlined
+	if (!expressionMightMutate(state, expression, decorator.expression)) return true;
+
+	// if it's not the last decorator, we can't inline
+	// this is because we need to initialize all decorators before running them
+	if (!isLastDecorator) return false;
+
+	const node = decorator.parent;
+
+	// if the node is a method declaration and has a decorator on a parameter, we can't inline
+	if (ts.isMethodDeclaration(node) && node.parameters.some(parameter => countDecorators(parameter) > 0)) return false;
+
+	// if the node is a class declaration and has a decorator on a constructor parameter, we can't inline
+	if (ts.isClassLike(node)) {
+		const constructor = findConstructor(node);
+		if (constructor && constructor.parameters.some(parameter => countDecorators(parameter) > 0)) return false;
 	}
 
-	// method declaration and have any parameter decorators, check `node.body` to skip overload signatures
-	if (ts.isMethodDeclaration(node) && node.body) {
-		for (const parameter of node.parameters) {
-			if (countDecorators(parameter) > 0) {
+	// if the node is a parameter and there are any parameters with decorators after it, we can't inline
+	if (ts.isParameter(node)) {
+		const parameters = node.parent.parameters;
+		const paramIdx = parameters.findIndex(param => param === node);
+		for (let i = paramIdx + 1; i < parameters.length; i++) {
+			if (countDecorators(parameters[i]) > 0) {
 				return false;
-			}
-		}
-	}
-
-	// class declaration and have any constructor parameter decorators
-	if (ts.isClassDeclaration(node)) {
-		for (const member of node.members) {
-			if (ts.isConstructorDeclaration(member)) {
-				for (const parameter of member.parameters) {
-					if (countDecorators(parameter) > 0) {
-						return false;
-					}
-				}
 			}
 		}
 	}
@@ -52,15 +66,17 @@ function transformMemberDecorators(
 	const initializers = luau.list.make<luau.Statement>();
 	const finalizers = luau.list.make<luau.Statement>();
 
-	const decorators = ts.getDecorators(node);
-	const canInline = canInlineDecoratorInitializer(node);
+	const decorators = ts.getDecorators(node) ?? [];
 
-	for (const decorator of decorators ?? []) {
+	for (let i = 0; i < decorators.length; i++) {
+		const decorator = decorators[i];
 		let [expression, prereqs] = state.capture(() => transformExpression(state, decorator.expression));
 
 		luau.list.pushList(initializers, prereqs);
 
-		if (!canInline && expressionMightMutate(state, expression, decorator.expression)) {
+		const isLastDecorator = i === decorators.length - 1;
+
+		if (!shouldInline(state, isLastDecorator, decorator, expression)) {
 			const tempId = luau.tempId("decorator");
 			luau.list.push(
 				initializers,
@@ -218,7 +234,7 @@ function transformClassDecorators(
 	luau.list.pushList(result, initializers);
 
 	// check `member.body` to skip overload signatures
-	const constructor = node.members.filter(ts.isConstructorDeclaration).find(member => member.body);
+	const constructor = findConstructor(node);
 	if (constructor) {
 		luau.list.pushList(result, transformParameterDecorators(state, constructor, classId));
 	}
