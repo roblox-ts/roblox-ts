@@ -18,15 +18,15 @@ export function transformArrayBindingPattern(
 	let index = 0;
 	const idStack = new Array<luau.AnyIdentifier>();
 	const accessor = getAccessorForBindingType(state, bindingPattern, state.getType(bindingPattern));
-	const destructor = getSpreadDestructorForType(state, bindingPattern, state.getType(bindingPattern))
+	const destructor = getSpreadDestructorForType(state, bindingPattern, state.getType(bindingPattern));
 
 	for (const element of bindingPattern.elements) {
 		if (ts.isOmittedExpression(element)) {
 			accessor(state, parentId, index, idStack, true);
 		} else {
 			const name = element.name;
-			
-			const value = ts.isSpreadElement(element) 
+
+			const value = ts.isSpreadElement(element)
 				? destructor(state, parentId, index, idStack)
 				: accessor(state, parentId, index, idStack, false);
 

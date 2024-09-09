@@ -26,7 +26,7 @@ export function transformArrayAssignmentPattern(
 		state,
 		assignmentPattern,
 		state.typeChecker.getTypeOfAssignmentPattern(assignmentPattern),
-	)
+	);
 
 	for (let element of assignmentPattern.elements) {
 		if (ts.isOmittedExpression(element)) {
@@ -37,7 +37,7 @@ export function transformArrayAssignmentPattern(
 				initializer = skipDownwards(element.right);
 				element = skipDownwards(element.left);
 			}
-			
+
 			const value = ts.isSpreadElement(element)
 				? destructor(state, parentId, index, idStack)
 				: accessor(state, parentId, index, idStack, false);
