@@ -16,34 +16,35 @@ const CONSTRUCTOR = "constructor";
 function transformPropertyInitializers(state: TransformState, node: ts.ClassLikeDeclaration) {
 	const statements = luau.list.make<luau.Statement>();
 	for (const member of node.members) {
-		if (ts.isPropertyDeclaration(member) && !ts.hasStaticModifier(member)) {
-			const name = member.name;
-			if (ts.isPrivateIdentifier(name)) {
-				DiagnosticService.addDiagnostic(errors.noPrivateIdentifier(node));
-				continue;
-			}
+		if (!ts.isPropertyDeclaration(member)) continue;
+		if (ts.hasStaticModifier(member)) continue;
 
-			const initializer = member.initializer;
-			if (!initializer) continue;
-
-			const [index, indexPrereqs] = state.capture(() => transformPropertyName(state, name));
-			luau.list.pushList(statements, indexPrereqs);
-
-			const [right, rightPrereqs] = state.capture(() => transformExpression(state, initializer));
-			luau.list.pushList(statements, rightPrereqs);
-
-			luau.list.push(
-				statements,
-				luau.create(luau.SyntaxKind.Assignment, {
-					left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-						expression: luau.globals.self,
-						index,
-					}),
-					operator: "=",
-					right,
-				}),
-			);
+		const name = member.name;
+		if (ts.isPrivateIdentifier(name)) {
+			DiagnosticService.addDiagnostic(errors.noPrivateIdentifier(node));
+			continue;
 		}
+
+		const initializer = member.initializer;
+		if (!initializer) continue;
+
+		const [index, indexPrereqs] = state.capture(() => transformPropertyName(state, name));
+		luau.list.pushList(statements, indexPrereqs);
+
+		const [right, rightPrereqs] = state.capture(() => transformExpression(state, initializer));
+		luau.list.pushList(statements, rightPrereqs);
+
+		luau.list.push(
+			statements,
+			luau.create(luau.SyntaxKind.Assignment, {
+				left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+					expression: luau.globals.self,
+					index,
+				}),
+				operator: "=",
+				right,
+			}),
+		);
 	}
 	return statements;
 }
