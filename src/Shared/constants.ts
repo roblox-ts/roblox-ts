@@ -51,4 +51,5 @@ export const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	writeTransformedFiles: false,
 	optimizedLoops: true,
 	allowCommentDirectives: false,
+	luau: true,
 };
