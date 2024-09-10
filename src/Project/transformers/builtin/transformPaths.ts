@@ -1,8 +1,6 @@
-/* eslint-disable eslint-comments/require-description -- file copied from other source and best not to be touched */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-expressions */
+/* eslint-disable -- file copied from other source and best not to be touched */
 
-// modified version of https://github.com/LeDDGroup/typescript-transform-paths
+// modified version of https://github.com/LeDDGroup/typescript-transform-paths/blob/34e49639f7248e38475efd854670c11ea65fc76e/src/index.ts
 
 /*
 MIT License
@@ -28,289 +26,220 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-import { existsSync } from "fs";
-import { dirname, extname, relative, resolve } from "path";
-import { assert } from "Shared/util/assert";
+import path from "path";
 import ts from "typescript";
-import { parse } from "url";
+import url from "url";
 
-/* ****************************************************************************************************************** *
- * Helpers
- * ****************************************************************************************************************** */
+/* ****************************************************************************************************************** */
+// region: Types
+/* ****************************************************************************************************************** */
 
-export const normalizePath = (p: string) =>
-	// Is extended length or has non-ascii chars (respectively)
-	// eslint-disable-next-line no-control-regex
-	/^\\\\\?\\/.test(p) || /[^\u0000-\u0080]+/.test(p)
-		? p
-		: // Normalize to forward slash and remove repeating slashes
-			p.replace(/[\\/]+/g, "/");
+export interface TsTransformPathsConfig {
+	useRootDirs?: boolean;
+}
+
+// endregion
+
+/* ****************************************************************************************************************** */
+// region: Helpers
+/* ****************************************************************************************************************** */
+
+const getImplicitExtensions = (options: ts.CompilerOptions) => {
+	let res: string[] = [".ts", ".d.ts"];
+
+	let { allowJs, jsx, resolveJsonModule: allowJson } = options;
+	const allowJsx = !!jsx && <any>jsx !== ts.JsxEmit.None;
+
+	allowJs && res.push(".js");
+	allowJsx && res.push(".tsx");
+	allowJs && allowJsx && res.push(".jsx");
+	allowJson && res.push(".json");
+
+	return res;
+};
+
+const isURL = (s: string): boolean => !!s && (!!url.parse(s).host || !!url.parse(s).hostname);
+const isBaseDir = (base: string, dir: string) => path.relative(base, dir)?.[0] !== ".";
+
+const isRequire = (node: ts.Node): node is ts.CallExpression =>
+	ts.isCallExpression(node) &&
+	ts.isIdentifier(node.expression) &&
+	node.expression.text === "require" &&
+	ts.isStringLiteral(node.arguments[0]) &&
+	node.arguments.length === 1;
+
+const isAsyncImport = (node: ts.Node): node is ts.CallExpression =>
+	ts.isCallExpression(node) &&
+	node.expression.kind === ts.SyntaxKind.ImportKeyword &&
+	ts.isStringLiteral(node.arguments[0]) &&
+	node.arguments.length === 1;
+
+// endregion
 
 /* ****************************************************************************************************************** *
  * Transformer
  * ****************************************************************************************************************** */
 
-export const transformPaths = (context: ts.TransformationContext) => (sourceFile: ts.SourceFile | ts.Bundle) => {
-	assert(ts.isSourceFile(sourceFile));
+export default function transformer(program: ts.Program, config: TsTransformPathsConfig) {
+	const { useRootDirs } = config;
+	const compilerOptions = program.getCompilerOptions();
+	const implicitExtensions = getImplicitExtensions(compilerOptions);
 
-	const resolver =
-		typeof (context as any).getEmitResolver === "function" ? (context as any).getEmitResolver() : undefined;
-	const compilerOptions = context.getCompilerOptions();
-	const sourceDir = dirname(sourceFile.fileName);
+	return (context: ts.TransformationContext) => (sourceFile: ts.SourceFile | ts.Bundle) => {
+		if (ts.isBundle(sourceFile)) return sourceFile;
 
-	const implicitExtensions = [".ts", ".d.ts"];
+		const factory = context.factory;
 
-	const allowJs = compilerOptions.allowJs === true;
-	const allowJsx = compilerOptions.jsx !== undefined && compilerOptions.jsx !== ts.JsxEmit.None;
-	const allowJson = compilerOptions.resolveJsonModule === true;
+		const { fileName } = sourceFile;
+		const fileDir = ts.normalizePath(path.dirname(fileName));
+		if (!compilerOptions.baseUrl && !compilerOptions.paths) return sourceFile;
 
-	allowJs && implicitExtensions.push(".js");
-	allowJsx && implicitExtensions.push(".tsx");
-	allowJs && allowJsx && implicitExtensions.push(".jsx");
-	allowJson && implicitExtensions.push(".json");
+		let rootDirs = compilerOptions.rootDirs?.filter(path.isAbsolute);
 
-	const { isDeclarationFile } = sourceFile;
+		return ts.visitEachChild(sourceFile, visit, context);
 
-	const { baseUrl = "", paths = {} } = compilerOptions;
-	paths["*"] = paths["*"]?.concat("*") ?? ["*"];
+		/* ********************************************************* *
+		 * Transformer Helpers
+		 * ********************************************************* */
 
-	const binds = Object.keys(paths)
-		.filter(key => paths[key].length)
-		.map(key => ({
-			regexp: new RegExp("^" + key.replace("*", "(.*)") + "$"),
-			paths: paths[key],
-		}));
+		/**
+		 * Gets proper path and calls updaterFn to update the node
+		 */
+		function update(
+			original: ts.Node,
+			moduleName: string,
+			updaterFn: (newPath: ts.StringLiteral) => ts.Node,
+		): ts.Node {
+			let p: string;
 
-	if (!baseUrl || binds.length === 0) {
-		// There is nothing we can do without baseUrl and paths specified.
-		return sourceFile;
-	}
-
-	function isRelative(s: string) {
-		return s[0] === ".";
-	}
-
-	function isUrl(s: string) {
-		// eslint-disable-next-line @typescript-eslint/no-deprecated
-		return parse(s).protocol !== null;
-	}
-
-	function fileExists(s: string) {
-		// check for implicit extensions .ts, .dts, etc...
-		for (const ext of implicitExtensions) if (existsSync(s + ext)) return true;
-		// else if has extensions, file must exist
-		if (extname(s) !== "") return existsSync(s);
-		return false;
-	}
-
-	function bindModuleToFile(moduleName: string) {
-		if (isRelative(moduleName)) {
-			// if it's relative path do not transform
-			return moduleName;
-		}
-
-		for (const { regexp, paths } of binds) {
-			const match = regexp.exec(moduleName);
-			if (match) {
-				for (const p of paths) {
-					const out = p.replace(/\*/g, match[1]);
-
-					if (isUrl(out)) return out;
-
-					const filepath = resolve(baseUrl, out);
-					if (!fileExists(`${filepath}/index`) && !fileExists(filepath)) continue;
-
-					const resolved = fixupImportPath(relative(sourceDir, filepath));
-
-					return isRelative(resolved) ? resolved : `./${resolved}`;
-				}
-			}
-		}
-
-		return undefined;
-	}
-
-	const isRequire = (node: ts.Node): node is ts.CallExpression =>
-		ts.isCallExpression(node) &&
-		ts.isIdentifier(node.expression) &&
-		node.expression.text === "require" &&
-		ts.isStringLiteral(node.arguments[0]) &&
-		node.arguments.length === 1;
-
-	const isAsyncImport = (node: ts.Node): node is ts.CallExpression =>
-		ts.isCallExpression(node) &&
-		node.expression.kind === ts.SyntaxKind.ImportKeyword &&
-		ts.isStringLiteral(node.arguments[0]) &&
-		node.arguments.length === 1;
-
-	function visit(node: ts.Node): ts.VisitResult<ts.Node | undefined> {
-		if (isRequire(node) || isAsyncImport(node)) {
-			return unpathRequireAndAsyncImport(node);
-		}
-
-		if (ts.isExternalModuleReference(node)) {
-			return unpathImportEqualsDeclaration(node);
-		}
-
-		if (ts.isImportDeclaration(node)) {
-			return unpathImportDeclaration(node);
-		}
-
-		if (ts.isExportDeclaration(node)) {
-			return unpathExportDeclaration(node);
-		}
-
-		if (ts.isImportTypeNode(node)) {
-			return unpathImportTypeNode(node);
-		}
-
-		return ts.visitEachChild(node, visit, context);
-	}
-
-	function unpathRequireAndAsyncImport(node: ts.CallExpression) {
-		const firstArg = node.arguments[0] as ts.StringLiteral;
-		const file = bindModuleToFile(firstArg.text);
-
-		if (!file) {
-			return node;
-		}
-
-		const fileLiteral = ts.factory.createStringLiteral(file);
-
-		return ts.factory.updateCallExpression(node, node.expression, node.typeArguments, [fileLiteral]);
-	}
-
-	function unpathImportTypeNode(node: ts.ImportTypeNode) {
-		const argument = node.argument as ts.LiteralTypeNode;
-		const literal = argument.literal;
-
-		if (!ts.isStringLiteral(literal)) {
-			return node;
-		}
-
-		const file = bindModuleToFile(literal.text);
-
-		if (!file) {
-			return node;
-		}
-
-		const fileLiteral = ts.factory.createStringLiteral(file);
-		const fileArgument = ts.factory.updateLiteralTypeNode(argument, fileLiteral);
-
-		return ts.factory.updateImportTypeNode(
-			node,
-			fileArgument,
-			node.attributes,
-			node.qualifier,
-			node.typeArguments,
-			node.isTypeOf,
-		);
-	}
-
-	function unpathImportEqualsDeclaration(node: ts.ExternalModuleReference) {
-		if (!ts.isStringLiteral(node.expression)) {
-			return node;
-		}
-		const file = bindModuleToFile(node.expression.text);
-		if (!file) {
-			return node;
-		}
-		const fileLiteral = ts.factory.createStringLiteral(file);
-
-		return ts.factory.updateExternalModuleReference(node, fileLiteral);
-	}
-	function unpathImportDeclaration(node: ts.ImportDeclaration): ts.VisitResult<ts.ImportDeclaration | undefined> {
-		if (!ts.isStringLiteral(node.moduleSpecifier)) {
-			return node;
-		}
-		const file = bindModuleToFile(node.moduleSpecifier.text);
-		if (!file) {
-			return node;
-		}
-		const fileLiteral = ts.factory.createStringLiteral(file);
-
-		const importClause = ts.visitNode(node.importClause, visitImportClause as any, ts.isImportClause);
-		return node.importClause === importClause || importClause || isDeclarationFile
-			? ts.factory.updateImportDeclaration(node, node.modifiers, node.importClause, fileLiteral, undefined)
-			: undefined;
-	}
-	function visitImportClause(node: ts.ImportClause): ts.VisitResult<ts.ImportClause | undefined> {
-		const name = resolver.isReferencedAliasDeclaration(node) ? node.name : undefined;
-		const namedBindings = ts.visitNode(node.namedBindings, visitNamedImportBindings as any, ts.isNamedImports);
-		return name || namedBindings
-			? ts.factory.updateImportClause(node, node.isTypeOnly, name, namedBindings)
-			: undefined;
-	}
-	function visitNamedImportBindings(
-		node: ts.NamedImportBindings,
-	): ts.VisitResult<ts.NamedImportBindings | undefined> {
-		if (node.kind === ts.SyntaxKind.NamespaceImport) {
-			return resolver.isReferencedAliasDeclaration(node) ? node : undefined;
-		} else {
-			const elements = ts.visitNodes(node.elements, visitImportSpecifier as any, ts.isImportSpecifier);
-			return elements.some(e => e) ? ts.factory.updateNamedImports(node, elements) : undefined;
-		}
-	}
-	function visitImportSpecifier(node: ts.ImportSpecifier): ts.VisitResult<ts.ImportSpecifier | undefined> {
-		return resolver.isReferencedAliasDeclaration(node) ? node : undefined;
-	}
-
-	function unpathExportDeclaration(node: ts.ExportDeclaration): ts.VisitResult<ts.Statement | undefined> {
-		if (!node.moduleSpecifier || !ts.isStringLiteral(node.moduleSpecifier)) {
-			return node;
-		}
-
-		const file = bindModuleToFile(node.moduleSpecifier.text);
-		if (!file) {
-			return node;
-		}
-		const fileLiteral = ts.factory.createStringLiteral(file);
-
-		if (
-			(!node.exportClause &&
-				!compilerOptions.isolatedModules &&
-				!resolver.moduleExportsSomeValue(node.moduleSpecifier)) ||
-			(node.exportClause && resolver.isValueAliasDeclaration(node))
-		) {
-			return ts.factory.updateExportDeclaration(
-				node,
-				node.modifiers,
-				node.isTypeOnly,
-				node.exportClause,
-				fileLiteral,
-				node.attributes,
+			/* Have Compiler API attempt to resolve */
+			const { resolvedModule, failedLookupLocations } = ts.resolveModuleName(
+				moduleName,
+				fileName,
+				compilerOptions,
+				ts.sys,
 			);
+
+			if (!resolvedModule) {
+				const maybeURL = failedLookupLocations![0];
+				if (!isURL(maybeURL)) return original;
+				p = maybeURL;
+			} else if (resolvedModule.isExternalLibraryImport) return original;
+			else {
+				const { extension, resolvedFileName } = resolvedModule;
+
+				let filePath = fileDir;
+				let modulePath = path.dirname(resolvedFileName);
+
+				/* Handle rootDirs mapping */
+				if (useRootDirs && rootDirs) {
+					let fileRootDir = "";
+					let moduleRootDir = "";
+					for (const rootDir of rootDirs) {
+						if (isBaseDir(rootDir, resolvedFileName) && rootDir.length > moduleRootDir.length)
+							moduleRootDir = rootDir;
+						if (isBaseDir(rootDir, fileName) && rootDir.length > fileRootDir.length) fileRootDir = rootDir;
+					}
+
+					/* Remove base dirs to make relative to root */
+					if (fileRootDir && moduleRootDir) {
+						filePath = path.relative(fileRootDir, filePath);
+						modulePath = path.relative(moduleRootDir, modulePath);
+					}
+				}
+
+				/* Remove extension if implicit */
+				p = ts.normalizePath(path.join(path.relative(filePath, modulePath), path.basename(resolvedFileName)));
+				if (extension && implicitExtensions.includes(extension)) p = p.slice(0, -extension.length);
+				if (!p) return original;
+
+				p = p[0] === "." ? p : `./${p}`;
+			}
+
+			const newStringLiteral = factory.createStringLiteral(p);
+			return updaterFn(newStringLiteral);
 		}
 
-		const exportClause = ts.visitNode(node.exportClause, visitNamedExports as any, ts.isNamedExports);
-		return node.exportClause === exportClause || exportClause || isDeclarationFile
-			? ts.factory.updateExportDeclaration(
-					node,
-					node.modifiers,
-					node.isTypeOnly,
-					node.exportClause,
-					fileLiteral,
-					node.attributes,
-				)
-			: undefined;
-	}
-	function visitNamedExports(node: ts.NamedExports): ts.VisitResult<ts.NamedExports | undefined> {
-		const elements = ts.visitNodes(node.elements, visitExportSpecifier as any, ts.isExportSpecifier);
-		return elements.some(e => e) ? ts.factory.updateNamedExports(node, elements) : undefined;
-	}
-	function visitExportSpecifier(node: ts.ExportSpecifier): ts.VisitResult<ts.ExportSpecifier | undefined> {
-		return resolver.isValueAliasDeclaration(node) ? node : undefined;
-	}
+		/**
+		 * Visit and replace nodes with module specifiers
+		 */
+		function visit(node: ts.Node): ts.Node | undefined {
+			/* Update require() or import() */
+			if (isRequire(node) || isAsyncImport(node))
+				return update(node, (<ts.StringLiteral>node.arguments[0]).text, p => {
+					const res = factory.updateCallExpression(node, node.expression, node.typeArguments, [p]);
 
-	function fixupImportPath(p: string) {
-		let res = normalizePath(p);
+					const textNode = node.arguments[0];
+					const commentRanges = ts.getLeadingCommentRanges(textNode.getFullText(), 0) || [];
 
-		/* Remove implicit extension */
-		const ext = extname(res);
-		if (ext && implicitExtensions.includes(ext.replace(/^\./, ""))) res = res.slice(0, -ext.length);
+					for (const range of commentRanges) {
+						const { kind, pos, end, hasTrailingNewLine } = range;
 
-		return res;
-	}
+						const caption = textNode
+							.getFullText()
+							.substr(pos, end)
+							.replace(
+								/* searchValue */ kind === ts.SyntaxKind.MultiLineCommentTrivia
+									? // Comment range in a multi-line comment with more than one line erroneously includes the
+										// node's text in the range. For that reason, we use the greedy selector in capture group
+										// and dismiss anything after the final comment close tag
+										/^\/\*(.+)\*\/.*/s
+									: /^\/\/(.+)/s,
+								/* replaceValue */ "$1",
+							);
+						ts.addSyntheticLeadingComment(p, kind, caption, hasTrailingNewLine);
+					}
+					return res;
+				});
 
-	return ts.visitNode(sourceFile, visit) as ts.SourceFile;
-};
+			/* Update ExternalModuleReference - import foo = require("foo"); */
+			if (ts.isExternalModuleReference(node) && ts.isStringLiteral(node.expression))
+				return update(node, node.expression.text, p => factory.updateExternalModuleReference(node, p));
+
+			/**
+			 * Update ImportDeclaration / ExportDeclaration
+			 * import ... 'module';
+			 * export ... 'module';
+			 *
+			 * This implements a workaround for the following TS issues:
+			 * @see https://github.com/microsoft/TypeScript/issues/40603
+			 * @see https://github.com/microsoft/TypeScript/issues/31446
+			 */
+			if (
+				(ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
+				node.moduleSpecifier &&
+				ts.isStringLiteral(node.moduleSpecifier)
+			)
+				return update(node, node.moduleSpecifier.text, p => {
+					const newNode = factory.cloneNode(node.moduleSpecifier!) as ts.StringLiteral;
+					ts.setSourceMapRange(newNode, ts.getSourceMapRange(node));
+					ts.setTextRange(newNode, node.moduleSpecifier);
+					newNode.text = p.text;
+
+					return Object.assign(node, { moduleSpecifier: newNode });
+				});
+
+			/* Update ImportTypeNode - typeof import("./bar"); */
+			if (ts.isImportTypeNode(node)) {
+				const argument = node.argument as ts.LiteralTypeNode;
+				if (!ts.isStringLiteral(argument.literal)) return node;
+				const { text } = argument.literal;
+
+				return !text
+					? node
+					: update(node, text, p =>
+							factory.updateImportTypeNode(
+								node,
+								factory.updateLiteralTypeNode(argument, p),
+								node.attributes,
+								node.qualifier,
+								node.typeArguments,
+								node.isTypeOf,
+							),
+						);
+			}
+
+			return ts.visitEachChild(node, visit, context);
+		}
+	};
+}
