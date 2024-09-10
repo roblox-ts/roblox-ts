@@ -19,9 +19,8 @@ export function transformClassConstructor(
 ) {
 	const statements = luau.list.make<luau.Statement>();
 
-	let bodyStatements = originNode ? getStatements(originNode.body) : [];
-
-	let removeFirstSuper = false;
+	const body = originNode?.body;
+	const bodyStatements = body ? getStatements(body) : [];
 
 	let parameters = luau.list.make<luau.AnyIdentifier>();
 	let hasDotDotDot = false;
@@ -51,21 +50,12 @@ export function transformClassConstructor(
 	}
 
 	// property parameters must come after the first super() call
-	function transformFirstSuper() {
-		if (!removeFirstSuper) {
-			removeFirstSuper = true;
-			if (bodyStatements.length > 0) {
-				const firstStatement = bodyStatements[0];
-				if (ts.isExpressionStatement(firstStatement) && ts.isSuperCall(firstStatement.expression)) {
-					luau.list.pushList(statements, transformStatementList(state, originNode?.body, [firstStatement]));
-				}
-			}
-		}
-	}
+	const superIndex = bodyStatements.findIndex(v => ts.isExpressionStatement(v) && ts.isSuperCall(v.expression));
+
+	luau.list.pushList(statements, transformStatementList(state, body, bodyStatements.slice(0, superIndex + 1)));
 
 	for (const parameter of originNode?.parameters ?? []) {
 		if (ts.isParameterPropertyDeclaration(parameter, parameter.parent)) {
-			transformFirstSuper();
 			const paramId = transformIdentifierDefined(state, parameter.name);
 			luau.list.push(
 				statements,
@@ -80,8 +70,6 @@ export function transformClassConstructor(
 
 	for (const member of node.members) {
 		if (ts.isPropertyDeclaration(member) && !ts.hasStaticModifier(member)) {
-			transformFirstSuper();
-
 			const name = member.name;
 			if (ts.isPrivateIdentifier(name)) {
 				DiagnosticService.addDiagnostic(errors.noPrivateIdentifier(node));
@@ -113,15 +101,7 @@ export function transformClassConstructor(
 		}
 	}
 
-	// if removeFirstSuper and first statement is `super()`, remove it
-	if (removeFirstSuper && bodyStatements.length > 0) {
-		const firstStatement = bodyStatements[0];
-		if (ts.isExpressionStatement(firstStatement) && ts.isSuperCall(firstStatement.expression)) {
-			bodyStatements = bodyStatements.slice(1);
-		}
-	}
-
-	luau.list.pushList(statements, transformStatementList(state, originNode?.body, bodyStatements));
+	luau.list.pushList(statements, transformStatementList(state, body, bodyStatements.slice(superIndex + 1)));
 
 	return luau.list.make<luau.Statement>(
 		luau.create(luau.SyntaxKind.MethodDeclaration, {
