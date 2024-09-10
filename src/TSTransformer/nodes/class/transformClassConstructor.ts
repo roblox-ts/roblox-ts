@@ -20,7 +20,7 @@ export function transformClassConstructor(
 	const statements = luau.list.make<luau.Statement>();
 
 	const body = originNode?.body;
-	let bodyStatements = body ? getStatements(body) : [];
+	const bodyStatements = body ? getStatements(body) : [];
 
 	let parameters = luau.list.make<luau.AnyIdentifier>();
 	let hasDotDotDot = false;
