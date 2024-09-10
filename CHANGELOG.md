@@ -1,6 +1,5 @@
 ## 3.0.0
-- TypeScript 5.5.3
-	- not all new language features are supported yet, but we plan to add support in future releases
+- TypeScript dependency updated to 5.5.3 ([#2617][2617],[#2648][2648],[#2716][2716],[#2736][2736])
 - Generic JSX ([#2404][2404])
 	- JSX can now be used for any library which matches `React.createElement()` syntax
 - `--optimizedLoops` flag is now enabled by default
@@ -9,18 +8,19 @@
 	- if necessary, you can run the compiler with `--optimizedLoops=false` to return to the old behavior
 - Improve emit for `a.b()` and `a[b]()` ([#2623][2623])
 - Fixed bug where `noMacroExtends` diagnostic would never be reported ([#2587][2587])
+- Fixed bug where `noRobloxSymbolInstanceof` diagnostic would not always be reported ([#2672][2672])
 - Fixed watch mode error for files with "unsupported extensions" ([#2701][2701])
 - Fixed multiline template string bug on Windows ([roblox-ts/luau-ast#483][roblox-ts/luau-ast#483])
 - Fixed template string unicode escape sequence bug ([roblox-ts/luau-ast#483][roblox-ts/luau-ast#483])
 - Fixed optional arguments when spreading into macro ([#2528][2528])
-- Fixed parameter decorators arguments ([#2460][2460])
-- Fixed bug related to expresion execution order for classes ([#2728][2728])
-- Fixed optional function call crash ([#2731][2731])
+- Fixed nested classes not getting hoisted ([#2728][2728])
 - Pinned exact versions of @roblox-ts dependencies ([#2724][2724])
-- try/catch improvements ([#2726][2726])
+- Fixed bug where error was not rethrown after a `finally` block ([#2726][2726])
+- Fixed bug where `finally` block was not run if the `catch` block errored ([#2726][2726])
 - Fixed importing directories that are symlinked twice ([#2704][2704])
-- Moved all @types/* to devDependencies ([#2737][2737])
-- Improved decorator execution ordering + other bugs ([#2759][2759], [#2787)][2787]
+- Moved all `@types/*` to devDependencies ([#2737][2737])
+- Corrected parameter decorator name argument ([#2460][2460])
+- Corrected decorator execution ordering ([#2759][2759])
 - Fixed `export {}` not working on imported variables ([#2796][2796])
 - Fixed statements before super breaking class initialization ([#2778][2778])
 - Fixed internal transformPaths transformer ([#2800][2800])
@@ -29,8 +29,10 @@
 ### **Breaking Changes**
 - `@rbxts/roact`
 	- roblox-ts 3.0.0+ will require `@rbxts/roact` 3.0.0+
-	- you should prefer `@rbxts/react` where possible
-- Upgaded bundled `roblox-lua-promise` from 3.2.1 to 4.0.0. See possible breaking changes [here](https://github.com/evaera/roblox-lua-promise/releases).
+- Upgraded bundled `roblox-lua-promise` from 3.2.1 to 4.0.0. See possible breaking changes [here](https://github.com/evaera/roblox-lua-promise/releases).
+- The TypeScript update includes few edge-case breaking changes: [5.4](https://devblogs.microsoft.com/typescript/announcing-typescript-5-4/#notable-behavioral-changes8) and [5.5](https://devblogs.microsoft.com/typescript/announcing-typescript-5-5/#notable-behavioral-changes30)
+- roblox-ts will emit compiled files as `.luau` by default. You can keep the old behaviour by running with `--luau=false`.
+- Parameter decorators will now be called with the name of the method, instead of the name of the parameter. This matches TypeScript behaviour.
 
 ## 2.3.0
 - Removed `rbxtsc init` in favor of `npm create roblox-ts` ([#2503][2503])
@@ -681,12 +683,12 @@ Changes prior to 1.0.0-beta.0 have been removed from this page since the entire 
 [2606]: https://github.com/roblox-ts/roblox-ts/pull/2606
 [2614]: https://github.com/roblox-ts/roblox-ts/pull/2614
 [2623]: https://github.com/roblox-ts/roblox-ts/pull/2623
+[2672]: https://github.com/roblox-ts/roblox-ts/pull/2672
 [2701]: https://github.com/roblox-ts/roblox-ts/pull/2701
 [2704]: https://github.com/roblox-ts/roblox-ts/pull/2704
 [2724]: https://github.com/roblox-ts/roblox-ts/pull/2724
 [2726]: https://github.com/roblox-ts/roblox-ts/pull/2726
 [2728]: https://github.com/roblox-ts/roblox-ts/pull/2728
-[2731]: https://github.com/roblox-ts/roblox-ts/pull/2731
 [2737]: https://github.com/roblox-ts/roblox-ts/pull/2737
 [2759]: https://github.com/roblox-ts/roblox-ts/pull/2759
 [2778]: https://github.com/roblox-ts/roblox-ts/pull/2778
