@@ -13,6 +13,7 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformBlock } from "TSTransformer/nodes/statements/transformBlock";
 import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
+import { findConstructor } from "TSTransformer/util/findConstructor";
 import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
 import { getKindName } from "TSTransformer/util/getKindName";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
@@ -20,13 +21,6 @@ import { validateMethodAssignment } from "TSTransformer/util/validateMethodAssig
 import ts from "typescript";
 
 const MAGIC_TO_STRING_METHOD = "toString";
-
-function getConstructor(node: ts.ClassLikeDeclaration): (ts.ConstructorDeclaration & { body: ts.Block }) | undefined {
-	return node.members.find(
-		(element): element is ts.ConstructorDeclaration & { body: ts.Block } =>
-			ts.isConstructorDeclaration(element) && element.body !== undefined,
-	);
-}
 
 function createNameFunction(name: string) {
 	return luau.create(luau.SyntaxKind.FunctionExpression, {
@@ -46,7 +40,7 @@ function createBoilerplate(
 	className: luau.Identifier | luau.TemporaryIdentifier,
 	isClassExpression: boolean,
 ) {
-	const isAbstract = !!ts.getSelectedSyntacticModifierFlags(node, ts.ModifierFlags.Abstract);
+	const isAbstract = ts.hasAbstractModifier(node);
 	const statements = luau.list.make<luau.Statement>();
 
 	/* boilerplate:
@@ -206,7 +200,7 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 	const isClassExpression = ts.isClassExpression(node);
 	const statements = luau.list.make<luau.Statement>();
 
-	const isExportDefault = !!ts.getSelectedSyntacticModifierFlags(node, ts.ModifierFlags.ExportDefault);
+	const isExportDefault = ts.hasSyntacticModifier(node, ts.ModifierFlags.ExportDefault);
 
 	if (node.name) {
 		validateIdentifier(state, node.name);
@@ -254,7 +248,7 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 	const statementsInner = luau.list.make<luau.Statement>();
 	luau.list.pushList(statementsInner, createBoilerplate(state, node, internalName, isClassExpression));
 
-	const constructor = getConstructor(node);
+	const constructor = findConstructor(node);
 	if (constructor) {
 		luau.list.pushList(statementsInner, transformClassConstructor(state, constructor, internalName));
 	} else {
@@ -313,7 +307,7 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 				DiagnosticService.addDiagnostic(errors.noClassMetamethods(method.name));
 			}
 
-			if (!!ts.getSelectedSyntacticModifierFlags(method, ts.ModifierFlags.Static)) {
+			if (ts.hasStaticModifier(method)) {
 				if (instanceType.getProperty(method.name.text) !== undefined) {
 					DiagnosticService.addDiagnostic(errors.noInstanceMethodCollisions(method));
 				}
