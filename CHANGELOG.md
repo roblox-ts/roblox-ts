@@ -682,13 +682,17 @@ Changes prior to 1.0.0-beta.0 have been removed from this page since the entire 
 [2605]: https://github.com/roblox-ts/roblox-ts/pull/2605
 [2606]: https://github.com/roblox-ts/roblox-ts/pull/2606
 [2614]: https://github.com/roblox-ts/roblox-ts/pull/2614
+[2617]: https://github.com/roblox-ts/roblox-ts/pull/2617
 [2623]: https://github.com/roblox-ts/roblox-ts/pull/2623
+[2648]: https://github.com/roblox-ts/roblox-ts/pull/2648
 [2672]: https://github.com/roblox-ts/roblox-ts/pull/2672
 [2701]: https://github.com/roblox-ts/roblox-ts/pull/2701
 [2704]: https://github.com/roblox-ts/roblox-ts/pull/2704
+[2716]: https://github.com/roblox-ts/roblox-ts/pull/2716
 [2724]: https://github.com/roblox-ts/roblox-ts/pull/2724
 [2726]: https://github.com/roblox-ts/roblox-ts/pull/2726
 [2728]: https://github.com/roblox-ts/roblox-ts/pull/2728
+[2736]: https://github.com/roblox-ts/roblox-ts/pull/2736
 [2737]: https://github.com/roblox-ts/roblox-ts/pull/2737
 [2759]: https://github.com/roblox-ts/roblox-ts/pull/2759
 [2778]: https://github.com/roblox-ts/roblox-ts/pull/2778
