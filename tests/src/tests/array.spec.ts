@@ -453,50 +453,50 @@ export = () => {
 		type StaticArguments<T> = T extends [TypeGuard<infer A>]
 			? [A]
 			: T extends [TypeGuard<infer A>, TypeGuard<infer B>]
-			? [A, B]
-			: T extends [TypeGuard<infer A>, TypeGuard<infer B>, TypeGuard<infer C>]
-			? [A, B, C]
-			: T extends [TypeGuard<infer A>, TypeGuard<infer B>, TypeGuard<infer C>, TypeGuard<infer D>]
-			? [A, B, C, D]
-			: T extends [
-					TypeGuard<infer A>,
-					TypeGuard<infer B>,
-					TypeGuard<infer C>,
-					TypeGuard<infer D>,
-					TypeGuard<infer E>,
-			  ]
-			? [A, B, C, D, E]
-			: T extends [
-					TypeGuard<infer A>,
-					TypeGuard<infer B>,
-					TypeGuard<infer C>,
-					TypeGuard<infer D>,
-					TypeGuard<infer E>,
-					TypeGuard<infer F>,
-			  ]
-			? [A, B, C, D, E, F]
-			: T extends [
-					TypeGuard<infer A>,
-					TypeGuard<infer B>,
-					TypeGuard<infer C>,
-					TypeGuard<infer D>,
-					TypeGuard<infer E>,
-					TypeGuard<infer F>,
-					TypeGuard<infer G>,
-			  ]
-			? [A, B, C, D, E, F, G]
-			: T extends [
-					TypeGuard<infer A>,
-					TypeGuard<infer B>,
-					TypeGuard<infer C>,
-					TypeGuard<infer D>,
-					TypeGuard<infer E>,
-					TypeGuard<infer F>,
-					TypeGuard<infer G>,
-					TypeGuard<infer H>,
-			  ]
-			? [A, B, C, D, E, F, G, H]
-			: Array<unknown>; // default, if user has more than 8 args then wtf they doing with their lives?!?
+				? [A, B]
+				: T extends [TypeGuard<infer A>, TypeGuard<infer B>, TypeGuard<infer C>]
+					? [A, B, C]
+					: T extends [TypeGuard<infer A>, TypeGuard<infer B>, TypeGuard<infer C>, TypeGuard<infer D>]
+						? [A, B, C, D]
+						: T extends [
+									TypeGuard<infer A>,
+									TypeGuard<infer B>,
+									TypeGuard<infer C>,
+									TypeGuard<infer D>,
+									TypeGuard<infer E>,
+							  ]
+							? [A, B, C, D, E]
+							: T extends [
+										TypeGuard<infer A>,
+										TypeGuard<infer B>,
+										TypeGuard<infer C>,
+										TypeGuard<infer D>,
+										TypeGuard<infer E>,
+										TypeGuard<infer F>,
+								  ]
+								? [A, B, C, D, E, F]
+								: T extends [
+											TypeGuard<infer A>,
+											TypeGuard<infer B>,
+											TypeGuard<infer C>,
+											TypeGuard<infer D>,
+											TypeGuard<infer E>,
+											TypeGuard<infer F>,
+											TypeGuard<infer G>,
+									  ]
+									? [A, B, C, D, E, F, G]
+									: T extends [
+												TypeGuard<infer A>,
+												TypeGuard<infer B>,
+												TypeGuard<infer C>,
+												TypeGuard<infer D>,
+												TypeGuard<infer E>,
+												TypeGuard<infer F>,
+												TypeGuard<infer G>,
+												TypeGuard<infer H>,
+										  ]
+										? [A, B, C, D, E, F, G, H]
+										: Array<unknown>; // default, if user has more than 8 args then wtf they doing with their lives?!?
 
 		function f<C extends Array<unknown>>(arr: StaticArguments<C>) {
 			return [...arr];

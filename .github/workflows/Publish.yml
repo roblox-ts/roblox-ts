@@ -19,7 +19,7 @@ jobs:
           token: ${{ secrets.pat }}
 
       - name: Install NPM Dependencies
-        uses: bahmutov/npm-install@v1.7.4
+        uses: bahmutov/npm-install@v1
 
       - name: Publish
         run: |
