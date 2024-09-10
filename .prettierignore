@@ -1,6 +1,4 @@
 *.yml
 /out
 /node_modules
-/tests
-/.devcontainer
 /CHANGELOG.md

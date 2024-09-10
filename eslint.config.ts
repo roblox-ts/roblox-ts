@@ -1,18 +1,13 @@
-import { FlatCompat } from "@eslint/eslintrc";
 import eslint from "@eslint/js";
 import comments from "@eslint-community/eslint-plugin-eslint-comments";
-import prettierConfig from "eslint-config-prettier";
-import prettierPlugin from "eslint-plugin-prettier";
+import prettier from "eslint-plugin-prettier/recommended";
 import simpleImportSort from "eslint-plugin-simple-import-sort";
 import tseslint from "typescript-eslint";
-
-const compat = new FlatCompat({ baseDirectory: __dirname });
 
 export default tseslint.config(
 	eslint.configs.recommended,
 	...tseslint.configs.recommended,
-	...compat.extends("plugin:prettier/recommended"),
-	prettierConfig,
+	prettier,
 	{
 		languageOptions: {
 			parser: tseslint.parser,
@@ -24,8 +19,6 @@ export default tseslint.config(
 			},
 		},
 		plugins: {
-			"@typescript-eslint": tseslint.plugin,
-			prettier: prettierPlugin,
 			"simple-import-sort": simpleImportSort,
 			"eslint-comments": comments,
 		},
