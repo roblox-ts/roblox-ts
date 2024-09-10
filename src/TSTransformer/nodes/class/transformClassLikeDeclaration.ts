@@ -3,7 +3,10 @@ import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
-import { transformClassConstructor } from "TSTransformer/nodes/class/transformClassConstructor";
+import {
+	transformClassConstructor,
+	transformImplicitClassConstructor,
+} from "TSTransformer/nodes/class/transformClassConstructor";
 import { transformDecorators } from "TSTransformer/nodes/class/transformDecorators";
 import { transformPropertyDeclaration } from "TSTransformer/nodes/class/transformPropertyDeclaration";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
@@ -251,7 +254,12 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 	const statementsInner = luau.list.make<luau.Statement>();
 	luau.list.pushList(statementsInner, createBoilerplate(state, node, internalName, isClassExpression));
 
-	luau.list.pushList(statementsInner, transformClassConstructor(state, node, internalName, getConstructor(node)));
+	const constructor = getConstructor(node);
+	if (constructor) {
+		luau.list.pushList(statementsInner, transformClassConstructor(state, constructor, internalName));
+	} else {
+		luau.list.pushList(statementsInner, transformImplicitClassConstructor(state, node, internalName));
+	}
 
 	for (const member of node.members) {
 		if (
