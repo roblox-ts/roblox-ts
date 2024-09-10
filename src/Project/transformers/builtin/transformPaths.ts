@@ -27,8 +27,6 @@ SOFTWARE.
 */
 
 import path from "path";
-import {} from "ts-expose-internals";
-import { PluginConfig } from "ttypescript/lib/PluginCreator";
 import ts from "typescript";
 import url from "url";
 
@@ -82,14 +80,15 @@ const isAsyncImport = (node: ts.Node): node is ts.CallExpression =>
  * Transformer
  * ****************************************************************************************************************** */
 
-export default function transformer(program: ts.Program, config: PluginConfig & TsTransformPathsConfig) {
+export default function transformer(program: ts.Program, config: TsTransformPathsConfig) {
 	const { useRootDirs } = config;
 	const compilerOptions = program.getCompilerOptions();
 	const implicitExtensions = getImplicitExtensions(compilerOptions);
 
-	return (context: ts.TransformationContext) => (sourceFile: ts.SourceFile) => {
-		// TS 4 - new node factory
-		const factory: ts.NodeFactory | undefined = context.factory;
+	return (context: ts.TransformationContext) => (sourceFile: ts.SourceFile | ts.Bundle) => {
+		if (ts.isBundle(sourceFile)) return sourceFile;
+
+		const factory = context.factory;
 
 		const { fileName } = sourceFile;
 		const fileDir = ts.normalizePath(path.dirname(fileName));
@@ -122,7 +121,7 @@ export default function transformer(program: ts.Program, config: PluginConfig & 
 			);
 
 			if (!resolvedModule) {
-				const maybeURL = failedLookupLocations[0];
+				const maybeURL = failedLookupLocations![0];
 				if (!isURL(maybeURL)) return original;
 				p = maybeURL;
 			} else if (resolvedModule.isExternalLibraryImport) return original;
@@ -157,7 +156,7 @@ export default function transformer(program: ts.Program, config: PluginConfig & 
 				p = p[0] === "." ? p : `./${p}`;
 			}
 
-			const newStringLiteral = factory ? factory.createStringLiteral(p) : ts.createLiteral(p);
+			const newStringLiteral = factory.createStringLiteral(p);
 			return updaterFn(newStringLiteral);
 		}
 
@@ -168,12 +167,7 @@ export default function transformer(program: ts.Program, config: PluginConfig & 
 			/* Update require() or import() */
 			if (isRequire(node) || isAsyncImport(node))
 				return update(node, (<ts.StringLiteral>node.arguments[0]).text, p => {
-					let res: typeof node;
-					if (factory) {
-						res = factory.updateCallExpression(node, node.expression, node.typeArguments, [p]);
-					} else {
-						res = ts.updateCall(node, node.expression, node.typeArguments, [p]);
-					}
+					const res = factory.updateCallExpression(node, node.expression, node.typeArguments, [p]);
 
 					const textNode = node.arguments[0];
 					const commentRanges = ts.getLeadingCommentRanges(textNode.getFullText(), 0) || [];
@@ -200,11 +194,7 @@ export default function transformer(program: ts.Program, config: PluginConfig & 
 
 			/* Update ExternalModuleReference - import foo = require("foo"); */
 			if (ts.isExternalModuleReference(node) && ts.isStringLiteral(node.expression))
-				return update(node, node.expression.text, p =>
-					factory
-						? factory.updateExternalModuleReference(node, p)
-						: ts.updateExternalModuleReference(node, p),
-				);
+				return update(node, node.expression.text, p => factory.updateExternalModuleReference(node, p));
 
 			/**
 			 * Update ImportDeclaration / ExportDeclaration
@@ -221,18 +211,12 @@ export default function transformer(program: ts.Program, config: PluginConfig & 
 				ts.isStringLiteral(node.moduleSpecifier)
 			)
 				return update(node, node.moduleSpecifier.text, p => {
-					if (factory) {
-						const newNode = factory.cloneNode(node.moduleSpecifier!) as ts.StringLiteral;
-						ts.setSourceMapRange(newNode, ts.getSourceMapRange(node));
-						ts.setTextRange(newNode, node.moduleSpecifier);
-						newNode.text = p.text;
+					const newNode = factory.cloneNode(node.moduleSpecifier!) as ts.StringLiteral;
+					ts.setSourceMapRange(newNode, ts.getSourceMapRange(node));
+					ts.setTextRange(newNode, node.moduleSpecifier);
+					newNode.text = p.text;
 
-						return Object.assign(node, { moduleSpecifier: newNode });
-					} else {
-						return Object.assign(node, {
-							moduleSpecifier: (<any>ts).updateNode(p, node.moduleSpecifier),
-						});
-					}
+					return Object.assign(node, { moduleSpecifier: newNode });
 				});
 
 			/* Update ImportTypeNode - typeof import("./bar"); */
@@ -244,21 +228,14 @@ export default function transformer(program: ts.Program, config: PluginConfig & 
 				return !text
 					? node
 					: update(node, text, p =>
-							factory
-								? factory.updateImportTypeNode(
-										node,
-										factory.updateLiteralTypeNode(argument, p),
-										node.qualifier,
-										node.typeArguments,
-										node.isTypeOf,
-									)
-								: ts.updateImportTypeNode(
-										node,
-										ts.updateLiteralTypeNode(argument, p),
-										node.qualifier,
-										node.typeArguments,
-										node.isTypeOf,
-									),
+							factory.updateImportTypeNode(
+								node,
+								factory.updateLiteralTypeNode(argument, p),
+								node.attributes,
+								node.qualifier,
+								node.typeArguments,
+								node.isTypeOf,
+							),
 						);
 			}
 
