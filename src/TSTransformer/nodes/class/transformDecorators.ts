@@ -15,6 +15,7 @@ function countDecorators(node: HasDecorators) {
 
 function findConstructor(node: ts.ClassLikeDeclaration): ts.ConstructorDeclaration | undefined {
 	return node.members.find((member): member is ts.ConstructorDeclaration => {
+		// check `member.body` to skip overload signatures because decorators are not valid on them
 		return ts.isConstructorDeclaration(member) && member.body !== undefined;
 	});
 }
@@ -35,15 +36,18 @@ function shouldInline(
 	const node = decorator.parent;
 
 	// if the node is a method declaration and has a decorator on a parameter, we can't inline
+	// this is because we need to run parameter decorators between initializing and running method decorators
 	if (ts.isMethodDeclaration(node) && node.parameters.some(parameter => countDecorators(parameter) > 0)) return false;
 
 	// if the node is a class declaration and has a decorator on a constructor parameter, we can't inline
+	// this is because we need to run constructor parameter decorators between initializing and running class decorators
 	if (ts.isClassLike(node)) {
 		const constructor = findConstructor(node);
 		if (constructor && constructor.parameters.some(parameter => countDecorators(parameter) > 0)) return false;
 	}
 
 	// if the node is a parameter and there are any parameters with decorators after it, we can't inline
+	// this ensures all of the parameters are initialized before running any, including from sibling parameters
 	if (ts.isParameter(node)) {
 		const parameters = node.parent.parameters;
 		const paramIdx = parameters.findIndex(param => param === node);
@@ -232,7 +236,6 @@ function transformClassDecorators(
 	const result = luau.list.make<luau.Statement>();
 	luau.list.pushList(result, initializers);
 
-	// check `member.body` to skip overload signatures
 	const constructor = findConstructor(node);
 	if (constructor) {
 		luau.list.pushList(result, transformParameterDecorators(state, constructor, classId));
@@ -254,7 +257,7 @@ export function transformDecorators(
 	// Instance Decorators
 	for (const member of node.members) {
 		if (!ts.hasStaticModifier(member)) {
-			// check `member.body` to skip overload signatures
+			// check `member.body` to skip overload signatures because decorators are not valid on them
 			if (ts.isMethodDeclaration(member) && member.body) {
 				luau.list.pushList(result, transformMethodDecorators(state, member, classId));
 			} else if (ts.isPropertyDeclaration(member)) {
@@ -266,7 +269,7 @@ export function transformDecorators(
 	// Static Decorators
 	for (const member of node.members) {
 		if (ts.hasStaticModifier(member)) {
-			// check `member.body` to skip overload signatures
+			// check `member.body` to skip overload signatures because decorators are not valid on them
 			if (ts.isMethodDeclaration(member) && member.body) {
 				luau.list.pushList(result, transformMethodDecorators(state, member, classId));
 			} else if (ts.isPropertyDeclaration(member)) {
