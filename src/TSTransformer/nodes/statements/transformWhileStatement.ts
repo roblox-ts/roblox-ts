@@ -1,5 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
@@ -9,12 +10,16 @@ import ts from "typescript";
 export function transformWhileStatement(state: TransformState, node: ts.WhileStatement) {
 	const whileStatements = luau.list.make<luau.Statement>();
 
-	let [conditionExp, conditionPrereqs] = state.capture(() =>
-		createTruthinessChecks(state, transformExpression(state, node.expression), node.expression),
+	const conditionPrereqs = new Prereqs();
+	let conditionExp = createTruthinessChecks(
+		state,
+		conditionPrereqs,
+		transformExpression(state, conditionPrereqs, node.expression),
+		node.expression,
 	);
 
-	if (!luau.list.isEmpty(conditionPrereqs)) {
-		luau.list.pushList(whileStatements, conditionPrereqs);
+	if (!luau.list.isEmpty(conditionPrereqs.statements)) {
+		luau.list.pushList(whileStatements, conditionPrereqs.statements);
 		luau.list.push(
 			whileStatements,
 			luau.create(luau.SyntaxKind.IfStatement, {

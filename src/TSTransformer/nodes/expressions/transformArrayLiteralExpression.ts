@@ -1,15 +1,20 @@
 import luau from "@roblox-ts/luau-ast";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { getAddIterableToArrayBuilder } from "TSTransformer/util/getAddIterableToArrayBuilder";
 import { createArrayPointer, disableArrayInline } from "TSTransformer/util/pointer";
 import ts from "typescript";
 
-export function transformArrayLiteralExpression(state: TransformState, node: ts.ArrayLiteralExpression) {
+export function transformArrayLiteralExpression(
+	state: TransformState,
+	prereqs: Prereqs,
+	node: ts.ArrayLiteralExpression,
+) {
 	if (!node.elements.find(element => ts.isSpreadElement(element))) {
-		return luau.array(ensureTransformOrder(state, node.elements));
+		return luau.array(ensureTransformOrder(state, prereqs, node.elements));
 	}
 
 	const ptr = createArrayPointer("array");
@@ -20,7 +25,7 @@ export function transformArrayLiteralExpression(state: TransformState, node: ts.
 	function updateLengthId() {
 		const right = luau.unary("#", ptr.value);
 		if (lengthInitialized) {
-			state.prereq(
+			prereqs.prereq(
 				luau.create(luau.SyntaxKind.Assignment, {
 					left: lengthId,
 					operator: "=",
@@ -28,7 +33,7 @@ export function transformArrayLiteralExpression(state: TransformState, node: ts.
 				}),
 			);
 		} else {
-			state.prereq(
+			prereqs.prereq(
 				luau.create(luau.SyntaxKind.VariableDeclaration, {
 					left: lengthId,
 					right,
@@ -43,36 +48,30 @@ export function transformArrayLiteralExpression(state: TransformState, node: ts.
 		const element = node.elements[i];
 		if (ts.isSpreadElement(element)) {
 			if (luau.isArray(ptr.value)) {
-				disableArrayInline(state, ptr);
+				disableArrayInline(prereqs, ptr);
 				updateLengthId();
 			}
 			assert(luau.isAnyIdentifier(ptr.value));
 
 			const type = state.getType(element.expression);
 			const addIterableToArrayBuilder = getAddIterableToArrayBuilder(state, element.expression, type);
-			const spreadExp = transformExpression(state, element.expression);
+			const spreadExp = transformExpression(state, prereqs, element.expression);
 			const shouldUpdateLengthId = i < node.elements.length - 1;
-			state.prereqList(
-				addIterableToArrayBuilder(
-					state,
-					spreadExp,
-					ptr.value,
-					lengthId,
-					amtElementsSinceUpdate,
-					shouldUpdateLengthId,
-				),
+			prereqs.prereqList(
+				addIterableToArrayBuilder(spreadExp, ptr.value, lengthId, amtElementsSinceUpdate, shouldUpdateLengthId),
 			);
 		} else {
-			const [expression, prereqs] = state.capture(() => transformExpression(state, element));
-			if (luau.isArray(ptr.value) && !luau.list.isEmpty(prereqs)) {
-				disableArrayInline(state, ptr);
+			const expressionPrereqs = new Prereqs();
+			const expression = transformExpression(state, expressionPrereqs, element);
+			if (luau.isArray(ptr.value) && !luau.list.isEmpty(expressionPrereqs.statements)) {
+				disableArrayInline(prereqs, ptr);
 				updateLengthId();
 			}
 			if (luau.isArray(ptr.value)) {
 				luau.list.push(ptr.value.members, expression);
 			} else {
-				state.prereqList(prereqs);
-				state.prereq(
+				prereqs.prereqList(expressionPrereqs.statements);
+				prereqs.prereq(
 					luau.create(luau.SyntaxKind.Assignment, {
 						left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 							expression: ptr.value,

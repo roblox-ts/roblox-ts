@@ -2,6 +2,7 @@ import luau from "@roblox-ts/luau-ast";
 import { warnings } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { binaryExpressionChain } from "TSTransformer/util/expressionChain";
 import { isEmptyStringType, isNaNType, isNumberLiteralType, isPossiblyType } from "TSTransformer/util/types";
 import ts from "typescript";
@@ -14,14 +15,19 @@ export function willCreateTruthinessChecks(type: ts.Type) {
 	);
 }
 
-export function createTruthinessChecks(state: TransformState, exp: luau.Expression, node: ts.Expression) {
+export function createTruthinessChecks(
+	state: TransformState,
+	prereqs: Prereqs,
+	exp: luau.Expression,
+	node: ts.Expression,
+) {
 	const type = state.getType(node);
 	const isAssignableToZero = isPossiblyType(type, isNumberLiteralType(0));
 	const isAssignableToNaN = isPossiblyType(type, isNaNType);
 	const isAssignableToEmptyString = isPossiblyType(type, isEmptyStringType);
 
 	if (isAssignableToZero || isAssignableToNaN || isAssignableToEmptyString) {
-		exp = state.pushToVarIfComplex(exp, "value");
+		exp = prereqs.pushToVarIfComplex(exp, "value");
 	}
 
 	const checks = new Array<luau.Expression>();

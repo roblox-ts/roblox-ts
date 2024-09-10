@@ -2,12 +2,14 @@ import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
 import ts from "typescript";
 
 export function transformPropertyDeclaration(
 	state: TransformState,
+	prereqs: Prereqs,
 	node: ts.PropertyDeclaration,
 	name: luau.AnyIdentifier,
 ) {
@@ -28,10 +30,10 @@ export function transformPropertyDeclaration(
 		luau.create(luau.SyntaxKind.Assignment, {
 			left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 				expression: name,
-				index: transformPropertyName(state, node.name),
+				index: transformPropertyName(state, prereqs, node.name),
 			}),
 			operator: "=",
-			right: transformExpression(state, node.initializer),
+			right: transformExpression(state, prereqs, node.initializer),
 		}),
 	);
 }

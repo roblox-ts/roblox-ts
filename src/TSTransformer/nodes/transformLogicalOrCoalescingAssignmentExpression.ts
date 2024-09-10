@@ -1,4 +1,5 @@
 import luau from "@roblox-ts/luau-ast";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformWritableExpression } from "TSTransformer/nodes/transformWritable";
@@ -7,14 +8,16 @@ import ts from "typescript";
 
 function transformCoalescingAssignmentExpression(
 	state: TransformState,
+	prereqs: Prereqs,
 	left: ts.LeftHandSideExpression,
 	right: ts.Expression,
 ) {
-	const writable = transformWritableExpression(state, left, true);
-	const [value, valuePreqreqs] = state.capture(() => transformExpression(state, right));
+	const writable = transformWritableExpression(state, prereqs, left, true);
+	const valuePreqreqs = new Prereqs();
+	const value = transformExpression(state, valuePreqreqs, right);
 
 	const ifStatements = luau.list.make<luau.Statement>();
-	luau.list.pushList(ifStatements, valuePreqreqs);
+	luau.list.pushList(ifStatements, valuePreqreqs.statements);
 	luau.list.push(
 		ifStatements,
 		luau.create(luau.SyntaxKind.Assignment, {
@@ -24,7 +27,7 @@ function transformCoalescingAssignmentExpression(
 		}),
 	);
 
-	state.prereq(
+	prereqs.prereq(
 		luau.create(luau.SyntaxKind.IfStatement, {
 			condition: luau.binary(writable, "==", luau.nil()),
 			statements: ifStatements,
@@ -37,16 +40,18 @@ function transformCoalescingAssignmentExpression(
 
 function transformLogicalAndAssignmentExpression(
 	state: TransformState,
+	prereqs: Prereqs,
 	left: ts.LeftHandSideExpression,
 	right: ts.Expression,
 ) {
-	const writable = transformWritableExpression(state, left, true);
-	const [value, valuePreqreqs] = state.capture(() => transformExpression(state, right));
+	const writable = transformWritableExpression(state, prereqs, left, true);
+	const valuePreqreqs = new Prereqs();
+	const value = transformExpression(state, valuePreqreqs, right);
 
-	const conditionId = state.pushToVar(writable, "condition");
+	const conditionId = prereqs.pushToVar(writable, "condition");
 
 	const ifStatements = luau.list.make<luau.Statement>();
-	luau.list.pushList(ifStatements, valuePreqreqs);
+	luau.list.pushList(ifStatements, valuePreqreqs.statements);
 	luau.list.push(
 		ifStatements,
 		luau.create(luau.SyntaxKind.Assignment, {
@@ -56,15 +61,15 @@ function transformLogicalAndAssignmentExpression(
 		}),
 	);
 
-	state.prereq(
+	prereqs.prereq(
 		luau.create(luau.SyntaxKind.IfStatement, {
-			condition: createTruthinessChecks(state, writable, left),
+			condition: createTruthinessChecks(state, prereqs, writable, left),
 			statements: ifStatements,
 			elseBody: luau.list.make(),
 		}),
 	);
 
-	state.prereq(
+	prereqs.prereq(
 		luau.create(luau.SyntaxKind.Assignment, {
 			left: writable,
 			operator: "=",
@@ -77,16 +82,18 @@ function transformLogicalAndAssignmentExpression(
 
 function transformLogicalOrAssignmentExpression(
 	state: TransformState,
+	prereqs: Prereqs,
 	left: ts.LeftHandSideExpression,
 	right: ts.Expression,
 ) {
-	const writable = transformWritableExpression(state, left, true);
-	const [value, valuePreqreqs] = state.capture(() => transformExpression(state, right));
+	const writable = transformWritableExpression(state, prereqs, left, true);
+	const valuePreqreqs = new Prereqs();
+	const value = transformExpression(state, valuePreqreqs, right);
 
-	const conditionId = state.pushToVar(writable, "condition");
+	const conditionId = prereqs.pushToVar(writable, "condition");
 
 	const ifStatements = luau.list.make<luau.Statement>();
-	luau.list.pushList(ifStatements, valuePreqreqs);
+	luau.list.pushList(ifStatements, valuePreqreqs.statements);
 	luau.list.push(
 		ifStatements,
 		luau.create(luau.SyntaxKind.Assignment, {
@@ -96,15 +103,15 @@ function transformLogicalOrAssignmentExpression(
 		}),
 	);
 
-	state.prereq(
+	prereqs.prereq(
 		luau.create(luau.SyntaxKind.IfStatement, {
-			condition: luau.unary("not", createTruthinessChecks(state, writable, left)),
+			condition: luau.unary("not", createTruthinessChecks(state, prereqs, writable, left)),
 			statements: ifStatements,
 			elseBody: luau.list.make(),
 		}),
 	);
 
-	state.prereq(
+	prereqs.prereq(
 		luau.create(luau.SyntaxKind.Assignment, {
 			left: writable,
 			operator: "=",
@@ -117,15 +124,16 @@ function transformLogicalOrAssignmentExpression(
 
 export function transformLogicalOrCoalescingAssignmentExpression(
 	state: TransformState,
+	prereqs: Prereqs,
 	node: ts.AssignmentExpression<ts.Token<ts.LogicalOrCoalescingAssignmentOperator>>,
 ): luau.WritableExpression {
 	const operator = node.operatorToken.kind;
 	if (operator === ts.SyntaxKind.QuestionQuestionEqualsToken) {
-		return transformCoalescingAssignmentExpression(state, node.left, node.right);
+		return transformCoalescingAssignmentExpression(state, prereqs, node.left, node.right);
 	} else if (operator === ts.SyntaxKind.AmpersandAmpersandEqualsToken) {
-		return transformLogicalAndAssignmentExpression(state, node.left, node.right);
+		return transformLogicalAndAssignmentExpression(state, prereqs, node.left, node.right);
 	} else {
-		return transformLogicalOrAssignmentExpression(state, node.left, node.right);
+		return transformLogicalOrAssignmentExpression(state, prereqs, node.left, node.right);
 	}
 }
 
@@ -133,5 +141,7 @@ export function transformLogicalOrCoalescingAssignmentExpressionStatement(
 	state: TransformState,
 	node: ts.AssignmentExpression<ts.Token<ts.LogicalOrCoalescingAssignmentOperator>>,
 ): luau.List<luau.Statement> {
-	return state.capturePrereqs(() => transformLogicalOrCoalescingAssignmentExpression(state, node));
+	const prereqs = new Prereqs();
+	transformLogicalOrCoalescingAssignmentExpression(state, prereqs, node);
+	return prereqs.statements;
 }

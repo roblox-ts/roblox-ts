@@ -14,7 +14,6 @@ import { TransformServices, TryUses } from "TSTransformer/types";
 import { createGetService } from "TSTransformer/util/createGetService";
 import { propertyAccessExpressionChain } from "TSTransformer/util/expressionChain";
 import { getModuleAncestor, skipUpwards } from "TSTransformer/util/traversal";
-import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
 import ts from "typescript";
 
 /**
@@ -96,42 +95,6 @@ export class TransformState {
 		this.tryUsesStack.pop();
 	}
 
-	public readonly prereqStatementsStack = new Array<luau.List<luau.Statement>>();
-
-	/**
-	 * Pushes a new prerequisite statement onto the list stack.
-	 * @param statement
-	 */
-	public prereq(statement: luau.Statement) {
-		luau.list.push(this.prereqStatementsStack[this.prereqStatementsStack.length - 1], statement);
-	}
-
-	/**
-	 * Pushes a new prerequisite list of statement onto the list stack.
-	 * @param statements
-	 */
-	public prereqList(statements: luau.List<luau.Statement>) {
-		luau.list.pushList(this.prereqStatementsStack[this.prereqStatementsStack.length - 1], statements);
-	}
-
-	/**
-	 * Creates and pushes a new list of `luau.Statement`s onto the prerequisite stack.
-	 */
-	public pushPrereqStatementsStack() {
-		const prereqStatements = luau.list.make<luau.Statement>();
-		this.prereqStatementsStack.push(prereqStatements);
-		return prereqStatements;
-	}
-
-	/**
-	 * Pops and returns the top item of the prerequisite stack.
-	 */
-	public popPrereqStatementsStack() {
-		const poppedValue = this.prereqStatementsStack.pop();
-		assert(poppedValue);
-		return poppedValue;
-	}
-
 	/**
 	 * Returns the leading comments of a `ts.Node` as an array of strings.
 	 * @param node
@@ -150,31 +113,6 @@ export class TransformState {
 				),
 			),
 		);
-	}
-
-	/**
-	 * Returns the prerequisite statements created by `callback`.
-	 */
-	public capturePrereqs(callback: () => void) {
-		this.pushPrereqStatementsStack();
-		callback();
-		return this.popPrereqStatementsStack();
-	}
-
-	/**
-	 * Returns the result and prerequisite statements created by `callback`.
-	 */
-	public capture<T>(callback: () => T): [value: T, prereqs: luau.List<luau.Statement>] {
-		let value!: T;
-		const prereqs = this.capturePrereqs(() => (value = callback()));
-		return [value, prereqs];
-	}
-
-	public noPrereqs(callback: () => luau.Expression) {
-		let expression!: luau.Expression;
-		const statements = this.capturePrereqs(() => (expression = callback()));
-		assert(luau.list.isEmpty(statements));
-		return expression;
 	}
 
 	public readonly hoistsByStatement = new Map<ts.Statement | ts.CaseClause, Array<ts.Identifier>>();
@@ -262,47 +200,6 @@ export class TransformState {
 				}),
 			});
 		}
-	}
-
-	/**
-	 * Declares and defines a new Luau variable. Pushes that new variable to a new luau.TemporaryIdentifier.
-	 * Can also be used to initialise a new tempId without a value
-	 * @param expression
-	 */
-	public pushToVar(expression: luau.Expression | undefined, name?: string) {
-		const temp = luau.tempId(name || (expression && valueToIdStr(expression)));
-		this.prereq(
-			luau.create(luau.SyntaxKind.VariableDeclaration, {
-				left: temp,
-				right: expression,
-			}),
-		);
-		return temp;
-	}
-
-	/**
-	 * Uses `state.pushToVar(expression)` unless `luau.isSimple(expression)`
-	 * @param expression the expression to push
-	 */
-	public pushToVarIfComplex<T extends luau.Expression>(
-		expression: T,
-		name?: string,
-	): Extract<T, luau.SimpleTypes> | luau.TemporaryIdentifier {
-		if (luau.isSimple(expression)) {
-			return expression as Extract<T, luau.SimpleTypes>;
-		}
-		return this.pushToVar(expression, name);
-	}
-
-	/**
-	 * Uses `state.pushToVar(expression)` unless `luau.isAnyIdentifier(expression)`
-	 * @param expression the expression to push
-	 */
-	public pushToVarIfNonId<T extends luau.Expression>(expression: T, name?: string): luau.AnyIdentifier {
-		if (luau.isAnyIdentifier(expression)) {
-			return expression;
-		}
-		return this.pushToVar(expression, name);
 	}
 
 	public getModuleExports(moduleSymbol: ts.Symbol) {

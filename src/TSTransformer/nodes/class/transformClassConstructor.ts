@@ -2,6 +2,7 @@ import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformParameters } from "TSTransformer/nodes/transformParameters";
@@ -81,11 +82,13 @@ export function transformClassConstructor(
 				continue;
 			}
 
-			const [index, indexPrereqs] = state.capture(() => transformPropertyName(state, name));
-			luau.list.pushList(statements, indexPrereqs);
+			const indexPrereqs = new Prereqs();
+			const index = transformPropertyName(state, indexPrereqs, name);
+			luau.list.pushList(statements, indexPrereqs.statements);
 
-			const [right, rightPrereqs] = state.capture(() => transformExpression(state, initializer));
-			luau.list.pushList(statements, rightPrereqs);
+			const rightPrereqs = new Prereqs();
+			const right = transformExpression(state, rightPrereqs, initializer);
+			luau.list.pushList(statements, rightPrereqs.statements);
 
 			luau.list.push(
 				statements,

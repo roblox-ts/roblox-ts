@@ -20,7 +20,7 @@ export function transformFunctionDeclaration(state: TransformState, node: ts.Fun
 	assert(node.name || isExportDefault);
 
 	if (node.name) {
-		validateIdentifier(state, node.name);
+		validateIdentifier(node.name);
 	}
 
 	const name = node.name ? transformIdentifierDefined(state, node.name) : luau.id("default");
