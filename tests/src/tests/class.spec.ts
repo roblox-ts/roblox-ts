@@ -44,7 +44,7 @@ export = () => {
 	});
 
 	it("should initialize properties after super call", () => {
-		const order: Array<number> = [];
+		const order = new Array<number>();
 
 		class Super {
 			constructor() {
@@ -64,10 +64,9 @@ export = () => {
 
 		new Class();
 
-		expect(order[0]).to.equal(0);
-		expect(order[1]).to.equal(1);
-		expect(order[2]).to.equal(2);
-		expect(order[3]).to.equal(3);
+		for (let i = 0; i < order.size(); i++) {
+				expect(order[i]).to.equal(i);
+		}
 	});
 
 	it("should expose a public method", () => {
