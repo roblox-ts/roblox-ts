@@ -11,7 +11,7 @@ import ts from "typescript";
  */
 export function getChangedFilePaths(program: ts.BuilderProgram, pathHints?: Array<string>) {
 	const compilerOptions = program.getCompilerOptions();
-	const buildState = program.getState();
+	const buildState = program.state;
 
 	// buildState.referencedMap is sourceFile -> files that this file imports
 	// but we need sourceFile -> files that import this file
