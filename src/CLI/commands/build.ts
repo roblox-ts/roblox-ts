@@ -114,6 +114,7 @@ export = ts.identity<yargs.CommandModule<object, BuildFlags & Partial<ProjectOpt
 			})
 			.option("luau", {
 				boolean: true,
+				describe: "emit files with .luau extension",
 			}),
 
 	handler: async argv => {
