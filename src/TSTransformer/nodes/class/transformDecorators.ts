@@ -5,19 +5,13 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { expressionMightMutate } from "TSTransformer/util/expressionMightMutate";
+import { findConstructor } from "TSTransformer/util/findConstructor";
 import ts from "typescript";
 
 type HasDecorators = Exclude<ts.HasDecorators, ts.AccessorDeclaration>;
 
 function countDecorators(node: HasDecorators) {
 	return ts.getDecorators(node)?.length ?? 0;
-}
-
-function findConstructor(node: ts.ClassLikeDeclaration): ts.ConstructorDeclaration | undefined {
-	return node.members.find((member): member is ts.ConstructorDeclaration => {
-		// check `member.body` to skip overload signatures because decorators are not valid on them
-		return ts.isConstructorDeclaration(member) && member.body !== undefined;
-	});
 }
 
 function shouldInline(

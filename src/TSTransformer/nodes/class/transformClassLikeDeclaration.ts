@@ -13,6 +13,7 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformBlock } from "TSTransformer/nodes/statements/transformBlock";
 import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
+import { findConstructor } from "TSTransformer/util/findConstructor";
 import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
 import { getKindName } from "TSTransformer/util/getKindName";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
@@ -20,13 +21,6 @@ import { validateMethodAssignment } from "TSTransformer/util/validateMethodAssig
 import ts from "typescript";
 
 const MAGIC_TO_STRING_METHOD = "toString";
-
-function getConstructor(node: ts.ClassLikeDeclaration): (ts.ConstructorDeclaration & { body: ts.Block }) | undefined {
-	return node.members.find(
-		(element): element is ts.ConstructorDeclaration & { body: ts.Block } =>
-			ts.isConstructorDeclaration(element) && element.body !== undefined,
-	);
-}
 
 function createNameFunction(name: string) {
 	return luau.create(luau.SyntaxKind.FunctionExpression, {
@@ -254,7 +248,7 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 	const statementsInner = luau.list.make<luau.Statement>();
 	luau.list.pushList(statementsInner, createBoilerplate(state, node, internalName, isClassExpression));
 
-	const constructor = getConstructor(node);
+	const constructor = findConstructor(node);
 	if (constructor) {
 		luau.list.pushList(statementsInner, transformClassConstructor(state, constructor, internalName));
 	} else {
