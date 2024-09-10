@@ -19,10 +19,8 @@ export function transformClassConstructor(
 ) {
 	const statements = luau.list.make<luau.Statement>();
 
-	let bodyStatements = originNode ? getStatements(originNode.body) : [];
-
-	let removeToFirstSuper = false;
-	let superIndex = -1;
+	const body = originNode?.body;
+	let bodyStatements = body ? getStatements(body) : [];
 
 	let parameters = luau.list.make<luau.AnyIdentifier>();
 	let hasDotDotDot = false;
@@ -52,26 +50,12 @@ export function transformClassConstructor(
 	}
 
 	// property parameters must come after the first super() call
-	function transformFirstSuper() {
-		if (!removeToFirstSuper) {
-			removeToFirstSuper = true;
-			if (bodyStatements.length > 0) {
-				superIndex = bodyStatements.findIndex(
-					statement => ts.isExpressionStatement(statement) && ts.isSuperCall(statement.expression),
-				);
-				for (let i = 0; i <= superIndex; i++) {
-					luau.list.pushList(
-						statements,
-						transformStatementList(state, originNode?.body, [bodyStatements[i]]),
-					);
-				}
-			}
-		}
-	}
+	const superIndex = bodyStatements.findIndex(v => ts.isExpressionStatement(v) && ts.isSuperCall(v.expression));
+
+	luau.list.pushList(statements, transformStatementList(state, body, bodyStatements.slice(0, superIndex + 1)));
 
 	for (const parameter of originNode?.parameters ?? []) {
 		if (ts.isParameterPropertyDeclaration(parameter, parameter.parent)) {
-			transformFirstSuper();
 			const paramId = transformIdentifierDefined(state, parameter.name);
 			luau.list.push(
 				statements,
@@ -86,8 +70,6 @@ export function transformClassConstructor(
 
 	for (const member of node.members) {
 		if (ts.isPropertyDeclaration(member) && !ts.hasStaticModifier(member)) {
-			transformFirstSuper();
-
 			const name = member.name;
 			if (ts.isPrivateIdentifier(name)) {
 				DiagnosticService.addDiagnostic(errors.noPrivateIdentifier(node));
@@ -119,12 +101,7 @@ export function transformClassConstructor(
 		}
 	}
 
-	// if removeToFirstSuper and first statement is `super()`, remove up to it
-	if (removeToFirstSuper && superIndex !== -1) {
-		bodyStatements = bodyStatements.slice(superIndex + 1);
-	}
-
-	luau.list.pushList(statements, transformStatementList(state, originNode?.body, bodyStatements));
+	luau.list.pushList(statements, transformStatementList(state, body, bodyStatements.slice(superIndex + 1)));
 
 	return luau.list.make<luau.Statement>(
 		luau.create(luau.SyntaxKind.MethodDeclaration, {
