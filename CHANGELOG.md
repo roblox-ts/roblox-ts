@@ -25,12 +25,14 @@
 - Fixed statements before super breaking class initialization ([#2778][2778])
 - Fixed internal transformPaths transformer ([#2800][2800])
 - Added support for `.luau` file extension ([#2802][2802])
+- Fix typo in issue #1149's diagnostic ([#2649][2649])
+- Added an error if `types` is not found in tsconfig.json ([#2533][2533])
 
 ### **Breaking Changes**
 - `@rbxts/roact`
 	- roblox-ts 3.0.0+ will require `@rbxts/roact` 3.0.0+
 - Upgraded bundled `roblox-lua-promise` from 3.2.1 to 4.0.0. See possible breaking changes [here](https://github.com/evaera/roblox-lua-promise/releases).
-- The TypeScript update includes few edge-case breaking changes: [5.4](https://devblogs.microsoft.com/typescript/announcing-typescript-5-4/#notable-behavioral-changes8) and [5.5](https://devblogs.microsoft.com/typescript/announcing-typescript-5-5/#notable-behavioral-changes30)
+- The TypeScript update includes a few edge-case breaking changes: [5.4](https://devblogs.microsoft.com/typescript/announcing-typescript-5-4/#notable-behavioral-changes8) and [5.5](https://devblogs.microsoft.com/typescript/announcing-typescript-5-5/#notable-behavioral-changes30)
 - roblox-ts will emit compiled files as `.luau` by default. You can keep the old behaviour by running with `--luau=false`.
 - Parameter decorators will now be called with the name of the method, instead of the name of the parameter. This matches TypeScript behaviour.
 
@@ -672,6 +674,7 @@ Changes prior to 1.0.0-beta.0 have been removed from this page since the entire 
 [2506]: https://github.com/roblox-ts/roblox-ts/pull/2506
 [2527]: https://github.com/roblox-ts/roblox-ts/pull/2527
 [2528]: https://github.com/roblox-ts/roblox-ts/pull/2528
+[2533]: https://github.com/roblox-ts/roblox-ts/pull/2533
 [2546]: https://github.com/roblox-ts/roblox-ts/pull/2546
 [2550]: https://github.com/roblox-ts/roblox-ts/pull/2550
 [2567]: https://github.com/roblox-ts/roblox-ts/pull/2567
@@ -685,6 +688,7 @@ Changes prior to 1.0.0-beta.0 have been removed from this page since the entire 
 [2617]: https://github.com/roblox-ts/roblox-ts/pull/2617
 [2623]: https://github.com/roblox-ts/roblox-ts/pull/2623
 [2648]: https://github.com/roblox-ts/roblox-ts/pull/2648
+[2649]: https://github.com/roblox-ts/roblox-ts/pull/2649
 [2672]: https://github.com/roblox-ts/roblox-ts/pull/2672
 [2701]: https://github.com/roblox-ts/roblox-ts/pull/2701
 [2704]: https://github.com/roblox-ts/roblox-ts/pull/2704
