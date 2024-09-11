@@ -1,5 +1,5 @@
 ## 3.0.0
-- TypeScript dependency updated to 5.5.3 ([#2617][2617],[#2648][2648],[#2716][2716],[#2736][2736])
+- TypeScript dependency updated to 5.5.3 ([#2617][2617], [#2648][2648], [#2716][2716], [#2736][2736])
 - Generic JSX ([#2404][2404])
 	- JSX can now be used for any library which matches `React.createElement()` syntax
 - `--optimizedLoops` flag is now enabled by default
