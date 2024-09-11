@@ -266,4 +266,13 @@ export = () => {
 		expect(b).to.equal("abc");
 		expect(c).to.equal(true);
 	});
+
+	it("should support $tuple macro with type assertion", () => {
+		function test() {
+			return $tuple(1) as LuaTuple<[number]>;
+		}
+		const [value] = test();
+		expect(value).to.equal(1);
+		expect(test()[0]).to.equal(1);
+	});
 };
