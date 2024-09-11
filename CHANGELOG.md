@@ -29,8 +29,15 @@
 - Added an error if `types` is not found in tsconfig.json ([#2533][2533])
 
 ### **Breaking Changes**
-- `@rbxts/roact`
+- To continue using `@rbxts/roact` + JSX
 	- roblox-ts 3.0.0+ will require `@rbxts/roact` 3.0.0+
+	- Class components must be tagged with `@Roact.ClassComponent`
+	- In `tsconfig.json` you should set the following
+		```json
+		"jsx": "react",
+		"jsxFactory": "Roact.jsx",
+		"jsxFragmentFactory": "Roact.Fragment",
+		```
 - Upgraded bundled `roblox-lua-promise` from 3.2.1 to 4.0.0. See possible breaking changes [here](https://github.com/evaera/roblox-lua-promise/releases).
 - The TypeScript update includes a few edge-case breaking changes: [5.4](https://devblogs.microsoft.com/typescript/announcing-typescript-5-4/#notable-behavioral-changes8) and [5.5](https://devblogs.microsoft.com/typescript/announcing-typescript-5-5/#notable-behavioral-changes30)
 - roblox-ts will emit compiled files as `.luau` by default. You can keep the old behaviour by running with `--luau=false`.
