@@ -260,7 +260,7 @@
 
 - Updated to TypeScript 4.2.3
 - Updated "out of date of types" error message text
-- Added a diagnostic for [#1149][1149]
+- Added a diagnostic for ([#1149][1149])
 - Fixed JSX fragments used as children ([#1285][1285])
 - Updated `rbxtsc init package` to use package.json "files"
 - Updated `rbxtsc init` to use default.project.json "globIgnorePaths"
