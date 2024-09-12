@@ -12,6 +12,7 @@ import { createPathTranslator } from "Project/functions/createPathTranslator";
 import { createProgramFactory } from "Project/functions/createProgramFactory";
 import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
 import { getParsedCommandLine } from "Project/functions/getParsedCommandLine";
+import { transformAndWriteDeclarationFiles } from "Project/functions/transformAndWriteDeclarationFiles";
 import { tryRemoveOutput } from "Project/functions/tryRemoveOutput";
 import { isCompilableFile } from "Project/util/isCompilableFile";
 import { walkDirectorySync } from "Project/util/walkDirectorySync";
@@ -84,8 +85,13 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		cleanup(pathTranslator);
 		copyInclude(data);
 		copyFiles(data, pathTranslator, new Set(getRootDirs(options)));
-		const sourceFiles = getChangedSourceFiles(program);
-		const emitResult = compileFiles(program.getProgram(), data, pathTranslator, sourceFiles);
+		const changedSourceFiles = getChangedSourceFiles(program);
+		const changedCompilableFiles = changedSourceFiles.filter(v => !v.isDeclarationFile);
+		if (options.declaration) {
+			const changedDeclarationFiles = changedSourceFiles.filter(v => v.isDeclarationFile);
+			transformAndWriteDeclarationFiles(program.getProgram(), pathTranslator, changedDeclarationFiles);
+		}
+		const emitResult = compileFiles(program.getProgram(), data, pathTranslator, changedCompilableFiles);
 		if (!emitResult.emitSkipped) {
 			initialCompileCompleted = true;
 		}
@@ -143,8 +149,16 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 
 		refreshProgram();
 		assert(program && pathTranslator);
-		const sourceFiles = getChangedSourceFiles(program, options.incremental ? undefined : [...filesToCompile]);
-		const emitResult = compileFiles(program.getProgram(), data, pathTranslator, sourceFiles);
+		const changedSourceFiles = getChangedSourceFiles(
+			program,
+			options.incremental ? undefined : [...filesToCompile],
+		);
+		const changedCompilableFiles = changedSourceFiles.filter(v => !v.isDeclarationFile);
+		if (options.declaration) {
+			const changedDeclarationFiles = changedSourceFiles.filter(v => v.isDeclarationFile);
+			transformAndWriteDeclarationFiles(program.getProgram(), pathTranslator, changedDeclarationFiles);
+		}
+		const emitResult = compileFiles(program.getProgram(), data, pathTranslator, changedCompilableFiles);
 		if (emitResult.emitSkipped) {
 			// exit before copying to prevent half-updated out directory
 			return emitResult;
