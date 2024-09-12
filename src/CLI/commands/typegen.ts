@@ -17,27 +17,23 @@ const BANNED_SERVICES = new Set([
 	"StarterPlayer",
 ]);
 
-function dedupe(children: ReadonlyArray<RojoSourceMap>) {
+function buildSignatures(children: ReadonlyArray<RojoSourceMap>, path: ReadonlyArray<string>) {
 	const seen = new Set<string>();
-	const result = new Array<RojoSourceMap>();
+	const members = new Array<ts.PropertySignature>();
 	for (const child of children) {
+		if (child.name === "node_modules") continue;
 		if (seen.has(child.name)) continue;
 		seen.add(child.name);
-		result.push(child);
+		members.push(buildPropertySignature(child, path.concat(child.name)));
 	}
-	return result;
+	return members;
 }
 
 function buildTypeNode(sourceMap: RojoSourceMap, path: ReadonlyArray<string>) {
 	const types = new Array<ts.TypeNode>();
 	types.push(ts.factory.createTypeReferenceNode(sourceMap.className, undefined));
 	if (sourceMap.children) {
-		const members = new Array<ts.PropertySignature>();
-		for (const child of dedupe(sourceMap.children)) {
-			if (child.name === "node_modules") continue;
-			members.push(buildPropertySignature(child, path.concat(child.name)));
-		}
-		types.push(ts.factory.createTypeLiteralNode(members));
+		types.push(ts.factory.createTypeLiteralNode(buildSignatures(sourceMap.children, path)));
 	}
 	return ts.factory.createIntersectionTypeNode(types);
 }
@@ -117,15 +113,9 @@ export = ts.identity<yargs.CommandModule<object, TypeGenFlags>>({
 		if (rojoSourceMap.children) {
 			for (const service of rojoSourceMap.children) {
 				if (BANNED_SERVICES.has(service.name)) continue;
-				if (service.children) {
-					const members = new Array<ts.PropertySignature>();
-					for (const child of dedupe(service.children)) {
-						members.push(buildPropertySignature(child, [service.name, child.name]));
-					}
-					statements.push(
-						ts.factory.createInterfaceDeclaration([], service.name, undefined, undefined, members),
-					);
-				}
+				if (!service.children) continue;
+				const members = buildSignatures(service.children, [service.name]);
+				statements.push(ts.factory.createInterfaceDeclaration([], service.name, undefined, undefined, members));
 			}
 		}
 
