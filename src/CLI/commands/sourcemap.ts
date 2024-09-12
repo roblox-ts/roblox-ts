@@ -2,6 +2,7 @@
 
 import { PathTranslator } from "@roblox-ts/path-translator";
 import { spawnSync } from "child_process";
+import { RojoSourceMap } from "CLI/types/RojoSourceMap";
 import { findTsConfigPath } from "CLI/util/findTsConfigPath";
 import { getTsConfigProjectOptions } from "CLI/util/getTsConfigProjectOptions";
 import fs from "fs-extra";
@@ -19,16 +20,9 @@ interface SourceMapFlags {
 	output?: string;
 }
 
-interface RojoSourceMap {
-	name: string;
-	className: string;
-	filePaths?: Array<string>;
-	children?: Array<RojoSourceMap>;
-}
-
-function updateRojoSourceMapRecursively(sourcemap: RojoSourceMap, projectDir: string, pathTranslator: PathTranslator) {
-	if (sourcemap.filePaths) {
-		sourcemap.filePaths = sourcemap.filePaths.flatMap(v => {
+function updateRojoSourceMapRecursively(sourceMap: RojoSourceMap, projectDir: string, pathTranslator: PathTranslator) {
+	if (sourceMap.filePaths) {
+		sourceMap.filePaths = sourceMap.filePaths.flatMap(v => {
 			if (path.relative(pathTranslator.outDir, v).startsWith("..")) {
 				// retain things outside of outDir
 				return v;
@@ -40,8 +34,8 @@ function updateRojoSourceMapRecursively(sourcemap: RojoSourceMap, projectDir: st
 			}
 		});
 	}
-	if (sourcemap.children) {
-		for (const child of sourcemap.children) {
+	if (sourceMap.children) {
+		for (const child of sourceMap.children) {
 			updateRojoSourceMapRecursively(child, projectDir, pathTranslator);
 		}
 	}
