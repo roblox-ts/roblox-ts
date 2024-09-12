@@ -1,8 +1,5 @@
-/* eslint-disable no-console -- LogService is probably overkill here */
-
-import { spawnSync } from "child_process";
-import { RojoSourceMap } from "CLI/types/RojoSourceMap";
 import { findTsConfigPath } from "CLI/util/findTsConfigPath";
+import { getRojoSourceMap, RojoSourceMap } from "CLI/util/getRojoSourceMap";
 import { getTsConfigProjectOptions } from "CLI/util/getTsConfigProjectOptions";
 import fs from "fs-extra";
 import path from "path";
@@ -94,19 +91,7 @@ export = ts.identity<yargs.CommandModule<object, TypeGenFlags>>({
 		const program = createProjectProgram(data);
 		const pathTranslator = createPathTranslator(program, data);
 
-		const args = ["sourcemap"];
-		if (argv.rojo) args.push(argv.rojo);
-		args.push("--include-non-scripts");
-		const { stdout, stderr, error, status } = spawnSync("rojo", args);
-		if (error) {
-			console.error(error);
-			process.exit(1);
-		}
-		if (status !== 0) {
-			console.error(stderr.toString());
-			process.exit(status);
-		}
-		const rojoSourceMap: RojoSourceMap = JSON.parse(stdout.toString());
+		const rojoSourceMap = getRojoSourceMap(argv.rojo, true);
 
 		const statements = new Array<ts.Statement>();
 
