@@ -45,7 +45,7 @@ end, function() end)
 local robloxRequire
 
 local function runRobloxScript(script: LuaSourceContainer)
-	local callableFn = luau.load(luau.compile(script.Source), {
+	local callableFn = luau.load(luau.compile((script :: any).Source), {
 		debugName = script:GetFullName(),
 		environment = tableJoin(roblox, {
 			game = game,
