@@ -30,8 +30,12 @@
 
 ### **Breaking Changes**
 - To continue using `@rbxts/roact` + JSX
-	- roblox-ts 3.0.0+ will require `@rbxts/roact` 3.0.0+
+	- roblox-ts 3.0.0+ will require `@rbxts/roact` 3.0.1+
 	- Class components must be tagged with `@Roact.ClassComponent`
+	- Top-level JSX expressions no longer support `Key`. To preserve previous behavior, you should wrap it in a fragment:
+		```tsx
+		<><screengui Key="ScreenGui" /></>
+		```
 	- In `tsconfig.json` you should set the following
 		```json
 		"jsx": "react",
