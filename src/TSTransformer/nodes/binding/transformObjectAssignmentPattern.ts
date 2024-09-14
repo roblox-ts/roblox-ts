@@ -1,6 +1,8 @@
 import luau from "@roblox-ts/luau-ast";
+import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformArrayAssignmentPattern } from "TSTransformer/nodes/binding/transformArrayAssignmentPattern";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { transformWritableExpression } from "TSTransformer/nodes/transformWritable";
@@ -14,7 +16,6 @@ export function transformObjectAssignmentPattern(
 	state: TransformState,
 	assignmentPattern: ts.ObjectLiteralExpression,
 	parentId: luau.AnyIdentifier,
-	type?: ts.Type,
 ) {
 	const preSpreadNames = new Array<luau.Expression>();
 	for (const property of assignmentPattern.properties) {
@@ -23,10 +24,11 @@ export function transformObjectAssignmentPattern(
 			const value = objectAccessor(
 				state,
 				parentId,
-				type ?? state.typeChecker.getTypeOfAssignmentPattern(assignmentPattern),
+				state.typeChecker.getTypeOfAssignmentPattern(assignmentPattern),
 				name,
 			);
 			preSpreadNames.push(value);
+
 			const id = transformWritableExpression(state, name, property.objectAssignmentInitializer !== undefined);
 			state.prereq(
 				luau.create(luau.SyntaxKind.Assignment, {
@@ -42,7 +44,11 @@ export function transformObjectAssignmentPattern(
 		} else if (ts.isSpreadAssignment(property)) {
 			const value = spreadDestructObject(state, parentId, preSpreadNames);
 			const expression = property.expression;
-			const passedType = type ?? state.typeChecker.getTypeOfAssignmentPattern(assignmentPattern);
+
+			if (ts.isObjectLiteralExpression(property.expression)) {
+				DiagnosticService.addDiagnostic(errors.noNestedSpreadsInAssignmentPatterns(property));
+				continue;
+			}
 
 			if (
 				ts.isIdentifier(expression) ||
@@ -58,10 +64,7 @@ export function transformObjectAssignmentPattern(
 					}),
 				);
 			} else if (ts.isObjectLiteralExpression(expression)) {
-				/** errors when we call this recursively without passing down the type,
-				 * because of incorrect impl of typeChecker.getTypeOfAssignmentPattern.
-				 * it can't handle an assignment pattern if the parent is a spreadElement*/
-				transformObjectAssignmentPattern(state, expression, value, passedType);
+				transformObjectAssignmentPattern(state, expression, value);
 			} else if (ts.isArrayLiteralExpression(expression)) {
 				transformArrayAssignmentPattern(state, expression, value);
 			} else {
@@ -82,10 +85,11 @@ export function transformObjectAssignmentPattern(
 			const value = objectAccessor(
 				state,
 				parentId,
-				type ?? state.typeChecker.getTypeOfAssignmentPattern(assignmentPattern),
+				state.typeChecker.getTypeOfAssignmentPattern(assignmentPattern),
 				name,
 			);
 			preSpreadNames.push(value);
+
 			if (ts.isIdentifier(init) || ts.isElementAccessExpression(init) || ts.isPropertyAccessExpression(init)) {
 				const id = transformWritableExpression(state, init, initializer !== undefined);
 				state.prereq(
