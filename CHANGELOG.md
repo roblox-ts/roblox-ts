@@ -1,6 +1,5 @@
 ## 3.0.0
-- TypeScript 5.4.2
-	- not all new language features are supported yet, but we plan to add support in future releases
+- TypeScript dependency updated to 5.5.3 ([#2617][2617], [#2648][2648], [#2716][2716], [#2736][2736])
 - Generic JSX ([#2404][2404])
 	- JSX can now be used for any library which matches `React.createElement()` syntax
 - `--optimizedLoops` flag is now enabled by default
@@ -9,15 +8,44 @@
 	- if necessary, you can run the compiler with `--optimizedLoops=false` to return to the old behavior
 - Improve emit for `a.b()` and `a[b]()` ([#2623][2623])
 - Fixed bug where `noMacroExtends` diagnostic would never be reported ([#2587][2587])
+- Fixed bug where `noRobloxSymbolInstanceof` diagnostic would not always be reported ([#2672][2672])
 - Fixed watch mode error for files with "unsupported extensions" ([#2701][2701])
 - Fixed multiline template string bug on Windows ([roblox-ts/luau-ast#483][roblox-ts/luau-ast#483])
 - Fixed template string unicode escape sequence bug ([roblox-ts/luau-ast#483][roblox-ts/luau-ast#483])
+- Fixed optional arguments when spreading into macro ([#2528][2528])
+- Fixed nested classes not getting hoisted ([#2728][2728])
+- Pinned exact versions of @roblox-ts dependencies ([#2724][2724])
+- Fixed bug where error was not rethrown after a `finally` block ([#2726][2726])
+- Fixed bug where `finally` block was not run if the `catch` block errored ([#2726][2726])
+- Fixed importing directories that are symlinked twice ([#2704][2704])
+- Moved all `@types/*` to devDependencies ([#2737][2737])
+- Corrected parameter decorator name argument ([#2460][2460])
+- Corrected decorator execution ordering ([#2759][2759])
+- Fixed `export {}` not working on imported variables ([#2796][2796])
+- Fixed statements before super breaking class initialization ([#2778][2778])
+- Fixed internal transformPaths transformer ([#2800][2800])
+- Added support for `.luau` file extension ([#2802][2802])
+- Fix typo in issue #1149's diagnostic ([#2649][2649])
+- Added an error if `types` is not found in tsconfig.json ([#2533][2533])
 
 ### **Breaking Changes**
-- `@rbxts/roact`
-	- roblox-ts 3.0.0+ will require `@rbxts/roact` 3.0.0+
-	- you should prefer `@rbxts/react` where possible
-- Upgaded bundled `roblox-lua-promise` from 3.2.1 to 4.0.0. See possible breaking changes [here](https://github.com/evaera/roblox-lua-promise/releases).
+- To continue using `@rbxts/roact` + JSX
+	- roblox-ts 3.0.0+ will require `@rbxts/roact` 3.0.1+
+	- Class components must be tagged with `@Roact.ClassComponent`
+	- Top-level JSX expressions no longer support `Key`. To preserve previous behavior, you should wrap it in a fragment:
+		```tsx
+		<><screengui Key="ScreenGui" /></>
+		```
+	- In `tsconfig.json` you should set the following
+		```json
+		"jsx": "react",
+		"jsxFactory": "Roact.jsx",
+		"jsxFragmentFactory": "Roact.Fragment",
+		```
+- Upgraded bundled `roblox-lua-promise` from 3.2.1 to 4.0.0. See possible breaking changes [here](https://github.com/evaera/roblox-lua-promise/releases).
+- The TypeScript update includes a few edge-case breaking changes: [5.4](https://devblogs.microsoft.com/typescript/announcing-typescript-5-4/#notable-behavioral-changes8) and [5.5](https://devblogs.microsoft.com/typescript/announcing-typescript-5-5/#notable-behavioral-changes30)
+- roblox-ts will emit compiled files as `.luau` by default. You can keep the old behaviour by running with `--luau=false`.
+- Parameter decorators will now be called with the name of the method, instead of the name of the parameter. This matches TypeScript behaviour.
 
 ## 2.3.0
 - Removed `rbxtsc init` in favor of `npm create roblox-ts` ([#2503][2503])
@@ -243,7 +271,7 @@
 
 - Updated to TypeScript 4.2.3
 - Updated "out of date of types" error message text
-- Added a diagnostic for [#1149][1149]
+- Added a diagnostic for ([#1149][1149])
 - Fixed JSX fragments used as children ([#1285][1285])
 - Updated `rbxtsc init package` to use package.json "files"
 - Updated `rbxtsc init` to use default.project.json "globIgnorePaths"
@@ -505,7 +533,6 @@ Changes prior to 1.0.0-beta.0 have been removed from this page since the entire 
 [1146]: https://github.com/roblox-ts/roblox-ts/pull/1146
 [1147]: https://github.com/roblox-ts/roblox-ts/pull/1147
 [1148]: https://github.com/roblox-ts/roblox-ts/pull/1148
-[1149]: https://github.com/roblox-ts/roblox-ts/issues/1149
 [1149]: https://github.com/roblox-ts/roblox-ts/pull/1149
 [1151]: https://github.com/roblox-ts/roblox-ts/pull/1151
 [1162]: https://github.com/roblox-ts/roblox-ts/pull/1162
@@ -529,7 +556,6 @@ Changes prior to 1.0.0-beta.0 have been removed from this page since the entire 
 [1253]: https://github.com/roblox-ts/roblox-ts/pull/1253
 [1254]: https://github.com/roblox-ts/roblox-ts/pull/1254
 [1266]: https://github.com/roblox-ts/roblox-ts/pull/1266
-[1285]: https://github.com/roblox-ts/roblox-ts/pull/1285
 [1285]: https://github.com/roblox-ts/roblox-ts/pull/1285
 [1288]: https://github.com/roblox-ts/roblox-ts/pull/1288
 [1299]: https://github.com/roblox-ts/roblox-ts/pull/1299
@@ -647,6 +673,7 @@ Changes prior to 1.0.0-beta.0 have been removed from this page since the entire 
 [2401]: https://github.com/roblox-ts/roblox-ts/pull/2401
 [2404]: https://github.com/roblox-ts/roblox-ts/pull/2404
 [2445]: https://github.com/roblox-ts/roblox-ts/pull/2445
+[2460]: https://github.com/roblox-ts/roblox-ts/pull/2460
 [2465]: https://github.com/roblox-ts/roblox-ts/pull/2465
 [2466]: https://github.com/roblox-ts/roblox-ts/pull/2466
 [2475]: https://github.com/roblox-ts/roblox-ts/pull/2475
@@ -655,6 +682,8 @@ Changes prior to 1.0.0-beta.0 have been removed from this page since the entire 
 [2503]: https://github.com/roblox-ts/roblox-ts/pull/2503
 [2506]: https://github.com/roblox-ts/roblox-ts/pull/2506
 [2527]: https://github.com/roblox-ts/roblox-ts/pull/2527
+[2528]: https://github.com/roblox-ts/roblox-ts/pull/2528
+[2533]: https://github.com/roblox-ts/roblox-ts/pull/2533
 [2546]: https://github.com/roblox-ts/roblox-ts/pull/2546
 [2550]: https://github.com/roblox-ts/roblox-ts/pull/2550
 [2567]: https://github.com/roblox-ts/roblox-ts/pull/2567
@@ -665,6 +694,22 @@ Changes prior to 1.0.0-beta.0 have been removed from this page since the entire 
 [2605]: https://github.com/roblox-ts/roblox-ts/pull/2605
 [2606]: https://github.com/roblox-ts/roblox-ts/pull/2606
 [2614]: https://github.com/roblox-ts/roblox-ts/pull/2614
+[2617]: https://github.com/roblox-ts/roblox-ts/pull/2617
 [2623]: https://github.com/roblox-ts/roblox-ts/pull/2623
+[2648]: https://github.com/roblox-ts/roblox-ts/pull/2648
+[2649]: https://github.com/roblox-ts/roblox-ts/pull/2649
+[2672]: https://github.com/roblox-ts/roblox-ts/pull/2672
 [2701]: https://github.com/roblox-ts/roblox-ts/pull/2701
+[2704]: https://github.com/roblox-ts/roblox-ts/pull/2704
+[2716]: https://github.com/roblox-ts/roblox-ts/pull/2716
+[2724]: https://github.com/roblox-ts/roblox-ts/pull/2724
+[2726]: https://github.com/roblox-ts/roblox-ts/pull/2726
+[2728]: https://github.com/roblox-ts/roblox-ts/pull/2728
+[2736]: https://github.com/roblox-ts/roblox-ts/pull/2736
+[2737]: https://github.com/roblox-ts/roblox-ts/pull/2737
+[2759]: https://github.com/roblox-ts/roblox-ts/pull/2759
+[2778]: https://github.com/roblox-ts/roblox-ts/pull/2778
+[2796]: https://github.com/roblox-ts/roblox-ts/pull/2796
+[2800]: https://github.com/roblox-ts/roblox-ts/pull/2800
+[2802]: https://github.com/roblox-ts/roblox-ts/pull/2802
 [roblox-ts/luau-ast#483]: https://github.com/roblox-ts/luau-ast/pull/483

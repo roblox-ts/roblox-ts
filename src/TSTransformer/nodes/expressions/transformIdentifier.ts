@@ -92,7 +92,7 @@ function checkIdentifierHoist(state: TransformState, node: ts.Identifier, symbol
 		// non-async function declarations, class declarations, and variable statements can self refer
 		if (
 			(ts.isFunctionDeclaration(declarationStatement) &&
-				!ts.getSelectedSyntacticModifierFlags(declarationStatement, ts.ModifierFlags.Async)) ||
+				!ts.hasSyntacticModifier(declarationStatement, ts.ModifierFlags.Async)) ||
 			ts.isClassDeclaration(declarationStatement) ||
 			(ts.isVariableStatement(declarationStatement) &&
 				getAncestor(node, node => ts.isStatement(node) || ts.isFunctionLikeDeclaration(node)) ===

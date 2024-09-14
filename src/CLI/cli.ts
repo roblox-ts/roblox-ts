@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { CLIError } from "CLI/errors/CLIError";
+import { LogService } from "Shared/classes/LogService";
 import { COMPILER_VERSION, PACKAGE_ROOT } from "Shared/constants";
 import yargs from "yargs";
 
@@ -25,6 +26,13 @@ yargs
 	.wrap(yargs.terminalWidth())
 
 	// execute
+	// .fail() is necessary to properly `.toString()` custom error objects like CLIError
+	.fail(str => {
+		process.exitCode = 1;
+		if (str) {
+			LogService.fatal(str);
+		}
+	})
 	.parseAsync()
 	.catch(e => {
 		if (e instanceof CLIError) {
