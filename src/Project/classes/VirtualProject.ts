@@ -110,7 +110,7 @@ export class VirtualProject {
 		this.typeChecker = this.program.getTypeChecker();
 
 		const services = createTransformServices(this.typeChecker);
-		const pathTranslator = new PathTranslator(ROOT_DIR, OUT_DIR, undefined, false);
+		const pathTranslator = new PathTranslator(ROOT_DIR, OUT_DIR, undefined, false, this.data.projectOptions.luau);
 
 		const sourceFile = this.program.getSourceFile(PLAYGROUND_PATH);
 		assert(sourceFile);

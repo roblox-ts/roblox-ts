@@ -111,6 +111,10 @@ export = ts.identity<yargs.CommandModule<object, BuildFlags & Partial<ProjectOpt
 			.option("allowCommentDirectives", {
 				boolean: true,
 				hidden: true,
+			})
+			.option("luau", {
+				boolean: true,
+				describe: "emit files with .luau extension",
 			}),
 
 	handler: async argv => {
@@ -134,7 +138,7 @@ export = ts.identity<yargs.CommandModule<object, BuildFlags & Partial<ProjectOpt
 				setupProjectWatchProgram(data, projectOptions.usePolling);
 			} else {
 				const program = createProjectProgram(data);
-				const pathTranslator = createPathTranslator(program);
+				const pathTranslator = createPathTranslator(program, data);
 				cleanup(pathTranslator);
 				copyInclude(data);
 				copyFiles(data, pathTranslator, new Set(getRootDirs(program.getCompilerOptions())));

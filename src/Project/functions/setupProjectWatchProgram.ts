@@ -1,5 +1,5 @@
 import { PathTranslator } from "@roblox-ts/path-translator";
-import chokidar from "chokidar";
+import chokidar, { ChokidarOptions } from "chokidar";
 import fs from "fs-extra";
 import { ProjectData } from "Project";
 import { checkFileName } from "Project/functions/checkFileName";
@@ -21,13 +21,12 @@ import { assert } from "Shared/util/assert";
 import { getRootDirs } from "Shared/util/getRootDirs";
 import ts from "typescript";
 
-const CHOKIDAR_OPTIONS: chokidar.WatchOptions = {
+const CHOKIDAR_OPTIONS: ChokidarOptions = {
 	awaitWriteFinish: {
 		pollInterval: 10,
 		stabilityThreshold: 50,
 	},
 	ignoreInitial: true,
-	disableGlobbing: true,
 };
 
 function fixSlashes(fsPath: string) {
@@ -75,7 +74,7 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 	const createProgram = createProgramFactory(data, options);
 	function refreshProgram() {
 		program = createProgram([...fileNamesSet], options);
-		pathTranslator = createPathTranslator(program);
+		pathTranslator = createPathTranslator(program, data);
 	}
 
 	function runInitialCompile() {
@@ -220,7 +219,7 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		openEventCollection();
 	}
 
-	const chokidarOptions: chokidar.WatchOptions = { ...CHOKIDAR_OPTIONS, usePolling };
+	const chokidarOptions: ChokidarOptions = { ...CHOKIDAR_OPTIONS, usePolling };
 
 	chokidar
 		.watch(getRootDirs(options), chokidarOptions)
