@@ -4,7 +4,7 @@ import { transformArrayBindingPattern } from "TSTransformer/nodes/binding/transf
 import { transformObjectBindingPattern } from "TSTransformer/nodes/binding/transformObjectBindingPattern";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
-import { arrayBindingPatternContainsSpread } from "TSTransformer/util/arrayBindingPatternContainsSpread";
+import { arrayLikeExpressionContainsSpread } from "TSTransformer/util/arrayBindingPatternContainsSpread";
 import { isMethod } from "TSTransformer/util/isMethod";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import ts from "typescript";
@@ -62,7 +62,7 @@ export function transformParameters(state: TransformState, node: ts.SignatureDec
 		if (
 			parameter.dotDotDotToken &&
 			ts.isArrayBindingPattern(parameter.name) &&
-			!arrayBindingPatternContainsSpread(parameter.name)
+			!arrayLikeExpressionContainsSpread(parameter.name)
 		) {
 			const prereqs = state.capturePrereqs(() =>
 				optimizeArraySpreadParameter(state, parameters, parameter.name as ts.ArrayBindingPattern),

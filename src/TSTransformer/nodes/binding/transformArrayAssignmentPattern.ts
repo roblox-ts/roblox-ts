@@ -1,6 +1,8 @@
 import luau from "@roblox-ts/luau-ast";
+import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformObjectAssignmentPattern } from "TSTransformer/nodes/binding/transformObjectAssignmentPattern";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { transformWritableExpression } from "TSTransformer/nodes/transformWritable";
@@ -17,16 +19,10 @@ export function transformArrayAssignmentPattern(
 ) {
 	let index = 0;
 	const idStack = new Array<luau.Identifier>();
-	const accessor = getAccessorForBindingType(
-		state,
-		assignmentPattern,
-		state.typeChecker.getTypeOfAssignmentPattern(assignmentPattern),
-	);
-	const destructor = getSpreadDestructorForType(
-		state,
-		assignmentPattern,
-		state.typeChecker.getTypeOfAssignmentPattern(assignmentPattern),
-	);
+	const patternType = state.typeChecker.getTypeOfAssignmentPattern(assignmentPattern);
+
+	const accessor = getAccessorForBindingType(state, assignmentPattern, patternType);
+	const destructor = getSpreadDestructorForType(state, assignmentPattern, patternType);
 
 	for (let element of assignmentPattern.elements) {
 		if (ts.isOmittedExpression(element)) {
@@ -41,12 +37,23 @@ export function transformArrayAssignmentPattern(
 			const value = ts.isSpreadElement(element)
 				? destructor(state, parentId, index, idStack)
 				: accessor(state, parentId, index, idStack, false);
+
+			if (ts.isSpreadElement(element) && ts.isArrayLiteralExpression(element.expression)) {
+				DiagnosticService.addDiagnostic(errors.noNestedSpreadsInAssignmentPatterns(element.parent));
+				continue;
+			}
+
 			if (
 				ts.isIdentifier(element) ||
 				ts.isElementAccessExpression(element) ||
-				ts.isPropertyAccessExpression(element)
+				ts.isPropertyAccessExpression(element) ||
+				ts.isSpreadElement(element)
 			) {
-				const id = transformWritableExpression(state, element, initializer !== undefined);
+				const id = transformWritableExpression(
+					state,
+					ts.isSpreadElement(element) ? element.expression : element,
+					initializer !== undefined,
+				);
 				state.prereq(
 					luau.create(luau.SyntaxKind.Assignment, {
 						left: id,

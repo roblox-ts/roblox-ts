@@ -10,6 +10,7 @@ import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { transformLogical } from "TSTransformer/nodes/transformLogical";
 import { transformLogicalOrCoalescingAssignmentExpression } from "TSTransformer/nodes/transformLogicalOrCoalescingAssignmentExpression";
 import { transformWritableAssignment, transformWritableExpression } from "TSTransformer/nodes/transformWritable";
+import { arrayLikeExpressionContainsSpread } from "TSTransformer/util/arrayBindingPatternContainsSpread";
 import {
 	createAssignmentExpression,
 	createCompoundAssignmentExpression,
@@ -151,7 +152,11 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 				return rightExp;
 			}
 
-			if (luau.isCall(rightExp) && isLuaTupleType(state)(state.getType(node.right))) {
+			if (
+				luau.isCall(rightExp) &&
+				isLuaTupleType(state)(state.getType(node.right)) &&
+				!arrayLikeExpressionContainsSpread(node.left)
+			) {
 				transformOptimizedArrayAssignmentPattern(state, node.left, rightExp);
 				if (!isUsedAsStatement(node)) {
 					DiagnosticService.addDiagnostic(errors.noLuaTupleDestructureAssignmentExpression(node));
@@ -159,7 +164,12 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 				return luau.none();
 			}
 
-			if (luau.isArray(rightExp) && !luau.list.isEmpty(rightExp.members) && isUsedAsStatement(node)) {
+			if (
+				luau.isArray(rightExp) &&
+				!luau.list.isEmpty(rightExp.members) &&
+				isUsedAsStatement(node) &&
+				!arrayLikeExpressionContainsSpread(node.left)
+			) {
 				transformOptimizedArrayAssignmentPattern(state, node.left, rightExp.members);
 				return luau.none();
 			}

@@ -1,11 +1,11 @@
 import ts from "typescript";
 
-export function arrayBindingPatternContainsSpread(arrayBindingPattern: ts.ArrayBindingPattern): boolean {
-	for (const element of arrayBindingPattern.elements) {
-		if (ts.isBindingElement(element) && element.dotDotDotToken) return true;
+export function arrayLikeExpressionContainsSpread(exp: ts.ArrayBindingPattern | ts.ArrayLiteralExpression): boolean {
+	for (const element of exp.elements) {
+		if ((ts.isBindingElement(element) && element.dotDotDotToken) || ts.isSpreadElement(element)) return true;
 
 		if (ts.isArrayBindingPattern(element)) {
-			if (arrayBindingPatternContainsSpread(element)) return true;
+			if (arrayLikeExpressionContainsSpread(element)) return true;
 		}
 	}
 	return false;
