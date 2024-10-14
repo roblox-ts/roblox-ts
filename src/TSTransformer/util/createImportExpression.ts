@@ -72,17 +72,30 @@ function getNodeModulesImportParts(
 	sourceFile: ts.SourceFile,
 	moduleSpecifier: ts.Expression,
 	moduleOutPath: string,
+	moduleFilename: string,
 ) {
-	const moduleScope = path.relative(state.data.nodeModulesPath, moduleOutPath).split(path.sep)[0];
+	const relativePath = path.relative(state.data.nodeModulesPath, moduleOutPath);
+	const moduleScope = relativePath.split(path.sep)[0];
 	assert(moduleScope);
 
-	if (!moduleScope.startsWith("@")) {
+	if (moduleScope === "..") {
+		DiagnosticService.addDiagnostic(
+			errors.failedSymlinkResolve(
+				moduleSpecifier,
+				state.data.nodeModulesPath,
+				moduleFilename,
+				state.guessVirtualPath(moduleFilename),
+				relativePath,
+			),
+		);
+		return [luau.none()];
+	} else if (!moduleScope.startsWith("@")) {
 		DiagnosticService.addDiagnostic(errors.noUnscopedModule(moduleSpecifier));
 		return [luau.none()];
 	}
 
 	if (!validateModule(state, moduleScope)) {
-		DiagnosticService.addDiagnostic(errors.noInvalidModule(moduleSpecifier));
+		DiagnosticService.addDiagnostic(errors.noInvalidScope(moduleSpecifier));
 		return [luau.none()];
 	}
 
@@ -191,11 +204,9 @@ export function getImportParts(state: TransformState, sourceFile: ts.SourceFile,
 	const virtualPath = state.guessVirtualPath(moduleFile.fileName) || moduleFile.fileName;
 
 	if (ts.isInsideNodeModules(virtualPath)) {
-		const moduleOutPath = state.pathTranslator.getImportPath(
-			state.nodeModulesPathMapping.get(getCanonicalFileName(path.normalize(virtualPath))) ?? virtualPath,
-			/* isNodeModule */ true,
-		);
-		return getNodeModulesImportParts(state, sourceFile, moduleSpecifier, moduleOutPath);
+		const mappedPath = state.nodeModulesPathMapping.get(getCanonicalFileName(path.normalize(virtualPath)));
+		const moduleOutPath = state.pathTranslator.getImportPath(mappedPath ?? virtualPath, /* isNodeModule */ true);
+		return getNodeModulesImportParts(state, sourceFile, moduleSpecifier, moduleOutPath, moduleFile.fileName);
 	} else {
 		const moduleOutPath = state.pathTranslator.getImportPath(virtualPath);
 		const moduleRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
