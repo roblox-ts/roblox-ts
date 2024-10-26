@@ -159,8 +159,8 @@ export function compileFiles(
 			if (sourceFile !== originalSourceFile && hasErrors(proxyDiagnostics)) {
 				// The transformed source file has diagnostics, but we want to present the original diagnostic spans.
 				// If the original file doesn't have diagnostics, the diagnostics are caused by a transformer and we display them instead.
-				const originalDiagnostics = ts.getPreEmitDiagnostics(program, originalSourceFile);
-				DiagnosticService.addDiagnostics(hasErrors(originalDiagnostics) ? originalDiagnostics : proxyDiagnostics);
+				const sourceDiagnostics = ts.getPreEmitDiagnostics(program, originalSourceFile);
+				DiagnosticService.addDiagnostics(hasErrors(sourceDiagnostics) ? sourceDiagnostics : proxyDiagnostics);
 			} else {
 				DiagnosticService.addDiagnostics(proxyDiagnostics);
 			}
