@@ -15,7 +15,6 @@ export const objectAccessor = (
 	name: ts.PropertyName,
 ): luau.Expression => {
 	addIndexDiagnostics(state, name, state.getType(name));
-
 	if (ts.isIdentifier(name)) {
 		return luau.property(parentId, name.text);
 	} else if (ts.isComputedPropertyName(name)) {
