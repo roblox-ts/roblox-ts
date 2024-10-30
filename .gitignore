@@ -12,3 +12,5 @@ out
 /tests/*.rbxl
 /tests/*.rbxl.lock
 /tests/include
+
+/sourcemap.json
