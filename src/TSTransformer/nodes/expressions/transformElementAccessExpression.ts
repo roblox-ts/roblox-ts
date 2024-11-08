@@ -8,7 +8,7 @@ import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexa
 import { getConstantValueLiteral } from "TSTransformer/util/getConstantValueLiteral";
 import { offset } from "TSTransformer/util/offset";
 import { skipUpwards } from "TSTransformer/util/traversal";
-import { isLuaTupleType } from "TSTransformer/util/types";
+import { isDefinitelyType, isLuaTupleType, isStringType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import ts from "typescript";
 
@@ -46,6 +46,43 @@ export function transformElementAccessExpressionInner(
 		}
 		// parentheses to trim off the rest of the values
 		return luau.create(luau.SyntaxKind.ParenthesizedExpression, { expression });
+	}
+
+	// String indexing
+	if (isDefinitelyType(expType, isStringType)) {
+		expression = state.pushToVarIfNonId(expression, "str");
+
+		let n = index;
+		if (!luau.isNumberLiteral(n)) {
+			n = state.pushToVar(n, "index");
+		}
+
+		let condition = luau.binary(luau.call(luau.globals.utf8.len, [expression]), ">", n);
+		if (!luau.isNumberLiteral(n) || Number(n.value) < 0) {
+			// only check for the index if it's not known or invalid
+			condition = luau.binary(luau.binary(n, ">=", luau.number(0)), "and", condition);
+		}
+
+		const code = state.pushToVar(undefined, "code");
+
+		state.prereq(
+			luau.create(luau.SyntaxKind.IfStatement, {
+				condition,
+				statements: luau.list.make(
+					luau.create(luau.SyntaxKind.Assignment, {
+						left: code,
+						operator: "=",
+						right: luau.call(luau.globals.utf8.codepoint, [
+							expression,
+							luau.call(luau.globals.utf8.offset, [expression, offset(n, 1)]),
+						]),
+					}),
+				),
+				elseBody: luau.list.make(),
+			}),
+		);
+
+		return luau.call(luau.globals.utf8.char, [code]);
 	}
 
 	if (ts.isDeleteExpression(skipUpwards(node).parent)) {
