@@ -7,6 +7,13 @@ export = () => {
 		expect(b).to.equal(2);
 	});
 
+	it("should spread destructure arrays", () => {
+		const [a, ...b] = [1, 2, 3];
+		expect(a).to.equal(1);
+		expect(b[0]).to.equal(2);
+		expect(b[1]).to.equal(3);
+	});
+
 	it("should destructure nested arrays", () => {
 		const [[a, b], [c, d]] = [
 			[7, 2],
@@ -28,6 +35,18 @@ export = () => {
 		expect(b).to.equal(1);
 		expect(c).to.equal(2);
 		expect(d).to.equal(3);
+	});
+
+	it("should spread destructure objects", () => {
+		const a = {
+			b: 1,
+			c: 2,
+			d: 3,
+		};
+		const { b, ...rest } = a;
+		expect(b).to.equal(1);
+		expect(rest.c).to.be.equal(2);
+		expect(rest.d).to.be.equal(3);
 	});
 
 	it("should destructure nested objects", () => {
@@ -141,6 +160,17 @@ export = () => {
 		expect(x).to.equal(1);
 		expect(y).to.equal(2);
 		expect(z).to.equal(3);
+	});
+
+	it("should support rest in destructure assignment", () => {
+		let x: number;
+		let y: number;
+		let z: number[];
+		[x, y, ...z] = [1, 2, 3, 4];
+		expect(x).to.equal(1);
+		expect(y).to.equal(2);
+		expect(z[0]).to.equal(3);
+		expect(z[1]).to.equal(4);
 	});
 
 	it("should support destructure assignment with identifier", () => {
@@ -313,6 +343,12 @@ export = () => {
 		expect(expected.delete(c)).to.equal(true);
 	});
 
+	it("should spread destructure sets", () => {
+		const [a, ...rest] = new Set([1, 2, 3]);
+		expect(rest.size()).to.equal(2);
+		expect(rest.includes(a)).to.equal(false);
+	});
+
 	it("should properly destruct maps", () => {
 		const expected = new Map([
 			["a", 1],
@@ -334,6 +370,19 @@ export = () => {
 
 		expect(expected.get(c[0])).to.equal(c[1]);
 		expect(expected.delete(c[0])).to.equal(true);
+	});
+
+	it("should spread destructure maps", () => {
+		const original = new Map([
+			["a", 1],
+			["b", 2],
+			["c", 3],
+		]);
+		const [, ...rest] = original;
+
+		expect(rest.size()).to.equal(2);
+		expect(rest[0][0]).to.never.equal("a");
+		expect(rest[0][1]).to.never.equal("a");
 	});
 
 	it("should properly destruct with element access", () => {
@@ -432,6 +481,15 @@ export = () => {
 		expect(a).to.equal(4);
 		expect(b).to.equal(5);
 		expect(c).to.equal(6);
+	});
+
+	it("should support rest in object assignment destructuring", () => {
+		let a: number, b: number, c: { c: number; d: number };
+		({ a, b, ...c } = { a: 1, b: 2, c: 3, d: 4 });
+		expect(a).to.equal(1);
+		expect(b).to.equal(2);
+		expect(c.c).to.equal(3);
+		expect(c.d).to.equal(4);
 	});
 
 	it("should support object assignment destructuring with aliases", () => {
@@ -611,6 +669,20 @@ export = () => {
 		expect(a).to.equal(1);
 		expect(b).to.equal(2);
 		expect(c).to.equal(3);
+	});
+
+	it("should spread destructure generators", () => {
+		function* foo() {
+			yield 1;
+			yield 2;
+			yield 3;
+		}
+
+		const [a, ...rest] = foo();
+		expect(a).to.equal(1);
+		expect(rest.size()).to.equal(2);
+		expect(rest[0]).to.equal(2);
+		expect(rest[1]).to.equal(3);
 	});
 
 	it("should destructure double nested generators", () => {
