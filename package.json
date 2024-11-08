@@ -65,7 +65,7 @@
 		"@types/eslint-config-prettier": "^6.11.3",
 		"@types/fs-extra": "^11.0.4",
 		"@types/mocha": "^10.0.9",
-		"@types/node": "^22.8.4",
+		"@types/node": "^22.9.0",
 		"@types/prompts": "^2.4.9",
 		"@types/resolve": "^1.20.6",
 		"@types/ts-expose-internals": "npm:ts-expose-internals@=5.5.3",
@@ -74,13 +74,13 @@
 		"eslint-config-prettier": "^9.1.0",
 		"eslint-plugin-prettier": "^5.2.1",
 		"eslint-plugin-simple-import-sort": "^12.1.1",
-		"jiti": "^2.3.3",
-		"mocha": "^10.8.1",
+		"jiti": "^2.4.0",
+		"mocha": "^10.8.2",
 		"nyc": "^17.1.0",
 		"prettier": "^3.3.3",
 		"ts-patch": "^3.2.1",
-		"typescript-eslint": "^8.12.2",
-		"typescript-transform-paths": "^3.5.1"
+		"typescript-eslint": "^8.13.0",
+		"typescript-transform-paths": "^3.5.2"
 	},
 	"files": [
 		"out",
