@@ -19,6 +19,7 @@ import { assert } from "Shared/util/assert";
 import { benchmarkIfVerbose } from "Shared/util/benchmark";
 import { createTextDiagnostic } from "Shared/util/createTextDiagnostic";
 import { getRootDirs } from "Shared/util/getRootDirs";
+import { hasErrors } from "Shared/util/hasErrors";
 import { MultiTransformState, transformSourceFile, TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { createTransformServices } from "TSTransformer/util/createTransformServices";
@@ -149,11 +150,21 @@ export function compileFiles(
 	const services = createTransformServices(typeChecker);
 
 	for (let i = 0; i < sourceFiles.length; i++) {
+		const originalSourceFile = sourceFiles[i];
 		const sourceFile = proxyProgram.getSourceFile(sourceFiles[i].fileName);
 		assert(sourceFile);
 		const progress = `${i + 1}/${sourceFiles.length}`.padStart(progressMaxLength);
 		benchmarkIfVerbose(`${progress} compile ${path.relative(process.cwd(), sourceFile.fileName)}`, () => {
-			DiagnosticService.addDiagnostics(ts.getPreEmitDiagnostics(proxyProgram, sourceFile));
+			const proxyDiagnostics = ts.getPreEmitDiagnostics(proxyProgram, sourceFile);
+			if (sourceFile !== originalSourceFile && hasErrors(proxyDiagnostics)) {
+				// The transformed source file has diagnostics, but we want to present the original diagnostic spans.
+				// If the original file doesn't have diagnostics, the diagnostics are caused by a transformer and we display them instead.
+				const sourceDiagnostics = ts.getPreEmitDiagnostics(program, originalSourceFile);
+				DiagnosticService.addDiagnostics(hasErrors(sourceDiagnostics) ? sourceDiagnostics : proxyDiagnostics);
+			} else {
+				DiagnosticService.addDiagnostics(proxyDiagnostics);
+			}
+
 			DiagnosticService.addDiagnostics(getCustomPreEmitDiagnostics(data, sourceFile));
 			if (DiagnosticService.hasErrors()) return;
 
