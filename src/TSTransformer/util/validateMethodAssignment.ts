@@ -13,10 +13,26 @@ function hasCallSignatures(type: ts.Type) {
 	return hasCallSignatures;
 }
 
-function validateTypes(state: TransformState, node: ts.Node, baseType: ts.Type, assignmentType: ts.Type) {
-	if (hasCallSignatures(baseType) && hasCallSignatures(assignmentType)) {
-		const assignmentIsMethod = isMethodFromType(state, node, assignmentType);
-		if (isMethodFromType(state, node, baseType) !== assignmentIsMethod) {
+function hasParameters(type: ts.Type) {
+	let hasParameters = false;
+	walkTypes(type, t => {
+		hasParameters ||= t.getCallSignatures().some(s => s.parameters.length > 0);
+	});
+	return hasParameters;
+}
+
+function validateTypes(state: TransformState, node: ts.Node, baseType: ts.Type, assigningToType: ts.Type) {
+	if (hasCallSignatures(baseType) && hasCallSignatures(assigningToType)) {
+		const assignmentIsMethod = isMethodFromType(state, node, assigningToType);
+		if (
+			isMethodFromType(state, node, baseType) !== assignmentIsMethod &&
+			// parameters disallowed: would get offset by 1
+			(hasParameters(baseType) ||
+				// `this` and `super` disallowed: would either be missing or not passed by caller
+				// if not the function definition, assume they *are* used for safety
+				!ts.isFunctionLike(node) ||
+				ts.forEachChildRecursively(node, child => ts.isThis(child) || ts.isSuperOrSuperProperty(child)))
+		) {
 			if (assignmentIsMethod) {
 				DiagnosticService.addDiagnostic(errors.expectedMethodGotFunction(node));
 			} else {

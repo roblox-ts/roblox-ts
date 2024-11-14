@@ -1,7 +1,7 @@
 interface MyWow {
-	method(): void;
+	method(a: string): void;
 }
 
 class A implements MyWow {
-	method = () => {}; // bad!
+	method = (a: string) => {};
 }
