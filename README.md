@@ -43,3 +43,4 @@ https://discord.roblox-ts.com
 <a href="https://www.roblox.com/games/11688361399"><img width=32.9% src="https://i.imgur.com/EDC7xw6.png" /></a><!-- Wealdland Foods 6.1M -->
 <a href="https://www.roblox.com/games/12147220287"><img width=32.9% src="https://i.imgur.com/iD2PKgW.png" /></a><!-- LegacyVerse 2.8M -->
 <a href="https://www.roblox.com/games/2184151436"><img width=32.9% src="https://i.imgur.com/JSFPTA0.png" /></a><!-- Dungeon Life 2.0M -->
+<a href="https://www.roblox.com/games/18381234265"><img width=32.9% src="https://i.imgur.com/KJpPZT2.png" /></a><!-- Fashion Stars 1.0M -->
