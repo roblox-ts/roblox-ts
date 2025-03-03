@@ -74,7 +74,7 @@ export function transformParameters(state: TransformState, node: ts.SignatureDec
 
 		let paramId: luau.Identifier | luau.TemporaryIdentifier;
 		if (ts.isIdentifier(parameter.name)) {
-			paramId = transformIdentifierDefined(state, parameter.name);
+			paramId = transformIdentifierDefined(state, parameter.name, state.getType(parameter));
 			validateIdentifier(state, parameter.name);
 		} else {
 			paramId = luau.tempId("param");
