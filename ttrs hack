@@ -1,0 +1,67 @@
+// ==UserScript==
+// @name         Times Tables Rock Stars Hack
+// @namespace    http://tampermonkey.net/
+// @version      4.24.1016
+// @description  An overpowered ttrs cheat.
+// @author       You
+// @match        https://play.ttrockstars.com/*
+// @icon         https://play.ttrockstars.com/ttrs-favicon.png
+// @grant        none
+// @license MIT
+// ==/UserScript==
+ 
+ 
+console.log("Initialisation complete!")
+alert("Welcome to the best ttrs hack in the world. Press the space bar to auto answer a question for you. Do not press the spacebar too fast or the game's anticheat will kick you out.")
+alert("Script made by Caronnavirus")
+ 
+ 
+document.addEventListener('keydown', (e) => {
+ 
+    if(e.code == "Space") {
+            let ans
+let question
+ 
+let zero = document.querySelector("ttr-game-numpad > div > div:nth-child(4) > div.key-n.key-shade")
+let one = document.querySelector("ttr-game-numpad > div > div:nth-child(1) > div:nth-child(1)")
+let two = document.querySelector("ttr-game-numpad > div > div:nth-child(1) > div:nth-child(2)")
+let three = document.querySelector("ttr-game-numpad > div > div:nth-child(1) > div:nth-child(3)")
+let four = document.querySelector("ttr-game-numpad > div > div:nth-child(2) > div:nth-child(1)")
+let five = document.querySelector("ttr-game-numpad > div > div:nth-child(2) > div:nth-child(2)")
+let six = document.querySelector("ttr-game-numpad > div > div:nth-child(2) > div:nth-child(3)")
+let seven = document.querySelector("ttr-game-numpad > div > div:nth-child(3) > div:nth-child(1)")
+let eight = document.querySelector("ttr-game-numpad > div > div:nth-child(3) > div:nth-child(2)")
+let nine = document.querySelector("ttr-game-numpad > div > div:nth-child(3) > div:nth-child(3)")
+let enter = document.querySelector("ttr-game-numpad > div > div:nth-child(4) > div.key-ent.ng-star-inserted")
+ 
+let keys = [zero, one, two, three, four, five, six, seven, eight, nine]
+ 
+ 
+        question = document.querySelector("ttr-game-question:nth-child(2)").innerText
+        question = question.replace("×", "*");
+        question = question.replace("÷", "/");
+        ans = eval(question);
+ 
+       
+        if(ans.toString().length == 1) {
+            keys[ans.toString()].click()
+            
+        }
+        if(ans.toString().length == 2) {
+            keys[ans.toString().charAt(0)].click()
+            keys[ans.toString().charAt(1)].click()
+           
+        }
+                    if(ans.toString().length == 3) {
+            keys[ans.toString().charAt(0)].click()
+            keys[ans.toString().charAt(1)].click()
+            keys[ans.toString().charAt(2)].click()
+          
+        }
+        enter.click()
+ 
+ 
+ 
+ 
+    }
+})
