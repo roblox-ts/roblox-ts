@@ -12,11 +12,18 @@ function transformCaseClauseExpression(
 	fallThroughFlagId: luau.TemporaryIdentifier,
 	canFallThroughTo: boolean,
 ) {
+	const caseValueId = luau.tempId("caseValue");
 	let [expression, prereqStatements] = state.capture(() => transformExpression(state, caseClauseExpression));
 
-	expression = luau.create(luau.SyntaxKind.ParenthesizedExpression, { expression });
+	luau.list.push(
+		prereqStatements,
+		luau.create(luau.SyntaxKind.VariableDeclaration, {
+			left: caseValueId,
+			right: expression,
+		}),
+	);
 
-	let condition: luau.Expression = luau.binary(switchExpression, "==", expression);
+	let condition: luau.Expression = luau.binary(switchExpression, "==", caseValueId);
 
 	if (canFallThroughTo) {
 		if (!luau.list.isEmpty(prereqStatements)) {
