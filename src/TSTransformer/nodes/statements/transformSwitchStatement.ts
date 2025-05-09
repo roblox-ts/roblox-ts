@@ -3,6 +3,7 @@ import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { createHoistDeclaration } from "TSTransformer/util/createHoistDeclaration";
+import { expressionMightMutate } from "TSTransformer/util/expressionMightMutate";
 import ts from "typescript";
 
 function transformCaseClauseExpression(
@@ -15,15 +16,21 @@ function transformCaseClauseExpression(
 	const caseValueId = luau.tempId("caseValue");
 	let [expression, prereqStatements] = state.capture(() => transformExpression(state, caseClauseExpression));
 
-	luau.list.push(
-		prereqStatements,
-		luau.create(luau.SyntaxKind.VariableDeclaration, {
-			left: caseValueId,
-			right: expression,
-		}),
-	);
+	if (expressionMightMutate(state, expression, caseClauseExpression)) {
+		luau.list.push(
+			prereqStatements,
+			luau.create(luau.SyntaxKind.VariableDeclaration, {
+				left: caseValueId,
+				right: expression,
+			}),
+		);
+	}
 
-	let condition: luau.Expression = luau.binary(switchExpression, "==", caseValueId);
+	let condition: luau.Expression = luau.binary(
+		switchExpression,
+		"==",
+		expressionMightMutate(state, expression, caseClauseExpression) ? caseValueId : expression
+	);
 
 	if (canFallThroughTo) {
 		if (!luau.list.isEmpty(prereqStatements)) {
