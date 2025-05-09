@@ -29,7 +29,7 @@ function transformCaseClauseExpression(
 	let condition: luau.Expression = luau.binary(
 		switchExpression,
 		"==",
-		expressionMightMutate(state, expression, caseClauseExpression) ? caseValueId : expression
+		expressionMightMutate(state, expression, caseClauseExpression) ? caseValueId : expression,
 	);
 
 	if (canFallThroughTo) {
