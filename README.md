@@ -46,3 +46,4 @@ https://discord.roblox-ts.com
 <a href="https://www.roblox.com/games/2184151436"><img width=32.9% src="https://i.imgur.com/JSFPTA0.png" /></a><!-- Dungeon Life 2.0M -->
 <a href="https://www.roblox.com/games/18381234265"><img width=32.9% src="https://i.imgur.com/KJpPZT2.png" /></a><!-- Fashion Stars 1.0M -->
 <a href="https://www.roblox.com/games/138705998165267"><img width=32.9% src="https://i.imgur.com/TfDGxeN.png" /></a><!-- Plinko Tycoon 1.4M -->
+<a href="https://www.roblox.com/games/11653088948"><img width=32.9% src="https://i.imgur.com/a/9gyNH63.png" /></a><!-- Jurassic Blocky 29.7M -->
