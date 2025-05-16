@@ -33,7 +33,7 @@ https://discord.roblox-ts.com
 <a href="https://www.roblox.com/games/9759729519"><img width=32.9% src="https://i.imgur.com/n1dye62.png" /></a><!-- All of Us Are Dead 143.3M -->
 <a href="https://www.roblox.com/games/8597844216"><img width=32.9% src="https://i.imgur.com/S728lWz.png" /></a><!-- Slither Snake 123.8M -->
 <a href="https://www.roblox.com/games/3837841034"><img width=32.9% src="https://i.imgur.com/nffggbO.png" /></a><!-- Deadline 42.1M -->
-<a href="https://www.roblox.com/games/11653088948"><img width=32.9% src="https://i.imgur.com/a/9gyNH63.png" /></a><!-- Jurassic Blocky 33.1M -->
+<a href="https://www.roblox.com/games/11653088948"><img width=32.9% src="https://i.imgur.com/qCAC3d8.png" /></a><!-- Jurassic Blocky 33.1M -->
 <a href="https://www.roblox.com/games/841531820"><img width=32.9% src="https://i.imgur.com/KFUgqsV.png" /></a><!-- Deep Space Tycoon 30.7M -->
 <a href="https://www.roblox.com/games/15798268709"><img width=32.9% src="https://i.imgur.com/ERuCebr.png" /></a><!-- The Sewers 25.0M -->
 <a href="https://www.roblox.com/games/9611595239"><img width=32.9% src="https://i.imgur.com/qISPda3.png" /></a><!-- Rift Royale 21.1M -->
