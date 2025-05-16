@@ -47,4 +47,4 @@ https://discord.roblox-ts.com
 <a href="https://www.roblox.com/games/12147220287"><img width=32.9% src="https://i.imgur.com/iD2PKgW.png" /></a><!-- LegacyVerse 4.3M -->
 <a href="https://www.roblox.com/games/18381234265"><img width=32.9% src="https://i.imgur.com/KJpPZT2.png" /></a><!-- Fashion Stars 3.2M -->
 <a href="https://www.roblox.com/games/2184151436"><img width=32.9% src="https://i.imgur.com/JSFPTA0.png" /></a><!-- Dungeon Life 2.0M -->
-<a href="https://www.roblox.com/games/118799079009085"><img width=32.9% src="https://imgur.com/a/7VYeNu6" /></a><!-- RNG Dropper Tycoon 1.0M -->
+<a href="https://www.roblox.com/games/118799079009085"><img width=32.9% src="https://i.imgur.com/D3XTG90.png" /></a><!-- RNG Dropper Tycoon 1.0M -->
