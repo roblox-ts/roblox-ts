@@ -16,8 +16,9 @@ export function copyItem(data: ProjectData, pathTranslator: PathTranslator, item
 				return false;
 			}
 
+			// .d.ts files are transformed in transformAndWriteDeclarationFiles
 			if (src.endsWith(DTS_EXT)) {
-				return pathTranslator.declaration;
+				return false;
 			}
 
 			return !isCompilableFile(src);
