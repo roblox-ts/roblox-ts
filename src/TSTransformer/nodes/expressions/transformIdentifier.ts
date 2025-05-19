@@ -10,8 +10,9 @@ import { isSymbolMutable } from "TSTransformer/util/isSymbolMutable";
 import { getAncestor, isAncestorOf, skipDownwards, skipUpwards } from "TSTransformer/util/traversal";
 import { getFirstConstructSymbol } from "TSTransformer/util/types";
 import ts from "typescript";
+import { transformType } from "../types/transformType";
 
-export function transformIdentifierDefined(state: TransformState, node: ts.Identifier) {
+export function transformIdentifierDefined(state: TransformState, node: ts.Identifier, annotation?: ts.Type) {
 	const symbol = ts.isShorthandPropertyAssignment(node.parent)
 		? state.typeChecker.getShorthandAssignmentValueSymbol(node.parent)
 		: state.typeChecker.getSymbolAtLocation(node);
@@ -24,6 +25,7 @@ export function transformIdentifierDefined(state: TransformState, node: ts.Ident
 
 	return luau.create(luau.SyntaxKind.Identifier, {
 		name: node.text,
+		annotation: annotation && transformType(state, annotation, node),
 	});
 }
 
@@ -113,7 +115,7 @@ export function transformIdentifier(state: TransformState, node: ts.Identifier) 
 	// JSX EntityName functions like `getJsxFactoryEntity()` will return synthetic nodes
 	// and transformEntityName will eventually end up here
 	if (!node.parent || ts.positionIsSynthesized(node.pos)) {
-		return luau.create(luau.SyntaxKind.Identifier, { name: node.text });
+		return luau.create(luau.SyntaxKind.Identifier, { name: node.text, annotation: undefined });
 	}
 
 	const symbol = ts.isShorthandPropertyAssignment(node.parent)

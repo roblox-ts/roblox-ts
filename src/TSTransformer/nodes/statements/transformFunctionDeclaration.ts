@@ -9,6 +9,7 @@ import { transformStatementList } from "TSTransformer/nodes/transformStatementLi
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import { wrapStatementsAsGenerator } from "TSTransformer/util/wrapStatementsAsGenerator";
 import ts from "typescript";
+import { transformType } from "../types/transformType";
 
 export function transformFunctionDeclaration(state: TransformState, node: ts.FunctionDeclaration) {
 	if (!node.body) {
@@ -70,7 +71,14 @@ export function transformFunctionDeclaration(state: TransformState, node: ts.Fun
 		}
 	} else {
 		return luau.list.make(
-			luau.create(luau.SyntaxKind.FunctionDeclaration, { localize, name, statements, parameters, hasDotDotDot }),
+			luau.create(luau.SyntaxKind.FunctionDeclaration, {
+				localize,
+				name,
+				statements,
+				parameters,
+				hasDotDotDot,
+				returnType: node.type && transformType(state, state.getType(node.type), node),
+			}),
 		);
 	}
 }
