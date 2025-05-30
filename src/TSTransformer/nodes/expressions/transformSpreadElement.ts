@@ -7,6 +7,7 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { getAddIterableToArrayBuilder } from "TSTransformer/util/getAddIterableToArrayBuilder";
 import { isArrayType, isDefinitelyType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
+import { tryHandleVarArgsArraySpread } from "TSTransformer/util/varArgsOptimization";
 import ts from "typescript";
 
 export function transformSpreadElement(state: TransformState, node: ts.SpreadElement) {
@@ -22,7 +23,7 @@ export function transformSpreadElement(state: TransformState, node: ts.SpreadEle
 
 	const type = state.getType(node.expression);
 	if (isDefinitelyType(type, isArrayType(state))) {
-		return luau.call(luau.globals.unpack, [expression]);
+		return tryHandleVarArgsArraySpread(state, node) ?? luau.call(luau.globals.unpack, [expression]);
 	} else {
 		const addIterableToArrayBuilder = getAddIterableToArrayBuilder(state, node.expression, type);
 		const arrayId = state.pushToVar(luau.array(), "array");

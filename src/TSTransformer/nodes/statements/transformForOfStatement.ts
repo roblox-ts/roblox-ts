@@ -29,6 +29,7 @@ import {
 } from "TSTransformer/util/types";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
+import { transformVarArgsForOfResult } from "TSTransformer/util/varArgsOptimization";
 import ts from "typescript";
 
 type LoopBuilder = (
@@ -504,5 +505,5 @@ export function transformForOfStatement(state: TransformState, node: ts.ForOfSta
 	const loopBuilder = getLoopBuilder(state, node.expression, expType);
 	luau.list.pushList(result, loopBuilder(state, statements, node.initializer, exp));
 
-	return result;
+	return transformVarArgsForOfResult(state, node, result);
 }
