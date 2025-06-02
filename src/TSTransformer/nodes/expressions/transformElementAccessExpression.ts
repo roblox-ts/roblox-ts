@@ -64,7 +64,7 @@ export function transformElementAccessExpressionInner(
 	}
 
 	return (
-		tryHandleVarArgsIndexableExpression(state, node, expression) ??
+		tryHandleVarArgsIndexableExpression(state, node, index) ??
 		luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 			expression: convertToIndexableExpression(expression),
 			index: addOneIfArrayType(state, expType, index),

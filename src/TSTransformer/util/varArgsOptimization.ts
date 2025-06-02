@@ -1,7 +1,7 @@
 import luau from "@roblox-ts/luau-ast";
 import { AnyIdentifier } from "@roblox-ts/luau-ast/out/LuauAST/bundle";
 import { TransformState } from "TSTransformer/classes/TransformState";
-import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
+import { offset } from "TSTransformer/util/offset";
 import { skipDownwards, skipUpwards } from "TSTransformer/util/traversal";
 import { getFirstDefinedSymbol } from "TSTransformer/util/types";
 import ts, { Node, TypeFlags } from "typescript";
@@ -232,28 +232,29 @@ export function tryHandleVarArgsCallMacro(state: TransformState, callExpr: ts.Ca
 export function tryHandleVarArgsIndexableExpression(
 	state: TransformState,
 	node: ts.ElementAccessExpression,
-	elementIndexExpr: luau.Expression,
+	index: luau.Expression,
 ) {
-	const expr = node.expression;
-	const varArgs = state.getOptimizableVarArgsData(expr);
+	const varArgs = state.getOptimizableVarArgsData(node.expression);
 	if (!varArgs) return;
 	/* Transformations:
 	args[0] -> (...)
-	args[1] -> select(2, ...)
-	args[expr] -> select(expr + 1, ...)
+	args[1] -> (select(2, ...))
+	args[expr] -> (select(expr + 1, ...))
 
 	(Theoretically this function could be called for cases like `args[0] = ` or `args["pop"]()`, but these aren't optimizable, so varArgs would be undefined)
 	*/
 	const argExpr = node.argumentExpression;
-	let argNumExpr;
+	let argsIndex;
 	if (ts.isNumericLiteral(argExpr)) {
 		const num = (state.typeChecker.getTypeAtLocation(argExpr) as ts.NumberLiteralType).value;
 		if (num === 0) return selectArg0;
-		argNumExpr = luau.number(num + 1);
+		argsIndex = luau.number(num + 1);
 	} else {
-		argNumExpr = luau.binary(convertToIndexableExpression(elementIndexExpr), "+", oneLiteral);
+		argsIndex = offset(index, 1);
 	}
-	return luau.call(luau.globals.select, [argNumExpr, varArgsLiteral]);
+	return luau.create(luau.SyntaxKind.ParenthesizedExpression, {
+		expression: luau.call(luau.globals.select, [argsIndex, varArgsLiteral]),
+	});
 }
 
 export function tryHandleVarArgsArraySpread(state: TransformState, node: ts.SpreadElement) {
