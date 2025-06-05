@@ -1,11 +1,14 @@
 import luau from "@roblox-ts/luau-ast";
+import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformArrayBindingPattern } from "TSTransformer/nodes/binding/transformArrayBindingPattern";
 import { transformVariable } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { objectAccessor } from "TSTransformer/util/binding/objectAccessor";
 import { spreadDestructObject } from "TSTransformer/util/spreadDestruction";
+import { isPossiblyType, isRobloxType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import ts from "typescript";
 
@@ -26,6 +29,12 @@ export function transformObjectBindingPattern(
 				? spreadDestructObject(state, parentId, preSpreadNames)
 				: objectAccessor(state, parentId, state.getType(bindingPattern), prop ?? name);
 			preSpreadNames.push(value);
+
+			if (isPossiblyType(state.getType(bindingPattern), isRobloxType(state))) {
+				DiagnosticService.addDiagnostic(errors.noRestSpreadingOfRobloxTypes(element));
+				continue;
+			}
+
 			const id = transformVariable(state, name, value);
 			if (element.initializer) {
 				state.prereq(transformInitializer(state, id, element.initializer));

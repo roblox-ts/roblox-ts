@@ -144,6 +144,7 @@ export const errors = {
 	),
 	unsupportedSpreadDestructing: error("Operator `...` is not supported for this datatype!"),
 	noNestedSpreadsInAssignmentPatterns: error("Nesting spreads in assignment patterns is not supported!"),
+	noRestSpreadingOfRobloxTypes: error("Operator `...` is not allowed on Roblox types!"),
 	noNonNumberStringRelationOperator: error("Relation operators can only be used on number or string types!"),
 	noInstanceMethodCollisions: error("Static methods cannot use the same name as instance methods!"),
 	noStaticMethodCollisions: error("Instance methods cannot use the same name as static methods!"),
