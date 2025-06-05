@@ -72,6 +72,7 @@ export class TransformState {
 		const id = luau.tempId(name);
 		this.loopLabelStack.push({
 			id,
+			habited: false,
 			name,
 		});
 		return id;
@@ -86,12 +87,13 @@ export class TransformState {
 	}
 
 	public processFirstLoopLabel() {
-		const labelId = this.loopLabelStack[this.loopStackDepth - 1]?.id
-		if (!labelId) return luau.list.make<luau.Statement>();
+		const labelData = this.loopLabelStack.find(entry => !entry.habited);
+		if (!labelData) return luau.list.make<luau.Statement>();
 
+		labelData.habited = true;
 		return luau.list.make<luau.Statement>(
 			luau.create(luau.SyntaxKind.Assignment, {
-				left: labelId as never,
+				left: labelData.id as never,
 				operator: "=",
 				right: luau.string(LoopLabel.none),
 			}),

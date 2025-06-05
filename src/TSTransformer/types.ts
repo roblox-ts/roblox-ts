@@ -13,6 +13,7 @@ export interface TryUses {
 
 export interface LoopLabelStackEntry {
 	id: luau.TemporaryIdentifier;
+	habited: boolean;
 	name: string;
 };
 
