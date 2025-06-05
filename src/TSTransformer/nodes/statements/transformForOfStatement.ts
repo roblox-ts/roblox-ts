@@ -52,7 +52,13 @@ function makeForLoopBuilder(
 		const initializers = luau.list.make<luau.Statement>();
 		const expression = callback(state, name, exp, ids, initializers);
 		luau.list.unshiftList(statements, initializers);
-		return luau.list.make(luau.create(luau.SyntaxKind.ForStatement, { ids, expression, statements }));
+
+		const loopLabelStatements = state.processFirstLoopLabel();
+		luau.list.pushList(loopLabelStatements, statements);
+
+		return luau.list.make(
+			luau.create(luau.SyntaxKind.ForStatement, { ids, expression, statements: loopLabelStatements }),
+		);
 	};
 }
 
@@ -280,7 +286,13 @@ function makeIterableFunctionLuaTupleShorthand(
 		transformInLineArrayAssignmentPattern(state, array, ids, initializers);
 	}
 	luau.list.unshiftList(statements, initializers);
-	return luau.list.make(luau.create(luau.SyntaxKind.ForStatement, { ids, expression, statements }));
+
+	const loopLabelStatements = state.processFirstLoopLabel();
+	luau.list.pushList(loopLabelStatements, statements);
+
+	return luau.list.make(
+		luau.create(luau.SyntaxKind.ForStatement, { ids, expression, statements: loopLabelStatements }),
+	);
 }
 
 const buildIterableFunctionLuaTupleLoop: (type: ts.Type) => LoopBuilder =
@@ -459,8 +471,10 @@ export function transformForOfRangeMacro(
 
 	const [[start, end, step], prereqs] = state.capture(() => ensureTransformOrder(state, macroCall.arguments));
 	luau.list.pushList(result, prereqs);
-
 	luau.list.pushList(statements, transformStatementList(state, node.statement, getStatements(node.statement)));
+
+	const loopLabelStatements = state.processFirstLoopLabel();
+	luau.list.pushList(loopLabelStatements, statements);
 
 	luau.list.push(
 		result,
@@ -469,7 +483,7 @@ export function transformForOfRangeMacro(
 			start,
 			end,
 			step: step === undefined || luau.isNumberLiteral(step) ? step : luau.binary(step, "or", luau.number(1)),
-			statements,
+			statements: loopLabelStatements,
 		}),
 	);
 
@@ -488,13 +502,14 @@ export function transformForOfStatement(state: TransformState, node: ts.ForOfSta
 		}
 	}
 
+	state.increaseLoopDepth();
+
 	const rangeMacroCall = findRangeMacro(state, node);
 	if (rangeMacroCall) {
 		return transformForOfRangeMacro(state, node, rangeMacroCall);
 	}
 
 	const result = luau.list.make<luau.Statement>();
-
 	const [exp, expPrereqs] = state.capture(() => transformExpression(state, node.expression));
 	luau.list.pushList(result, expPrereqs);
 
@@ -502,7 +517,11 @@ export function transformForOfStatement(state: TransformState, node: ts.ForOfSta
 	const statements = transformStatementList(state, node.statement, getStatements(node.statement));
 
 	const loopBuilder = getLoopBuilder(state, node.expression, expType);
+
 	luau.list.pushList(result, loopBuilder(state, statements, node.initializer, exp));
+	luau.list.pushList(result, state.generateLabelChecks());
+
+	state.decreaseLoopDepth();
 
 	return result;
 }

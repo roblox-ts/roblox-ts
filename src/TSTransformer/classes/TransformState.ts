@@ -9,7 +9,7 @@ import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { MultiTransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
-import { TransformServices, TryUses } from "TSTransformer/types";
+import { LoopLabel, LoopLabelStackEntry, TransformServices, TryUses } from "TSTransformer/types";
 import { createGetService } from "TSTransformer/util/createGetService";
 import { propertyAccessExpressionChain } from "TSTransformer/util/expressionChain";
 import { getModuleAncestor, skipUpwards } from "TSTransformer/util/traversal";
@@ -64,7 +64,75 @@ export class TransformState {
 		this.isInReplicatedFirst = rbxPath !== undefined && rbxPath[0] === "ReplicatedFirst";
 	}
 
+	private loopStackDepth = 0;
+	public readonly loopLabelStack = new Array<LoopLabelStackEntry>();
 	public readonly tryUsesStack = new Array<TryUses>();
+
+	public pushLabelToLoopStack(name: string) {
+		const id = luau.tempId(name);
+		this.loopLabelStack.push({
+			id,
+			name,
+		});
+		return id;
+	}
+
+	public shouldGenerateLabelAssignment(name: string) {
+		return this.loopLabelStack.findIndex(T => T.name === name) + 1 !== this.loopStackDepth;
+	}
+
+	public getLoopLabelIdByName(name: string) {
+		return this.loopLabelStack.find(entry => entry.name === name)?.id;
+	}
+
+	public processFirstLoopLabel() {
+		const labelId = this.loopLabelStack[this.loopStackDepth - 1]?.id
+		if (!labelId) return luau.list.make<luau.Statement>();
+
+		return luau.list.make<luau.Statement>(
+			luau.create(luau.SyntaxKind.Assignment, {
+				left: labelId as never,
+				operator: "=",
+				right: luau.string(LoopLabel.none),
+			}),
+		);
+	}
+
+	public increaseLoopDepth() {
+		this.loopStackDepth++;
+	}
+
+	public decreaseLoopDepth() {
+		this.loopStackDepth--;
+	}
+
+	public generateLabelChecks() {
+		const statements = luau.list.make<luau.Statement>();
+		for (const { id } of this.loopLabelStack.slice(0, this.loopStackDepth - 1)) {
+			luau.list.push(
+				statements,
+				luau.create(luau.SyntaxKind.IfStatement, {
+					condition: luau.binary(id, "==", luau.string(LoopLabel.break)),
+					statements: luau.list.make(luau.create(luau.SyntaxKind.BreakStatement, {})),
+					elseBody: luau.list.make(),
+				}),
+			);
+			luau.list.push(
+				statements,
+				luau.create(luau.SyntaxKind.IfStatement, {
+					condition: luau.binary(id, "==", luau.string(LoopLabel.continue)),
+					statements: luau.list.make(luau.create(luau.SyntaxKind.ContinueStatement, {})),
+					elseBody: luau.list.make(),
+				}),
+			);
+		}
+
+		return statements;
+	}
+
+	public popLoopLabelStack() {
+		this.loopLabelStack.pop();
+	}
 
 	/**
 	 * Pushes tryUses information onto the tryUses stack and returns it.

@@ -1,4 +1,5 @@
 import luau from "@roblox-ts/luau-ast";
+import { stat } from "fs";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
@@ -246,6 +247,8 @@ function transformForStatementFallback(state: TransformState, node: ts.ForStatem
 		);
 	}
 
+	luau.list.pushList(whileStatements, state.processFirstLoopLabel());
+
 	// eslint-disable-next-line no-autofix/prefer-const
 	let [conditionExp, conditionPrereqs] = state.capture(() => {
 		if (condition) {
@@ -485,17 +488,29 @@ function transformForStatementOptimized(state: TransformState, node: ts.ForState
 		end = offset(end, 1);
 	}
 
-	luau.list.push(result, luau.create(luau.SyntaxKind.NumericForStatement, { id, start, end, step, statements }));
+	const loopLabelStatements = state.processFirstLoopLabel();
+	luau.list.pushList(loopLabelStatements, statements);
+
+	luau.list.push(
+		result,
+		luau.create(luau.SyntaxKind.NumericForStatement, { id, start, end, step, statements: loopLabelStatements }),
+	);
 
 	return result;
 }
 
 export function transformForStatement(state: TransformState, node: ts.ForStatement): luau.List<luau.Statement> {
+	state.increaseLoopDepth();
 	if (state.data.projectOptions.optimizedLoops) {
 		const optimized = transformForStatementOptimized(state, node);
 		if (optimized) {
 			return optimized;
 		}
 	}
-	return transformForStatementFallback(state, node);
+
+	const statements = transformForStatementFallback(state, node);
+	luau.list.pushList(statements, state.generateLabelChecks());
+
+	state.decreaseLoopDepth();
+	return statements;
 }
