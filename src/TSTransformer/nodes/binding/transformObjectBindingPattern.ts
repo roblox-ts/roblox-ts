@@ -30,7 +30,7 @@ export function transformObjectBindingPattern(
 				: objectAccessor(state, parentId, state.getType(bindingPattern), prop ?? name);
 			preSpreadNames.push(value);
 
-			if (isPossiblyType(state.getType(bindingPattern), isRobloxType(state))) {
+			if (isSpread && isPossiblyType(state.getType(bindingPattern), isRobloxType(state))) {
 				DiagnosticService.addDiagnostic(errors.noRestSpreadingOfRobloxTypes(element));
 				continue;
 			}
