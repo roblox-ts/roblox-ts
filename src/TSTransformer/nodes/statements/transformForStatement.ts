@@ -1,5 +1,4 @@
 import luau from "@roblox-ts/luau-ast";
-import { stat } from "fs";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
