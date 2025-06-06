@@ -4,7 +4,7 @@ import { transformStatement } from "TSTransformer/nodes/statements/transformStat
 import ts from "typescript";
 
 export function transformLabeledStatement(state: TransformState, node: ts.LabeledStatement) {
-	const id = state.pushLabelToLoopStack(node.label.text);
+	const id = state.pushLabelToLoopStack(node);
 	state.prereq(
 		luau.create(luau.SyntaxKind.VariableDeclaration, {
 			left: id,

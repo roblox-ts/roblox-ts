@@ -246,7 +246,7 @@ function transformForStatementFallback(state: TransformState, node: ts.ForStatem
 		);
 	}
 
-	luau.list.pushList(whileStatements, state.processFirstLoopLabel());
+	luau.list.pushList(whileStatements, state.processLoopLabel(node));
 
 	let [conditionExp, conditionPrereqs] = state.capture(() => {
 		if (condition) {
@@ -485,7 +485,7 @@ function transformForStatementOptimized(state: TransformState, node: ts.ForState
 		end = offset(end, 1);
 	}
 
-	luau.list.unshiftList(statements, state.processFirstLoopLabel());
+	luau.list.unshiftList(statements, state.processLoopLabel(node));
 	luau.list.push(result, luau.create(luau.SyntaxKind.NumericForStatement, { id, start, end, step, statements }));
 
 	return result;

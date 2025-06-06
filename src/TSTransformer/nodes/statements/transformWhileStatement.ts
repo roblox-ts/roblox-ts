@@ -14,7 +14,7 @@ export function transformWhileStatement(state: TransformState, node: ts.WhileSta
 	);
 
 	state.increaseLoopDepth();
-	luau.list.pushList(whileStatements, state.processFirstLoopLabel());
+	luau.list.pushList(whileStatements, state.processLoopLabel(node));
 
 	if (!luau.list.isEmpty(conditionPrereqs)) {
 		luau.list.pushList(whileStatements, conditionPrereqs);

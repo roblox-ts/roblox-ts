@@ -21,7 +21,7 @@ export function transformDoStatement(state: TransformState, { expression, statem
 	);
 
 	const repeatStatements = luau.list.make<luau.Statement>();
-	luau.list.pushList(repeatStatements, state.processFirstLoopLabel());
+	luau.list.pushList(repeatStatements, state.processLoopLabel(statement));
 
 	luau.list.push(
 		repeatStatements,

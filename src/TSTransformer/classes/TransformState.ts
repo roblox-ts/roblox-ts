@@ -67,14 +67,17 @@ export class TransformState {
 
 	private loopStackDepth = 0;
 	public readonly loopLabelStack = new Array<LoopLabelStackEntry>();
+	public readonly statementToLabelIdMap = new Map<ts.Statement, luau.TemporaryIdentifier>();
 	public readonly tryUsesStack = new Array<TryUses>();
 
-	public pushLabelToLoopStack(name: string) {
-		const id = luau.tempId(name);
+	public pushLabelToLoopStack(labeledStatement: ts.LabeledStatement) {
+		const labelText = labeledStatement.label.text;
+		const id = luau.tempId(labelText);
+
+		this.statementToLabelIdMap.set(labeledStatement.statement, id);
 		this.loopLabelStack.push({
 			id,
-			name,
-			habited: false,
+			name: labelText,
 			everBroken: false,
 			everContinued: false,
 		});
@@ -89,14 +92,13 @@ export class TransformState {
 		return this.loopLabelStack.find(entry => entry.name === name);
 	}
 
-	public processFirstLoopLabel() {
-		const labelData = this.loopLabelStack.find(entry => !entry.habited);
-		if (!labelData) return luau.list.make<luau.Statement>();
+	public processLoopLabel(loopStatement: ts.Statement) {
+		const id = this.statementToLabelIdMap.get(loopStatement);
+		if (!id) return luau.list.make<luau.Statement>();
 
-		labelData.habited = true;
 		return luau.list.make<luau.Statement>(
 			luau.create(luau.SyntaxKind.Assignment, {
-				left: labelData.id as never,
+				left: id,
 				operator: "=",
 				right: luau.string(LoopLabel.none),
 			}),
