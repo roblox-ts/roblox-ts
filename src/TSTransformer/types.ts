@@ -15,6 +15,8 @@ export interface LoopLabelStackEntry {
 	id: luau.TemporaryIdentifier;
 	habited: boolean;
 	name: string;
+	everBroken: boolean;
+	everContinued: boolean;
 }
 
 export const enum LoopLabel {

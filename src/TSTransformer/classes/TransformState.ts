@@ -73,8 +73,10 @@ export class TransformState {
 		const id = luau.tempId(name);
 		this.loopLabelStack.push({
 			id,
-			habited: false,
 			name,
+			habited: false,
+			everBroken: false,
+			everContinued: false,
 		});
 		return id;
 	}
@@ -83,8 +85,8 @@ export class TransformState {
 		return this.loopLabelStack.findIndex(T => T.name === name) + 1 !== this.loopStackDepth;
 	}
 
-	public getLoopLabelIdByName(name: string) {
-		return this.loopLabelStack.find(entry => entry.name === name)?.id;
+	public getLoopLabelDataByName(name: string) {
+		return this.loopLabelStack.find(entry => entry.name === name);
 	}
 
 	public processFirstLoopLabel() {
@@ -114,26 +116,33 @@ export class TransformState {
 		const labels = this.loopLabelStack.slice(0, this.loopStackDepth - 1);
 		if (labels.length === 0) return statements;
 
-		luau.list.push(
-			statements,
-			luau.create(luau.SyntaxKind.IfStatement, {
-				condition: labels
-					.map(label => luau.binary(label.id, "==", luau.string(LoopLabel.break)))
-					.reduce((accum, exp) => luau.binary(accum, "or", exp)),
-				statements: luau.list.make(luau.create(luau.SyntaxKind.BreakStatement, {})),
-				elseBody: luau.list.make(),
-			}),
-		);
-		luau.list.push(
-			statements,
-			luau.create(luau.SyntaxKind.IfStatement, {
-				condition: labels
-					.map(label => luau.binary(label.id, "==", luau.string(LoopLabel.continue)))
-					.reduce((accum, exp) => luau.binary(accum, "or", exp)),
-				statements: luau.list.make(luau.create(luau.SyntaxKind.ContinueStatement, {})),
-				elseBody: luau.list.make(),
-			}),
-		);
+		const continuedLabels = labels.filter(label => label.everContinued);
+		if (continuedLabels.length > 0) {
+			luau.list.push(
+				statements,
+				luau.create(luau.SyntaxKind.IfStatement, {
+					condition: continuedLabels
+						.map(label => luau.binary(label.id, "==", luau.string(LoopLabel.break)))
+						.reduce((accum, exp) => luau.binary(accum, "or", exp)),
+					statements: luau.list.make(luau.create(luau.SyntaxKind.BreakStatement, {})),
+					elseBody: luau.list.make(),
+				}),
+			);
+		}
+
+		const brokenLabels = labels.filter(label => label.everBroken);
+		if (brokenLabels.length > 0) {
+			luau.list.push(
+				statements,
+				luau.create(luau.SyntaxKind.IfStatement, {
+					condition: brokenLabels
+						.map(label => luau.binary(label.id, "==", luau.string(LoopLabel.break)))
+						.reduce((accum, exp) => luau.binary(accum, "or", exp)),
+					statements: luau.list.make(luau.create(luau.SyntaxKind.ContinueStatement, {})),
+					elseBody: luau.list.make(),
+				}),
+			);
+		}
 
 		return statements;
 	}
