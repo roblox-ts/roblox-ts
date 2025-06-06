@@ -31,15 +31,15 @@ export function transformWhileStatement(state: TransformState, node: ts.WhileSta
 
 	luau.list.pushList(whileStatements, transformStatementList(state, node.statement, getStatements(node.statement)));
 
-	const endList = luau.list.make(
+	const statements = luau.list.make(
 		luau.create(luau.SyntaxKind.WhileStatement, {
 			condition: conditionExp,
 			statements: whileStatements,
 		}),
 	);
 
-	luau.list.pushList(endList, state.generateLabelChecks());
+	luau.list.pushList(statements, state.generateLabelChecks());
 	state.decreaseLoopDepth();
 
-	return endList;
+	return statements;
 }

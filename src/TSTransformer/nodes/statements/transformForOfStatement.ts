@@ -52,13 +52,9 @@ function makeForLoopBuilder(
 		const initializers = luau.list.make<luau.Statement>();
 		const expression = callback(state, name, exp, ids, initializers);
 		luau.list.unshiftList(statements, initializers);
+		luau.list.unshiftList(statements, state.processFirstLoopLabel());
 
-		const loopLabelStatements = state.processFirstLoopLabel();
-		luau.list.pushList(loopLabelStatements, statements);
-
-		return luau.list.make(
-			luau.create(luau.SyntaxKind.ForStatement, { ids, expression, statements: loopLabelStatements }),
-		);
+		return luau.list.make(luau.create(luau.SyntaxKind.ForStatement, { ids, expression, statements }));
 	};
 }
 
@@ -286,13 +282,9 @@ function makeIterableFunctionLuaTupleShorthand(
 		transformInLineArrayAssignmentPattern(state, array, ids, initializers);
 	}
 	luau.list.unshiftList(statements, initializers);
+	luau.list.unshiftList(statements, state.processFirstLoopLabel());
 
-	const loopLabelStatements = state.processFirstLoopLabel();
-	luau.list.pushList(loopLabelStatements, statements);
-
-	return luau.list.make(
-		luau.create(luau.SyntaxKind.ForStatement, { ids, expression, statements: loopLabelStatements }),
-	);
+	return luau.list.make(luau.create(luau.SyntaxKind.ForStatement, { ids, expression, statements }));
 }
 
 const buildIterableFunctionLuaTupleLoop: (type: ts.Type) => LoopBuilder =
@@ -472,9 +464,7 @@ export function transformForOfRangeMacro(
 	const [[start, end, step], prereqs] = state.capture(() => ensureTransformOrder(state, macroCall.arguments));
 	luau.list.pushList(result, prereqs);
 	luau.list.pushList(statements, transformStatementList(state, node.statement, getStatements(node.statement)));
-
-	const loopLabelStatements = state.processFirstLoopLabel();
-	luau.list.pushList(loopLabelStatements, statements);
+	luau.list.unshiftList(statements, state.processFirstLoopLabel());
 
 	luau.list.push(
 		result,
@@ -483,7 +473,7 @@ export function transformForOfRangeMacro(
 			start,
 			end,
 			step: step === undefined || luau.isNumberLiteral(step) ? step : luau.binary(step, "or", luau.number(1)),
-			statements: loopLabelStatements,
+			statements,
 		}),
 	);
 

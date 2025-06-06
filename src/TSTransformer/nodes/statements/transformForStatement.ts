@@ -485,13 +485,8 @@ function transformForStatementOptimized(state: TransformState, node: ts.ForState
 		end = offset(end, 1);
 	}
 
-	const loopLabelStatements = state.processFirstLoopLabel();
-	luau.list.pushList(loopLabelStatements, statements);
-
-	luau.list.push(
-		result,
-		luau.create(luau.SyntaxKind.NumericForStatement, { id, start, end, step, statements: loopLabelStatements }),
-	);
+	luau.list.unshiftList(statements, state.processFirstLoopLabel());
+	luau.list.push(result, luau.create(luau.SyntaxKind.NumericForStatement, { id, start, end, step, statements }));
 
 	return result;
 }
