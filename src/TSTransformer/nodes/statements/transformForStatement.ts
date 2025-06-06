@@ -249,7 +249,6 @@ function transformForStatementFallback(state: TransformState, node: ts.ForStatem
 
 	luau.list.pushList(whileStatements, state.processFirstLoopLabel());
 
-	// eslint-disable-next-line no-autofix/prefer-const
 	let [conditionExp, conditionPrereqs] = state.capture(() => {
 		if (condition) {
 			return createTruthinessChecks(state, transformExpression(state, condition), condition);

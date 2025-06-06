@@ -13,7 +13,7 @@ export function transformWhileStatement(state: TransformState, node: ts.WhileSta
 		createTruthinessChecks(state, transformExpression(state, node.expression), node.expression),
 	);
 
-		state.increaseLoopDepth();
+	state.increaseLoopDepth();
 	luau.list.pushList(whileStatements, state.processFirstLoopLabel());
 
 	if (!luau.list.isEmpty(conditionPrereqs)) {
