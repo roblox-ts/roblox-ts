@@ -110,24 +110,29 @@ export class TransformState {
 
 	public generateLabelChecks() {
 		const statements = luau.list.make<luau.Statement>();
-		for (const { id } of this.loopLabelStack.slice(0, this.loopStackDepth - 1)) {
-			luau.list.push(
-				statements,
-				luau.create(luau.SyntaxKind.IfStatement, {
-					condition: luau.binary(id, "==", luau.string(LoopLabel.break)),
-					statements: luau.list.make(luau.create(luau.SyntaxKind.BreakStatement, {})),
-					elseBody: luau.list.make(),
-				}),
-			);
-			luau.list.push(
-				statements,
-				luau.create(luau.SyntaxKind.IfStatement, {
-					condition: luau.binary(id, "==", luau.string(LoopLabel.continue)),
-					statements: luau.list.make(luau.create(luau.SyntaxKind.ContinueStatement, {})),
-					elseBody: luau.list.make(),
-				}),
-			);
-		}
+		const labels = this.loopLabelStack.slice(0, this.loopStackDepth - 1);
+		if (labels.length === 0) return statements;
+
+		luau.list.push(
+			statements,
+			luau.create(luau.SyntaxKind.IfStatement, {
+				condition: labels
+					.map(label => luau.binary(label.id, "==", luau.string(LoopLabel.break)))
+					.reduce((accum, exp) => luau.binary(accum, "or", exp)),
+				statements: luau.list.make(luau.create(luau.SyntaxKind.BreakStatement, {})),
+				elseBody: luau.list.make(),
+			}),
+		);
+		luau.list.push(
+			statements,
+			luau.create(luau.SyntaxKind.IfStatement, {
+				condition: labels
+					.map(label => luau.binary(label.id, "==", luau.string(LoopLabel.continue)))
+					.reduce((accum, exp) => luau.binary(accum, "or", exp)),
+				statements: luau.list.make(luau.create(luau.SyntaxKind.ContinueStatement, {})),
+				elseBody: luau.list.make(),
+			}),
+		);
 
 		return statements;
 	}
