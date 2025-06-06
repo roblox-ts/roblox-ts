@@ -94,9 +94,9 @@ export function validateCompilerOptions(opts: ts.CompilerOptions, projectPath: s
 		errors.push(`${y(`"outDir"`)} must be defined`);
 	}
 
-	// eslint-disable-next-line deprecation/deprecation
+	// eslint-disable-next-line @typescript-eslint/no-deprecated -- code specifically warns about using the deprecated item
 	if (opts.importsNotUsedAsValues !== undefined) {
-		// eslint-disable-next-line deprecation/deprecation
+		// eslint-disable-next-line @typescript-eslint/no-deprecated -- see above
 		const suggestedValue = opts.importsNotUsedAsValues === ts.ImportsNotUsedAsValues.Preserve ? "true" : "false";
 		errors.push(
 			`${y(`"importsNotUsedAsValues"`)} is no longer supported, use ${y(`"verbatimModuleSyntax": ${suggestedValue}`)} instead`,

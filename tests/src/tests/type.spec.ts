@@ -9,7 +9,9 @@ export = () => {
 		loop([0, 1, 2, 3]);
 	});
 	it("should support instantiated expressions", () => {
-		function wow<T extends string>(str: T) { return str };
+		function wow<T extends string>(str: T) {
+			return str;
+		}
 		const foo = wow<"foo">;
 		expect(foo("foo")).to.equal("foo");
 	});

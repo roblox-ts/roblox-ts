@@ -6,14 +6,12 @@ import { issue } from "Shared/util/createGithubLink";
 import { createTextDiagnostic } from "Shared/util/createTextDiagnostic";
 import ts from "typescript";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type DiagnosticFactory<T extends Array<any> = []> = {
+export type DiagnosticFactory<T extends Array<unknown> = []> = {
 	(node: ts.Node | SourceFileWithTextRange, ...context: T): ts.DiagnosticWithLocation;
 	id: number;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type DiagnosticContextFormatter<T extends Array<any> = []> = (...context: T) => Array<string | false>;
+type DiagnosticContextFormatter<T extends Array<unknown> = []> = (...context: T) => Array<string | false>;
 
 function suggestion(text: string) {
 	return "Suggestion: " + kleur.yellow(text);
@@ -37,8 +35,7 @@ function diagnostic(category: ts.DiagnosticCategory, ...messages: Array<string |
  * formatted messages are displayed last in the diagnostic report.
  * @param messages The list of messages to include in the diagnostic report.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function diagnosticWithContext<T extends Array<any> = []>(
+function diagnosticWithContext<T extends Array<unknown> = []>(
 	category: ts.DiagnosticCategory,
 	contextFormatter?: DiagnosticContextFormatter<T>,
 	...messages: Array<string | false>
@@ -66,8 +63,7 @@ function error(...messages: Array<string | false>): DiagnosticFactory {
 	return diagnostic(ts.DiagnosticCategory.Error, ...messages);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function errorWithContext<T extends Array<any> = []>(
+function errorWithContext<T extends Array<unknown> = []>(
 	contextFormatter: DiagnosticContextFormatter<T>,
 	...messages: Array<string | false>
 ): DiagnosticFactory<T> {
@@ -87,8 +83,8 @@ function warningText(...messages: Array<string>) {
 }
 
 export function getDiagnosticId(diagnostic: ts.Diagnostic): number {
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	return (diagnostic as any).id;
+	// id is added in createDiagnosticWithLocation
+	return (diagnostic as unknown as { id: number }).id;
 }
 
 /**

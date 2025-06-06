@@ -54,7 +54,7 @@ export = () => {
 									this.b++;
 								},
 
-								no: function() {
+								no: function () {
 									return (this[5] *= 7);
 								},
 

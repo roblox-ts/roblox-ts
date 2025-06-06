@@ -475,7 +475,6 @@ function transformForStatementOptimized(state: TransformState, node: ts.ForState
 	const [start, startPrereqs] = state.capture(() => transformExpression(state, decInit));
 	luau.list.pushList(result, startPrereqs);
 
-	// eslint-disable-next-line no-autofix/prefer-const
 	let [end, endPrereqs] = state.capture(() => transformExpression(state, condition.right));
 	luau.list.pushList(result, endPrereqs);
 

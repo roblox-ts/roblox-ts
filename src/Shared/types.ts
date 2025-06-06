@@ -14,6 +14,7 @@ export interface ProjectOptions {
 	writeTransformedFiles: boolean;
 	optimizedLoops: boolean;
 	allowCommentDirectives: boolean;
+	luau: boolean;
 }
 
 export interface ProjectData {

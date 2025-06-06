@@ -24,22 +24,27 @@ https://discord.roblox-ts.com
 
 ## Games that use roblox-ts
 
-<a href="https://www.roblox.com/games/6872265039"><img width=32.9% src="https://i.imgur.com/S2x5isG.png" /></a><!-- BedWars 8.4B -->
-<a href="https://www.roblox.com/games/4872321990"><img width=32.9% src="https://i.imgur.com/pkuQfdG.png" /></a><!-- Islands 2.1B -->
-<a href="https://www.roblox.com/games/3759927663"><img width=32.9% src="https://i.imgur.com/OAmrsuz.png" /></a><!-- Zombie Strike 222.9M -->
-<a href="https://www.roblox.com/games/7711635737"><img width=32.9% src="https://i.imgur.com/lmJLoAx.png" /></a><!-- Emergency Hamburg 192.7M -->
-<a href="https://www.roblox.com/games/12851888521"><img width=32.9% src="https://i.imgur.com/K8SvYsc.png" /></a><!-- Punch Wall Simulator 150.6M -->
-<a href="https://www.roblox.com/games/8542259458"><img width=32.9% src="https://i.imgur.com/n6fMYfz.jpeg" /></a><!-- SkyWars 134.9M -->
-<a href="https://www.roblox.com/games/9759729519"><img width=32.9% src="https://i.imgur.com/n1dye62.png" /></a><!-- All of Us Are Dead 101.6M -->
-<a href="https://www.roblox.com/games/8597844216"><img width=32.9% src="https://i.imgur.com/S728lWz.png" /></a><!-- Slither Simulator 81.7M -->
-<a href="https://www.roblox.com/games/841531820"><img width=32.9% src="https://i.imgur.com/KFUgqsV.png" /></a><!-- Deep Space Tycoon 29.5M -->
+<a href="https://www.roblox.com/games/6872265039"><img width=32.9% src="https://i.imgur.com/S2x5isG.png" /></a><!-- BedWars 10.4B -->
+<a href="https://www.roblox.com/games/4872321990"><img width=32.9% src="https://i.imgur.com/pkuQfdG.png" /></a><!-- Islands 2.2B -->
+<a href="https://www.roblox.com/games/7711635737"><img width=32.9% src="https://i.imgur.com/lmJLoAx.png" /></a><!-- Emergency Hamburg 722.6M -->
+<a href="https://www.roblox.com/games/3759927663"><img width=32.9% src="https://i.imgur.com/OAmrsuz.png" /></a><!-- Zombie Strike 227.0M -->
+<a href="https://www.roblox.com/games/8542259458"><img width=32.9% src="https://i.imgur.com/n6fMYfz.jpeg" /></a><!-- SkyWars 290.7M -->
+<a href="https://www.roblox.com/games/12851888521"><img width=32.9% src="https://i.imgur.com/K8SvYsc.png" /></a><!-- Punch Wall Simulator 180.8M -->
+<a href="https://www.roblox.com/games/9759729519"><img width=32.9% src="https://i.imgur.com/n1dye62.png" /></a><!-- All of Us Are Dead 143.3M -->
+<a href="https://www.roblox.com/games/8597844216"><img width=32.9% src="https://i.imgur.com/S728lWz.png" /></a><!-- Slither Snake 123.8M -->
+<a href="https://www.roblox.com/games/3837841034"><img width=32.9% src="https://i.imgur.com/nffggbO.png" /></a><!-- Deadline 42.1M -->
+<a href="https://www.roblox.com/games/11653088948"><img width=32.9% src="https://i.imgur.com/qCAC3d8.png" /></a><!-- Jurassic Blocky 33.1M -->
+<a href="https://www.roblox.com/games/841531820"><img width=32.9% src="https://i.imgur.com/KFUgqsV.png" /></a><!-- Deep Space Tycoon 30.7M -->
+<a href="https://www.roblox.com/games/15798268709"><img width=32.9% src="https://i.imgur.com/ERuCebr.png" /></a><!-- The Sewers 25.0M -->
 <a href="https://www.roblox.com/games/9611595239"><img width=32.9% src="https://i.imgur.com/qISPda3.png" /></a><!-- Rift Royale 21.1M -->
 <a href="https://www.roblox.com/games/8747402506"><img width=32.9% src="https://i.imgur.com/cZsnXms.png" /></a><!-- Prop Hunt 19.7M -->
 <a href="https://www.roblox.com/games/5414779423"><img width=32.9% src="https://i.imgur.com/5GTAGqt.png" /></a><!-- Science Simulator 19.1M -->
-<a href="https://www.roblox.com/games/3837841034"><img width=32.9% src="https://i.imgur.com/nffggbO.png" /></a><!-- Deadline 18.0M -->
-<a href="https://www.roblox.com/games/9655469250"><img width=32.9% src="https://i.imgur.com/GXt8rmT.png" /></a><!-- Space War Tycoon 9.8M -->
-<a href="https://www.roblox.com/games/9681195418"><img width=32.9% src="https://i.imgur.com/599Tpu0.png" /></a><!-- popper 8.2M -->
-<a href="https://www.roblox.com/games/11688361399"><img width=32.9% src="https://i.imgur.com/EDC7xw6.png" /></a><!-- Wealdland Foods 5.1M -->
+<a href="https://www.roblox.com/games/13251504936"><img width=32.9% src="https://i.imgur.com/6AyGF1m.png" /></a><!-- Creepy Crawlers 18.3M -->
+<a href="https://www.roblox.com/games/9681195418"><img width=32.9% src="https://i.imgur.com/599Tpu0.png" /></a><!-- popper 11.5M -->
+<a href="https://www.roblox.com/games/9655469250"><img width=32.9% src="https://i.imgur.com/GXt8rmT.png" /></a><!-- Space War Tycoon 11.2M -->
+<a href="https://www.roblox.com/games/11688361399"><img width=32.9% src="https://i.imgur.com/EDC7xw6.png" /></a><!-- Wealdland Foods 6.6M -->
+<a href="https://www.roblox.com/games/138705998165267"><img width=32.9% src="https://i.imgur.com/TfDGxeN.png" /></a><!-- Plinko Tycoon 4.5M -->
+<a href="https://www.roblox.com/games/12147220287"><img width=32.9% src="https://i.imgur.com/iD2PKgW.png" /></a><!-- LegacyVerse 4.3M -->
+<a href="https://www.roblox.com/games/18381234265"><img width=32.9% src="https://i.imgur.com/KJpPZT2.png" /></a><!-- Fashion Stars 3.2M -->
 <a href="https://www.roblox.com/games/2184151436"><img width=32.9% src="https://i.imgur.com/JSFPTA0.png" /></a><!-- Dungeon Life 2.0M -->
-<a href="https://www.roblox.com/games/12147220287"><img width=32.9% src="https://i.imgur.com/iD2PKgW.png" /></a><!-- LegacyVerse 1.7M -->
-<a href="https://www.roblox.com/games/13251504936"><img width=32.9% src="https://i.imgur.com/6AyGF1m.png" /></a><!-- Creepy Crawlers 1M -->
+<a href="https://www.roblox.com/games/118799079009085"><img width=32.9% src="https://i.imgur.com/D3XTG90.png" /></a><!-- RNG Dropper Tycoon 1.0M -->

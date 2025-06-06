@@ -4,11 +4,6 @@
 		"dockerfile": "Dockerfile"
 	},
 	"postCreateCommand": ".devcontainer/setup-playground.sh",
-	"extensions": [
-		"editorconfig.editorconfig",
-		"dbaeumer.vscode-eslint"
-	],
-	"forwardPorts": [
-		34872
-	]
+	"extensions": ["editorconfig.editorconfig", "dbaeumer.vscode-eslint"],
+	"forwardPorts": [34872]
 }

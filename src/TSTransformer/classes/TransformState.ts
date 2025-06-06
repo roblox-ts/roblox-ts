@@ -6,6 +6,7 @@ import { PARENT_FIELD, ProjectType } from "Shared/constants";
 import { errors, warnings } from "Shared/diagnostics";
 import { ProjectData } from "Shared/types";
 import { assert } from "Shared/util/assert";
+import { getCanonicalFileName } from "Shared/util/getCanonicalFileName";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { MultiTransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
@@ -449,7 +450,9 @@ export class TransformState {
 			const parent = ts.ensureTrailingDirectorySeparator(path.dirname(fsPath));
 			if (fsPath === parent) break;
 			fsPath = parent;
-			const symlink = reverseSymlinkMap.get(fsPath as ts.Path)?.[0];
+			const symlink = reverseSymlinkMap.get(
+				ts.toPath(fsPath, this.program.getCurrentDirectory(), getCanonicalFileName),
+			)?.[0];
 			if (symlink) {
 				return path.join(symlink, path.relative(fsPath, original));
 			}

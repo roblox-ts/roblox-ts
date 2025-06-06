@@ -6,7 +6,9 @@ export = () => {
 		expect(`${value} "world"`).to.equal('hello "world"');
 		expect(`a${"b"}c${"d"}e`).to.equal("abcde");
 		expect(`1 ${`2 ${`3 ${4}`}`}`).to.equal("1 2 3 4");
+		// prettier-ignore
 		expect(`${value} {}`).to.equal("hello \{\}");
+		// prettier-ignore
 		expect(`${value} {world}`).to.equal("hello \{world\}");
 		expect(`${value}\nworld`).to.equal("hello\nworld");
 		expect(`${value}
@@ -95,6 +97,6 @@ world`).to.equal("hello\nworld");
 	});
 
 	it("should not escape unicode sequences in template literals", () => {
-		expect(`\u{E001}`).to.equal("\u{E001}")
-	})
+		expect(`\u{E001}`).to.equal("\u{E001}");
+	});
 };

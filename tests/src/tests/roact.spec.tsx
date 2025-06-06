@@ -61,9 +61,7 @@ export = () => {
 				}
 			}
 
-			expect(Type.of(RoactPureClass)).to.equal(
-				Type.StatefulComponentClass
-			);
+			expect(Type.of(RoactPureClass)).to.equal(Type.StatefulComponentClass);
 		});
 
 		it("should construct default props", () => {
@@ -72,7 +70,7 @@ export = () => {
 			}
 			class RoactClass extends Roact.Component {
 				public static defaultProps: RoactProps = {
-					value: 10
+					value: 10,
 				};
 
 				public render(): Roact.Element {
@@ -93,10 +91,7 @@ export = () => {
 			}
 
 			class RoactClass extends Roact.Component<TestProps, TestState> {
-				public static getDerivedStateFromProps(
-					nextProps: TestProps,
-					lastState: TestState
-				): TestState {
+				public static getDerivedStateFromProps(nextProps: TestProps, lastState: TestState): TestState {
 					return { someValue: nextProps.someValue };
 				}
 
@@ -128,9 +123,7 @@ export = () => {
 		const RoactIntrinsicManual = Roact.createElement("Frame");
 
 		// Both should be a Frame
-		expect(RoactIntrinsic.component).to.equal(
-			RoactIntrinsicManual.component
-		);
+		expect(RoactIntrinsic.component).to.equal(RoactIntrinsicManual.component);
 	});
 
 	describe("should support all roact property types", () => {
@@ -180,30 +173,26 @@ export = () => {
 			const eventElement = (
 				<textbutton
 					Event={{
-						MouseButton1Click: () => {}
+						MouseButton1Click: () => {},
 					}}
 				/>
 			);
 
 			const eventElementProps = eventElement.props as UniqueSymbolsForTests;
 
-			expect(eventElementProps[EventHack.MouseButton1Click]).to.be.a(
-				"function"
-			);
+			expect(eventElementProps[EventHack.MouseButton1Click]).to.be.a("function");
 		});
 
 		it("should support [Roact.Change]", () => {
 			const eventElement = (
 				<textbutton
 					Change={{
-						AbsoluteSize: () => {}
+						AbsoluteSize: () => {},
 					}}
 				/>
 			);
 			const eventElementProps = eventElement.props as UniqueSymbolsForTests;
-			expect(eventElementProps[ChangeHack.AbsoluteSize]).to.be.a(
-				"function"
-			);
+			expect(eventElementProps[ChangeHack.AbsoluteSize]).to.be.a("function");
 		});
 		describe("should support [Roact.Ref]", () => {
 			/*
@@ -278,19 +267,13 @@ export = () => {
 
 		expect(Type.of(fragment)).to.equal(Type.Element);
 		expect(ElementKind.of(fragment)).to.equal(ElementKind.Fragment);
-		expect(
-			ElementKind.of(
-				((fragment as unknown) as FragmentLike).elements.TestKey
-			)
-		).to.equal(ElementKind.Host);
+		expect(ElementKind.of((fragment as unknown as FragmentLike).elements.TestKey)).to.equal(ElementKind.Host);
 	});
 
 	describe("BinaryExpressions", () => {
 		it("should support BinaryExpressions", () => {
 			let ref: Frame | undefined;
-			const test = (
-				<frame>{true && <frame Ref={rbx => (ref = rbx)} />}</frame>
-			);
+			const test = <frame>{true && <frame Ref={rbx => (ref = rbx)} />}</frame>;
 			Roact.mount(test);
 			expect(ref).to.be.ok();
 		});
@@ -301,37 +284,21 @@ export = () => {
 			let ref: Frame | TextLabel | undefined;
 			let ref2: Frame | TextLabel | undefined;
 			const test = (
-				<frame>
-					{false ? (
-						<frame Ref={rbx => (ref = rbx)} />
-					) : (
-						<textlabel Ref={rbx => (ref = rbx)} />
-					)}
-				</frame>
+				<frame>{false ? <frame Ref={rbx => (ref = rbx)} /> : <textlabel Ref={rbx => (ref = rbx)} />}</frame>
 			);
 
 			const test2 = (
-				<frame>
-					{true ? (
-						<frame Ref={rbx => (ref2 = rbx)} />
-					) : (
-						<textlabel Ref={rbx => (ref2 = rbx)} />
-					)}
-				</frame>
+				<frame>{true ? <frame Ref={rbx => (ref2 = rbx)} /> : <textlabel Ref={rbx => (ref2 = rbx)} />}</frame>
 			);
 
 			Roact.mount(test);
 			Roact.mount(test2);
 
 			expect(ref).to.be.ok();
-			expect(typeIs(ref, "Instance") && ref.IsA("TextLabel")).to.equal(
-				true
-			);
+			expect(typeIs(ref, "Instance") && ref.IsA("TextLabel")).to.equal(true);
 
 			expect(ref2).to.be.ok();
-			expect(typeIs(ref2, "Instance") && ref2.IsA("Frame")).to.equal(
-				true
-			);
+			expect(typeIs(ref2, "Instance") && ref2.IsA("Frame")).to.equal(true);
 		});
 	});
 
@@ -344,31 +311,23 @@ export = () => {
 		const element = <screengui>{map}</screengui>;
 
 		expect(Type.of(element)).to.equal(Type.Element);
-		expect(
-			(element.props as ExplicitProps)[Roact.Children].Testing
-		).to.equal(testLabel);
+		expect((element.props as ExplicitProps)[Roact.Children].Testing).to.equal(testLabel);
 
 		Roact.mount(element);
 		expect(ref).to.be.ok();
-		expect(
-			typeIs(ref, "Instance") &&
-				ref.IsA("TextLabel") &&
-				ref.Text === "Texty"
-		).to.equal(true);
+		expect(typeIs(ref, "Instance") && ref.IsA("TextLabel") && ref.Text === "Texty").to.equal(true);
 	});
 
 	it("should support implicit true in JSX elements", () => {
 		const element = <textlabel TextWrapped />;
 
-		expect(
-			(element.props as ExplicitProps<TextLabel>).TextWrapped
-		).to.equal(true);
+		expect((element.props as ExplicitProps<TextLabel>).TextWrapped).to.equal(true);
 	});
 
 	it("should have correct-order prop joining", () => {
 		const TestProps = {
 			Active: false,
-			BackgroundColor3: Color3.fromRGB(220, 0, 0)
+			BackgroundColor3: Color3.fromRGB(220, 0, 0),
 		};
 
 		const element = (
@@ -387,7 +346,7 @@ export = () => {
 
 	it("should support passing identifier objects as events/changed handlers", () => {
 		const Events: Roact.JsxInstanceEvents<Frame> = {
-			MouseEnter: () => {}
+			MouseEnter: () => {},
 		};
 
 		const f = <frame Event={Events} />;
@@ -395,8 +354,6 @@ export = () => {
 
 		// eslint-disable-next-line @typescript-eslint/ban-ts-ignore
 		// @ts-ignore because this is valid, but I can't infer the type for this
-		expect(props[Roact.Event.MouseEnter] as unknown).to.equal(
-			Events.MouseEnter
-		);
+		expect(props[Roact.Event.MouseEnter] as unknown).to.equal(Events.MouseEnter);
 	});
 };

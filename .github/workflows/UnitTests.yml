@@ -14,13 +14,11 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install Foreman
-        uses: Roblox/setup-foreman@v2.1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install Rokit
+        uses: CompeyDev/setup-rokit@v0.1.2
 
       - name: Install NPM Dependencies
-        uses: bahmutov/npm-install@v1.7.4
+        uses: bahmutov/npm-install@v1
 
       - name: Update Test Types
         run: npm run update-test-types
@@ -30,7 +28,7 @@ jobs:
 
       - name: Upload Test Output
         if: failure()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: test-output
           path: tests/out

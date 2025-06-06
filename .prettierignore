@@ -1,1 +1,4 @@
 *.yml
+/out
+/node_modules
+/CHANGELOG.md

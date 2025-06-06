@@ -13,7 +13,6 @@ export function transformFunctionExpression(state: TransformState, node: ts.Func
 		DiagnosticService.addDiagnostic(errors.noFunctionExpressionName(node.name));
 	}
 
-	// eslint-disable-next-line no-autofix/prefer-const
 	let { statements, parameters, hasDotDotDot } = transformParameters(state, node);
 
 	const body = node.body;
@@ -25,7 +24,7 @@ export function transformFunctionExpression(state: TransformState, node: ts.Func
 		luau.list.pushList(statements, returnStatements);
 	}
 
-	const isAsync = !!ts.getSelectedSyntacticModifierFlags(node, ts.ModifierFlags.Async);
+	const isAsync = ts.hasSyntacticModifier(node, ts.ModifierFlags.Async);
 
 	if (node.asteriskToken) {
 		if (isAsync) {

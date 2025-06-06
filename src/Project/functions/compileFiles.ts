@@ -6,7 +6,7 @@ import path from "path";
 import { checkFileName } from "Project/functions/checkFileName";
 import { checkRojoConfig } from "Project/functions/checkRojoConfig";
 import { createNodeModulesPathMapping } from "Project/functions/createNodeModulesPathMapping";
-import { transformPaths } from "Project/transformers/builtin/transformPaths";
+import transformPathsTransformer from "Project/transformers/builtin/transformPaths";
 import { transformTypeReferenceDirectives } from "Project/transformers/builtin/transformTypeReferenceDirectives";
 import { createTransformerList, flattenIntoTransformers } from "Project/transformers/createTransformerList";
 import { createTransformerWatcher } from "Project/transformers/createTransformerWatcher";
@@ -187,6 +187,9 @@ export function compileFiles(
 	const emittedFiles = new Array<string>();
 	if (fileWriteQueue.length > 0) {
 		benchmarkIfVerbose("writing compiled files", () => {
+			const afterDeclarations = compilerOptions.declaration
+				? [transformTypeReferenceDirectives, transformPathsTransformer(program, {})]
+				: undefined;
 			for (const { sourceFile, source } of fileWriteQueue) {
 				const outPath = pathTranslator.getOutputPath(sourceFile.fileName);
 				if (
@@ -198,9 +201,7 @@ export function compileFiles(
 					emittedFiles.push(outPath);
 				}
 				if (compilerOptions.declaration) {
-					proxyProgram.emit(sourceFile, ts.sys.writeFile, undefined, true, {
-						afterDeclarations: [transformTypeReferenceDirectives, transformPaths],
-					});
+					proxyProgram.emit(sourceFile, ts.sys.writeFile, undefined, true, { afterDeclarations });
 				}
 			}
 		});
