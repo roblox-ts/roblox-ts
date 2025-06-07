@@ -479,6 +479,7 @@ export function transformForOfRangeMacro(
 		}),
 	);
 	luau.list.pushList(result, state.generateLabelChecks());
+	state.decreaseLoopDepth();
 
 	return result;
 }

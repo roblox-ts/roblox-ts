@@ -118,7 +118,9 @@ export class TransformState {
 		const labels = this.loopLabelStack.slice(0, this.loopStackDepth - 1);
 		if (labels.length === 0) return statements;
 
-		const continuedLabels = labels.filter(label => label.everContinued);
+		const continuedLabels = labels.filter(({ everContinued }, stackPos) => {
+			return everContinued && stackPos === this.loopStackDepth - 2; // -1 because of the array index offset, and another -1 to get the right stack position
+		});
 		if (continuedLabels.length > 0) {
 			luau.list.push(
 				statements,
@@ -132,13 +134,19 @@ export class TransformState {
 			);
 		}
 
-		const brokenLabels = labels.filter(label => label.everBroken);
+		const brokenLabels = labels.filter(({ everBroken, everContinued }, stackPos) => {
+			if (everBroken) return true;
+			if (everContinued && stackPos !== this.loopStackDepth - 2) return true;
+			return false;
+		});
 		if (brokenLabels.length > 0) {
 			luau.list.push(
 				statements,
 				luau.create(luau.SyntaxKind.IfStatement, {
 					condition: brokenLabels
-						.map(label => luau.binary(label.id, "==", luau.string(LoopLabel.break)))
+						.map(({ id, everContinued }) =>
+							luau.binary(id, "==", luau.string(everContinued ? LoopLabel.continue : LoopLabel.break)),
+						)
 						.reduce((accum, exp) => luau.binary(accum, "or", exp)),
 					statements: luau.list.make(luau.create(luau.SyntaxKind.BreakStatement, {})),
 					elseBody: luau.list.make(),
