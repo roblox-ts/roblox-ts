@@ -478,6 +478,7 @@ export function transformForOfRangeMacro(
 			statements,
 		}),
 	);
+	luau.list.pushList(result, state.generateLabelChecks());
 
 	return result;
 }
