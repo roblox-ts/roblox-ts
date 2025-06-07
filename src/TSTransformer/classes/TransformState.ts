@@ -124,7 +124,7 @@ export class TransformState {
 				statements,
 				luau.create(luau.SyntaxKind.IfStatement, {
 					condition: continuedLabels
-						.map(label => luau.binary(label.id, "==", luau.string(LoopLabel.break)))
+						.map(label => luau.binary(label.id, "==", luau.string(LoopLabel.continue)))
 						.reduce((accum, exp) => luau.binary(accum, "or", exp)),
 					statements: luau.list.make(luau.create(luau.SyntaxKind.BreakStatement, {})),
 					elseBody: luau.list.make(),
