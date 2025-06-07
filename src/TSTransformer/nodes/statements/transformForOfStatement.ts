@@ -33,6 +33,7 @@ import ts from "typescript";
 
 type LoopBuilder = (
 	state: TransformState,
+	node: ts.ForOfStatement,
 	statements: luau.List<luau.Statement>,
 	initializer: ts.ForInitializer,
 	exp: luau.Expression,
@@ -47,11 +48,13 @@ function makeForLoopBuilder(
 		initializers: luau.List<luau.Statement>,
 	) => luau.Expression,
 ): LoopBuilder {
-	return (state, statements, name, exp) => {
+	return (state, node, statements, name, exp) => {
 		const ids = luau.list.make<luau.AnyIdentifier>();
 		const initializers = luau.list.make<luau.Statement>();
 		const expression = callback(state, name, exp, ids, initializers);
 		luau.list.unshiftList(statements, initializers);
+		luau.list.unshiftList(statements, state.processLoopLabel(node));
+
 		return luau.list.make(luau.create(luau.SyntaxKind.ForStatement, { ids, expression, statements }));
 	};
 }
@@ -268,6 +271,7 @@ const buildIterableFunctionLoop: LoopBuilder = makeForLoopBuilder((state, initia
 
 function makeIterableFunctionLuaTupleShorthand(
 	state: TransformState,
+	node: ts.ForOfStatement,
 	array: ts.ArrayBindingPattern | ts.ArrayLiteralExpression,
 	statements: luau.List<luau.Statement>,
 	expression: luau.Expression,
@@ -280,20 +284,22 @@ function makeIterableFunctionLuaTupleShorthand(
 		transformInLineArrayAssignmentPattern(state, array, ids, initializers);
 	}
 	luau.list.unshiftList(statements, initializers);
+	luau.list.unshiftList(statements, state.processLoopLabel(node));
+
 	return luau.list.make(luau.create(luau.SyntaxKind.ForStatement, { ids, expression, statements }));
 }
 
 const buildIterableFunctionLuaTupleLoop: (type: ts.Type) => LoopBuilder =
-	type => (state, statements, initializer, exp) => {
+	type => (state, node, statements, initializer, exp) => {
 		if (ts.isVariableDeclarationList(initializer)) {
 			// for (const [a, b] of iter())
 			const name = initializer.declarations[0].name;
 			if (ts.isArrayBindingPattern(name)) {
-				return makeIterableFunctionLuaTupleShorthand(state, name, statements, exp);
+				return makeIterableFunctionLuaTupleShorthand(state, node, name, statements, exp);
 			}
 		} else if (ts.isArrayLiteralExpression(initializer)) {
 			// for ([a, b] of iter())
-			return makeIterableFunctionLuaTupleShorthand(state, initializer, statements, exp);
+			return makeIterableFunctionLuaTupleShorthand(state, node, initializer, statements, exp);
 		}
 
 		const iteratorReturnIds = new Array<luau.TemporaryIdentifier>();
@@ -378,7 +384,7 @@ const buildIterableFunctionLuaTupleLoop: (type: ts.Type) => LoopBuilder =
 			return exp;
 		});
 
-		return builder(state, statements, initializer, exp);
+		return builder(state, node, statements, initializer, exp);
 	};
 
 const buildGeneratorLoop: LoopBuilder = makeForLoopBuilder((state, initializer, exp, ids, initializers) => {
@@ -459,8 +465,8 @@ export function transformForOfRangeMacro(
 
 	const [[start, end, step], prereqs] = state.capture(() => ensureTransformOrder(state, macroCall.arguments));
 	luau.list.pushList(result, prereqs);
-
 	luau.list.pushList(statements, transformStatementList(state, node.statement, getStatements(node.statement)));
+	luau.list.unshiftList(statements, state.processLoopLabel(node));
 
 	luau.list.push(
 		result,
@@ -472,6 +478,8 @@ export function transformForOfRangeMacro(
 			statements,
 		}),
 	);
+	luau.list.pushList(result, state.generateLabelChecks());
+	state.decreaseLoopDepth();
 
 	return result;
 }
@@ -488,13 +496,14 @@ export function transformForOfStatement(state: TransformState, node: ts.ForOfSta
 		}
 	}
 
+	state.increaseLoopDepth();
+
 	const rangeMacroCall = findRangeMacro(state, node);
 	if (rangeMacroCall) {
 		return transformForOfRangeMacro(state, node, rangeMacroCall);
 	}
 
 	const result = luau.list.make<luau.Statement>();
-
 	const [exp, expPrereqs] = state.capture(() => transformExpression(state, node.expression));
 	luau.list.pushList(result, expPrereqs);
 
@@ -502,7 +511,11 @@ export function transformForOfStatement(state: TransformState, node: ts.ForOfSta
 	const statements = transformStatementList(state, node.statement, getStatements(node.statement));
 
 	const loopBuilder = getLoopBuilder(state, node.expression, expType);
-	luau.list.pushList(result, loopBuilder(state, statements, node.initializer, exp));
+
+	luau.list.pushList(result, loopBuilder(state, node, statements, node.initializer, exp));
+	luau.list.pushList(result, state.generateLabelChecks());
+
+	state.decreaseLoopDepth();
 
 	return result;
 }
