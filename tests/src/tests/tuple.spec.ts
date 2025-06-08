@@ -227,6 +227,19 @@ export = () => {
 		expect(hasRun1).to.equal(true);
 	});
 
+	it("should support indexing nullable LuaTuple elements", () => {
+		function foo(): LuaTuple<[number, string]> | undefined {
+			return [1, "2"] as LuaTuple<[number, string]>;
+		}
+
+		function bar(): LuaTuple<[number, string]> | undefined {
+			return undefined;
+		}
+
+		expect(foo()?.[1]).to.equal("2");
+		expect(bar()?.[1]).to.equal(undefined);
+	})
+
 	it("should support $tuple macro", () => {
 		function luaTupleMacroReturn() {
 			return $tuple(123, "abc", true);

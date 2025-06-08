@@ -16,7 +16,7 @@ import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isMethod } from "TSTransformer/util/isMethod";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { skipDownwards } from "TSTransformer/util/traversal";
-import { getFirstDefinedSymbol } from "TSTransformer/util/types";
+import { getFirstDefinedSymbol, isLuaTupleType } from "TSTransformer/util/types";
 import { wrapReturnIfLuaTuple } from "TSTransformer/util/wrapReturnIfLuaTuple";
 import ts from "typescript";
 
@@ -270,9 +270,18 @@ function transformOptionalChainInner(
 			}
 		}
 
+		const itemIsLuaTuple = isLuaTupleType(state)(state.typeChecker.getNonNullableType(item.type))
+
 		// capture so we can wrap later if necessary
 		const [result, prereqStatements] = state.capture(() => {
-			tempId = createOrSetTempId(state, tempId, baseExpression, chain[chain.length - 1].node);
+			tempId = createOrSetTempId(
+				state,
+				tempId,
+				itemIsLuaTuple
+					? luau.array([baseExpression]) 
+					: baseExpression,
+				chain[chain.length - 1].node
+			);
 
 			const [newValue, ifStatements] = state.capture(() => {
 				let newExpression: luau.Expression;
