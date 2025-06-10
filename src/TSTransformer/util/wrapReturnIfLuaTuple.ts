@@ -38,7 +38,7 @@ function shouldWrapLuaTuple(state: TransformState, node: ts.CallExpression, exp:
 	}
 
 	// `foo()[n]`
-	if (ts.isElementAccessExpression(parent)) {
+	if (ts.isElementAccessExpression(parent) && parent.questionDotToken === undefined) {
 		return false;
 	}
 
@@ -56,7 +56,10 @@ function shouldWrapLuaTuple(state: TransformState, node: ts.CallExpression, exp:
 }
 
 export function wrapReturnIfLuaTuple(state: TransformState, node: ts.CallExpression, exp: luau.Expression) {
-	if (isLuaTupleType(state)(state.getType(node)) && shouldWrapLuaTuple(state, node, exp)) {
+	if (
+		isLuaTupleType(state)(state.typeChecker.getNonNullableType(state.getType(node))) &&
+		shouldWrapLuaTuple(state, node, exp)
+	) {
 		return luau.array([exp]);
 	}
 	return exp;
