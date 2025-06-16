@@ -143,9 +143,6 @@ export const errors = {
 		suggestion('Use `typeIs(myThing, "TypeToCheck") instead'),
 	),
 	noNestedSpreadsInAssignmentPatterns: error("Nesting spreads in assignment patterns is not supported!"),
-	noMixingTypesInNestedAssignmentPatterns: error(
-		"Mixing different types with nested assignment patterns is not supported!",
-	),
 	noRestSpreadingOfRobloxTypes: error("Operator `...` is not allowed on Roblox types!"),
 	noNonNumberStringRelationOperator: error("Relation operators can only be used on number or string types!"),
 	noInstanceMethodCollisions: error("Static methods cannot use the same name as instance methods!"),

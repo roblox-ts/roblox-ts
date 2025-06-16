@@ -45,13 +45,10 @@ export function transformObjectAssignmentPattern(
 			const value = spreadDestructureObject(state, parentId, preSpreadNames);
 			const expression = property.expression;
 
-			if (ts.isObjectLiteralExpression(expression)) {
+			// Both diagnostics are needed because getTypeOfAssignmentPattern is implemented incorrectly:
+			// it errors, if that parent of node being passed in is ts.SpreadElement
+			if (ts.isObjectLiteralExpression(expression) || ts.isArrayLiteralExpression(expression)) {
 				DiagnosticService.addDiagnostic(errors.noNestedSpreadsInAssignmentPatterns(property));
-				continue;
-			}
-
-			if (ts.isArrayLiteralExpression(expression)) {
-				DiagnosticService.addDiagnostic(errors.noMixingTypesInNestedAssignmentPatterns(property));
 				continue;
 			}
 

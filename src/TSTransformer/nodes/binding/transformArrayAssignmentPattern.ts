@@ -38,13 +38,13 @@ export function transformArrayAssignmentPattern(
 				? destructor(state, parentId, index, idStack)
 				: accessor(state, parentId, index, idStack, false);
 
-			if (ts.isSpreadElement(element) && ts.isArrayLiteralExpression(element.expression)) {
+			// Both diagnostics are needed because getTypeOfAssignmentPattern is implemented incorrectly:
+			// it errors, if that parent of node being passed in is ts.SpreadElement
+			if (
+				ts.isSpreadElement(element) &&
+				(ts.isObjectLiteralExpression(element.expression) || ts.isArrayLiteralExpression(element.expression))
+			) {
 				DiagnosticService.addDiagnostic(errors.noNestedSpreadsInAssignmentPatterns(element.parent));
-				continue;
-			}
-
-			if (ts.isSpreadElement(element) && ts.isObjectLiteralExpression(element.expression)) {
-				DiagnosticService.addDiagnostic(errors.noMixingTypesInNestedAssignmentPatterns(element.parent));
 				continue;
 			}
 
