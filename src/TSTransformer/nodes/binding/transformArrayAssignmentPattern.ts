@@ -38,7 +38,7 @@ export function transformArrayAssignmentPattern(
 				? destructor(state, parentId, index, idStack)
 				: accessor(state, parentId, index, idStack, false);
 
-			// Both diagnostics are needed because getTypeOfAssignmentPattern is implemented incorrectly:
+			// diagnostic is needed because getTypeOfAssignmentPattern is implemented incorrectly:
 			// it errors, if that parent of node being passed in is ts.SpreadElement
 			if (
 				ts.isSpreadElement(element) &&
