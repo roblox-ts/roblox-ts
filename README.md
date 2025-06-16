@@ -32,7 +32,7 @@ https://discord.roblox-ts.com
 <a href="https://www.roblox.com/games/12851888521"><img width=32.9% src="https://i.imgur.com/K8SvYsc.png" /></a><!-- Punch Wall Simulator 180.8M -->
 <a href="https://www.roblox.com/games/9759729519"><img width=32.9% src="https://i.imgur.com/n1dye62.png" /></a><!-- All of Us Are Dead 143.3M -->
 <a href="https://www.roblox.com/games/8597844216"><img width=32.9% src="https://i.imgur.com/S728lWz.png" /></a><!-- Slither Snake 123.8M -->
-<a href="https://www.roblox.com/games/110829983956014"><img width=32.9% src="https://i.imgur.com/Cf7oLHJ.png" /></a><!-- Anime Card Clash 64.5M -->
+<a href="https://www.roblox.com/games/110829983956014"><img width=32.9% src="https://i.imgur.com/Cf7oLHJ.jpeg" /></a><!-- Anime Card Clash 73.5M -->
 <a href="https://www.roblox.com/games/3837841034"><img width=32.9% src="https://i.imgur.com/nffggbO.png" /></a><!-- Deadline 42.1M -->
 <a href="https://www.roblox.com/games/11653088948"><img width=32.9% src="https://i.imgur.com/qCAC3d8.png" /></a><!-- Jurassic Blocky 33.1M -->
 <a href="https://www.roblox.com/games/841531820"><img width=32.9% src="https://i.imgur.com/KFUgqsV.png" /></a><!-- Deep Space Tycoon 30.7M -->
