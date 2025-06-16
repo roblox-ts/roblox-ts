@@ -8,7 +8,7 @@ import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { transformWritableExpression } from "TSTransformer/nodes/transformWritable";
 import { getAccessorForBindingType } from "TSTransformer/util/binding/getAccessorForBindingType";
 import { getKindName } from "TSTransformer/util/getKindName";
-import { getSpreadDestructorForType } from "TSTransformer/util/spreadDestruction";
+import { getSpreadDestructorForType } from "TSTransformer/util/spreadDestructuring";
 import { skipDownwards } from "TSTransformer/util/traversal";
 import ts from "typescript";
 
@@ -40,6 +40,11 @@ export function transformArrayAssignmentPattern(
 
 			if (ts.isSpreadElement(element) && ts.isArrayLiteralExpression(element.expression)) {
 				DiagnosticService.addDiagnostic(errors.noNestedSpreadsInAssignmentPatterns(element.parent));
+				continue;
+			}
+
+			if (ts.isSpreadElement(element) && ts.isObjectLiteralExpression(element.expression)) {
+				DiagnosticService.addDiagnostic(errors.noMixingTypesInNestedAssignmentPatterns(element.parent));
 				continue;
 			}
 

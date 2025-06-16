@@ -7,7 +7,7 @@ import { transformArrayBindingPattern } from "TSTransformer/nodes/binding/transf
 import { transformVariable } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { objectAccessor } from "TSTransformer/util/binding/objectAccessor";
-import { spreadDestructObject } from "TSTransformer/util/spreadDestruction";
+import { spreadDestructObject } from "TSTransformer/util/spreadDestructuring";
 import { isPossiblyType, isRobloxType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import ts from "typescript";

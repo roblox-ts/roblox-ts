@@ -4,7 +4,7 @@ import { transformArrayBindingPattern } from "TSTransformer/nodes/binding/transf
 import { transformObjectBindingPattern } from "TSTransformer/nodes/binding/transformObjectBindingPattern";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
-import { arrayLikeExpressionContainsSpread } from "TSTransformer/util/arrayBindingPatternContainsSpread";
+import { arrayLikeExpressionContainsSpread } from "TSTransformer/util/arrayLikeExpressionContainsSpread";
 import { isMethod } from "TSTransformer/util/isMethod";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import ts from "typescript";

@@ -8,7 +8,7 @@ import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { transformWritableExpression } from "TSTransformer/nodes/transformWritable";
 import { objectAccessor } from "TSTransformer/util/binding/objectAccessor";
 import { getKindName } from "TSTransformer/util/getKindName";
-import { spreadDestructObject } from "TSTransformer/util/spreadDestruction";
+import { spreadDestructObject } from "TSTransformer/util/spreadDestructuring";
 import { skipDownwards } from "TSTransformer/util/traversal";
 import ts from "typescript";
 
@@ -45,34 +45,28 @@ export function transformObjectAssignmentPattern(
 			const value = spreadDestructObject(state, parentId, preSpreadNames);
 			const expression = property.expression;
 
-			if (ts.isObjectLiteralExpression(property.expression)) {
+			if (ts.isObjectLiteralExpression(expression)) {
 				DiagnosticService.addDiagnostic(errors.noNestedSpreadsInAssignmentPatterns(property));
 				continue;
 			}
 
-			if (
-				ts.isIdentifier(expression) ||
-				ts.isElementAccessExpression(expression) ||
-				ts.isPropertyAccessExpression(expression)
-			) {
-				const id = transformWritableExpression(state, expression, true);
-				state.prereq(
-					luau.create(luau.SyntaxKind.Assignment, {
-						left: id,
-						operator: "=",
-						right: value,
-					}),
-				);
-			} else if (ts.isObjectLiteralExpression(expression)) {
-				transformObjectAssignmentPattern(state, expression, value);
-			} else if (ts.isArrayLiteralExpression(expression)) {
-				transformArrayAssignmentPattern(state, expression, value);
-			} else {
-				assert(
-					false,
-					"transformObjectAssignmentPattern unexpected expression type: " + getKindName(expression.kind),
-				);
+			if (ts.isArrayLiteralExpression(expression)) {
+				DiagnosticService.addDiagnostic(errors.noMixingTypesInNestedAssignmentPatterns(property));
+				continue;
 			}
+
+			assert(
+				ts.isIdentifier(expression),
+				"transformObjectAssignmentPattern unexpected expression type: " + getKindName(expression.kind),
+			);
+			const id = transformWritableExpression(state, expression, true);
+			state.prereq(
+				luau.create(luau.SyntaxKind.Assignment, {
+					left: id,
+					operator: "=",
+					right: value,
+				}),
+			);
 		} else if (ts.isPropertyAssignment(property)) {
 			const name = property.name;
 			let init = property.initializer;

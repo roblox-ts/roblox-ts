@@ -1,18 +1,17 @@
 import luau from "@roblox-ts/luau-ast";
-import { errors } from "Shared/diagnostics";
-import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
+import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer/classes/TransformState";
-import { spreadDestructArray } from "TSTransformer/util/spreadDestruction/spreadDestructArray";
-import { spreadDestructGenerator } from "TSTransformer/util/spreadDestruction/spreadDestructGenerator";
-import { spreadDestructMap } from "TSTransformer/util/spreadDestruction/spreadDestructMap";
-import { spreadDestructSet } from "TSTransformer/util/spreadDestruction/spreadDestructSet";
+import { spreadDestructArray } from "TSTransformer/util/spreadDestructuring/spreadDestructArray";
+import { spreadDestructGenerator } from "TSTransformer/util/spreadDestructuring/spreadDestructGenerator";
+import { spreadDestructMap } from "TSTransformer/util/spreadDestructuring/spreadDestructMap";
+import { spreadDestructSet } from "TSTransformer/util/spreadDestructuring/spreadDestructSet";
 import { isArrayType, isDefinitelyType, isGeneratorType, isMapType, isSetType } from "TSTransformer/util/types";
 import ts from "typescript";
 
-export * from "TSTransformer/util/spreadDestruction/spreadDestructArray";
-export * from "TSTransformer/util/spreadDestruction/spreadDestructMap";
-export * from "TSTransformer/util/spreadDestruction/spreadDestructObject";
-export * from "TSTransformer/util/spreadDestruction/spreadDestructSet";
+export * from "TSTransformer/util/spreadDestructuring/spreadDestructArray";
+export * from "TSTransformer/util/spreadDestructuring/spreadDestructMap";
+export * from "TSTransformer/util/spreadDestructuring/spreadDestructObject";
+export * from "TSTransformer/util/spreadDestructuring/spreadDestructSet";
 
 type SpreadDestructor = (
 	state: TransformState,
@@ -33,7 +32,6 @@ export function getSpreadDestructorForType(state: TransformState, node: ts.Node,
 	}
 
 	return () => {
-		DiagnosticService.addDiagnostic(errors.unsupportedSpreadDestructing(node));
-		return luau.none();
+		assert(false, "Spread Destructuring not supported for type: " + state.typeChecker.typeToString(type));
 	};
 }

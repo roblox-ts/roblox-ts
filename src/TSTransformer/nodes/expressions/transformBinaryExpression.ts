@@ -10,7 +10,7 @@ import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { transformLogical } from "TSTransformer/nodes/transformLogical";
 import { transformLogicalOrCoalescingAssignmentExpression } from "TSTransformer/nodes/transformLogicalOrCoalescingAssignmentExpression";
 import { transformWritableAssignment, transformWritableExpression } from "TSTransformer/nodes/transformWritable";
-import { arrayLikeExpressionContainsSpread } from "TSTransformer/util/arrayBindingPatternContainsSpread";
+import { arrayLikeExpressionContainsSpread } from "TSTransformer/util/arrayLikeExpressionContainsSpread";
 import {
 	createAssignmentExpression,
 	createCompoundAssignmentExpression,
@@ -47,7 +47,7 @@ function transformOptimizedArrayAssignmentPattern(
 			if (ts.isOmittedExpression(element)) {
 				luau.list.push(writes, luau.tempId());
 			} else if (ts.isSpreadElement(element)) {
-				assert(false, "Cannot optimise-assign spread element");
+				assert(false, "Cannot optimize-assign spread element");
 			} else {
 				let initializer: ts.Expression | undefined;
 				if (ts.isBinaryExpression(element)) {

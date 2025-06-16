@@ -49,6 +49,46 @@ export = () => {
 		expect(rest.d).to.be.equal(3);
 	});
 
+	it("should support spread destructure in nested binding patterns", () => {
+		const foo = {
+			a: 1,
+			b: [1, 2, 3, 4],
+			c: {
+				d: 2,
+				e: 3,
+				f: 4,
+			},
+		};
+
+		const {
+			a,
+			b: [e1, e2, ...arrRest],
+			c: { d, ...rest },
+		} = foo;
+		expect(e1).to.be.equal(1);
+		expect(e2).to.be.equal(2);
+		expect(arrRest[0]).to.be.equal(3);
+		expect(arrRest[1]).to.be.equal(4);
+
+		expect(a).to.equal(1);
+		expect(d).to.equal(2);
+		expect(rest.e).to.equal(3);
+		expect(rest.f).to.equal(4);
+	});
+
+	it("should spread destructure objects with computed index exps", () => {
+		const a = {
+			b: 1,
+			c: 2,
+			d: 3,
+		};
+		const key = "b";
+		const { [key]: b, ...rest } = a;
+		expect(b).to.equal(1);
+		expect(rest.c).to.be.equal(2);
+		expect(rest.d).to.be.equal(3);
+	});
+
 	it("should destructure nested objects", () => {
 		const a = {
 			b: {
@@ -373,16 +413,28 @@ export = () => {
 	});
 
 	it("should spread destructure maps", () => {
-		const original = new Map([
+		const expected = new Map([
 			["a", 1],
 			["b", 2],
 			["c", 3],
 		]);
-		const [, ...rest] = original;
 
-		expect(rest.size()).to.equal(2);
-		expect(rest[0][0]).to.never.equal("a");
-		expect(rest[0][1]).to.never.equal("a");
+		const [a, ...rest] = new Map([
+			["a", 1],
+			["b", 2],
+			["c", 3],
+		]);
+
+		expect(expected.get(a[0])).to.equal(a[1]);
+		expect(expected.delete(a[0])).to.equal(true);
+
+		expect(expected.get(rest[0][0])).to.equal(rest[0][1]);
+		expect(expected.delete(rest[0][0])).to.equal(true);
+
+		expect(expected.get(rest[1][0])).to.equal(rest[1][1]);
+		expect(expected.delete(rest[1][0])).to.equal(true);
+
+		expect(expected.size()).to.equal(0);
 	});
 
 	it("should properly destruct with element access", () => {

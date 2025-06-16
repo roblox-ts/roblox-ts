@@ -4,7 +4,7 @@ import { transformObjectBindingPattern } from "TSTransformer/nodes/binding/trans
 import { transformVariable } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { getAccessorForBindingType } from "TSTransformer/util/binding/getAccessorForBindingType";
-import { getSpreadDestructorForType } from "TSTransformer/util/spreadDestruction";
+import { getSpreadDestructorForType } from "TSTransformer/util/spreadDestructuring";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import ts from "typescript";
 
