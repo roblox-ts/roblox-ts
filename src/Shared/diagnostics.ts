@@ -129,7 +129,6 @@ export const errors = {
 	noExclamationEquals: error("operator `!=` is not supported!", suggestion("Use `!==` instead.")),
 	noEnumMerging: error("Enum merging is not supported!"),
 	noNamespaceMerging: error("Namespace merging is not supported!"),
-	noSpreadDestructuring: error("Operator `...` is not supported for destructuring!"),
 	noFunctionExpressionName: error("Function expression names are not supported!"),
 	noPrecedingSpreadElement: error("Spread element must come last in a list of arguments!"),
 	noLuaTupleDestructureAssignmentExpression: error(
@@ -143,6 +142,8 @@ export const errors = {
 		"The `instanceof` operator can only be used on roblox-ts classes!",
 		suggestion('Use `typeIs(myThing, "TypeToCheck") instead'),
 	),
+	noNestedSpreadsInAssignmentPatterns: error("Nesting spreads in assignment patterns is not supported!"),
+	noRestSpreadingOfRobloxTypes: error("Operator `...` is not allowed on Roblox types!"),
 	noNonNumberStringRelationOperator: error("Relation operators can only be used on number or string types!"),
 	noInstanceMethodCollisions: error("Static methods cannot use the same name as instance methods!"),
 	noStaticMethodCollisions: error("Instance methods cannot use the same name as static methods!"),
