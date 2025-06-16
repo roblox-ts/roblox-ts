@@ -7,7 +7,7 @@ import { transformArrayBindingPattern } from "TSTransformer/nodes/binding/transf
 import { transformVariable } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { objectAccessor } from "TSTransformer/util/binding/objectAccessor";
-import { spreadDestructObject } from "TSTransformer/util/spreadDestructuring";
+import { spreadDestructureObject } from "TSTransformer/util/spreadDestructuring";
 import { isPossiblyType, isRobloxType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import ts from "typescript";
@@ -26,7 +26,7 @@ export function transformObjectBindingPattern(
 
 		if (ts.isIdentifier(name)) {
 			const value = isSpread
-				? spreadDestructObject(state, parentId, preSpreadNames)
+				? spreadDestructureObject(state, parentId, preSpreadNames)
 				: objectAccessor(state, parentId, state.getType(bindingPattern), prop ?? name);
 			preSpreadNames.push(value);
 
@@ -43,10 +43,10 @@ export function transformObjectBindingPattern(
 			// if name is not identifier, it must be a binding pattern
 			// in that case, prop is guaranteed to exist
 			assert(prop);
-			const value = isSpread
-				? spreadDestructObject(state, parentId, preSpreadNames)
-				: objectAccessor(state, parentId, state.getType(bindingPattern), prop);
+			assert(!isSpread);
+			const value = objectAccessor(state, parentId, state.getType(bindingPattern), prop);
 			preSpreadNames.push(value);
+
 			const id = state.pushToVar(value, "binding");
 			if (element.initializer) {
 				state.prereq(transformInitializer(state, id, element.initializer));

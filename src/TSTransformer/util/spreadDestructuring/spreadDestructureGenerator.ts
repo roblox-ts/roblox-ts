@@ -1,7 +1,7 @@
 import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer/classes/TransformState";
 
-export function spreadDestructGenerator(state: TransformState, parentId: luau.AnyIdentifier) {
+export function spreadDestructureGenerator(state: TransformState, parentId: luau.AnyIdentifier) {
 	const restId = state.pushToVar(luau.array(), "rest");
 
 	const valueId = luau.tempId("v");

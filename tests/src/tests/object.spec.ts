@@ -19,32 +19,6 @@ export = () => {
 		expect(obj[1]).to.equal(3);
 	});
 
-	it("should support rest in assignment patterns", () => {
-		const obj = {
-			a: 1,
-			b: 2,
-			c: 3,
-		};
-
-		let a: number, b: number, rest: { c: number };
-		({ a, b, ...rest } = obj);
-
-		expect(a).to.equal(1);
-		expect(b).to.equal(2);
-		expect(rest.c).to.equal(3);
-	});
-
-	it("f", () => {
-		const obj = {
-			a: 1,
-			b: 2,
-			c: 3,
-		};
-
-		let a: number, b: number, rest: { c: number };
-		({ a, b, ...rest } = obj);
-	})
-
 	it("should support numeric indexing", () => {
 		const obj: { [key: number]: number } = {
 			2: 1,

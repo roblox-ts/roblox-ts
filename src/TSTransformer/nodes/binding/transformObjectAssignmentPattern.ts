@@ -8,7 +8,7 @@ import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { transformWritableExpression } from "TSTransformer/nodes/transformWritable";
 import { objectAccessor } from "TSTransformer/util/binding/objectAccessor";
 import { getKindName } from "TSTransformer/util/getKindName";
-import { spreadDestructObject } from "TSTransformer/util/spreadDestructuring";
+import { spreadDestructureObject } from "TSTransformer/util/spreadDestructuring";
 import { skipDownwards } from "TSTransformer/util/traversal";
 import ts from "typescript";
 
@@ -42,7 +42,7 @@ export function transformObjectAssignmentPattern(
 				state.prereq(transformInitializer(state, id, property.objectAssignmentInitializer));
 			}
 		} else if (ts.isSpreadAssignment(property)) {
-			const value = spreadDestructObject(state, parentId, preSpreadNames);
+			const value = spreadDestructureObject(state, parentId, preSpreadNames);
 			const expression = property.expression;
 
 			if (ts.isObjectLiteralExpression(expression)) {

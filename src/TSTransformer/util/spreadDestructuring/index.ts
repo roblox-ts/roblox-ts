@@ -1,17 +1,17 @@
 import luau from "@roblox-ts/luau-ast";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer/classes/TransformState";
-import { spreadDestructArray } from "TSTransformer/util/spreadDestructuring/spreadDestructArray";
-import { spreadDestructGenerator } from "TSTransformer/util/spreadDestructuring/spreadDestructGenerator";
-import { spreadDestructMap } from "TSTransformer/util/spreadDestructuring/spreadDestructMap";
-import { spreadDestructSet } from "TSTransformer/util/spreadDestructuring/spreadDestructSet";
+import { spreadDestructureArray } from "TSTransformer/util/spreadDestructuring/spreadDestructureArray";
+import { spreadDestructureGenerator } from "TSTransformer/util/spreadDestructuring/spreadDestructureGenerator";
+import { spreadDestructureMap } from "TSTransformer/util/spreadDestructuring/spreadDestructureMap";
+import { spreadDestructureSet } from "TSTransformer/util/spreadDestructuring/spreadDestructureSet";
 import { isArrayType, isDefinitelyType, isGeneratorType, isMapType, isSetType } from "TSTransformer/util/types";
 import ts from "typescript";
 
-export * from "TSTransformer/util/spreadDestructuring/spreadDestructArray";
-export * from "TSTransformer/util/spreadDestructuring/spreadDestructMap";
-export * from "TSTransformer/util/spreadDestructuring/spreadDestructObject";
-export * from "TSTransformer/util/spreadDestructuring/spreadDestructSet";
+export * from "TSTransformer/util/spreadDestructuring/spreadDestructureArray";
+export * from "TSTransformer/util/spreadDestructuring/spreadDestructureMap";
+export * from "TSTransformer/util/spreadDestructuring/spreadDestructureObject";
+export * from "TSTransformer/util/spreadDestructuring/spreadDestructureSet";
 
 type SpreadDestructor = (
 	state: TransformState,
@@ -22,13 +22,13 @@ type SpreadDestructor = (
 
 export function getSpreadDestructorForType(state: TransformState, node: ts.Node, type: ts.Type): SpreadDestructor {
 	if (isDefinitelyType(type, isArrayType(state))) {
-		return spreadDestructArray;
+		return spreadDestructureArray;
 	} else if (isDefinitelyType(type, isSetType(state))) {
-		return spreadDestructSet;
+		return spreadDestructureSet;
 	} else if (isDefinitelyType(type, isMapType(state))) {
-		return spreadDestructMap;
+		return spreadDestructureMap;
 	} else if (isDefinitelyType(type, isGeneratorType(state))) {
-		return spreadDestructGenerator;
+		return spreadDestructureGenerator;
 	}
 
 	return () => {
