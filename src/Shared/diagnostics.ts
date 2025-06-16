@@ -6,6 +6,10 @@ import { issue } from "Shared/util/createGithubLink";
 import { createTextDiagnostic } from "Shared/util/createTextDiagnostic";
 import ts from "typescript";
 
+export const diagnosticsFlags = {
+	expectedDiagnosticId: -1,
+};
+
 export type DiagnosticFactory<T extends Array<unknown> = []> = {
 	(node: ts.Node | SourceFileWithTextRange, ...context: T): ts.DiagnosticWithLocation;
 	id: number;
@@ -41,7 +45,7 @@ function diagnosticWithContext<T extends Array<unknown> = []>(
 	...messages: Array<string | false>
 ): DiagnosticFactory<T> {
 	const result = (node: ts.Node | SourceFileWithTextRange, ...context: T) => {
-		if (category === ts.DiagnosticCategory.Error) {
+		if (category === ts.DiagnosticCategory.Error && diagnosticsFlags.expectedDiagnosticId !== result.id) {
 			debugger;
 		}
 
