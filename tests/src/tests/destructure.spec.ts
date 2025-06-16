@@ -64,6 +64,13 @@ export = () => {
 		expect(rest.c).to.equal(3);
 	});
 
+	it("should disregard array optimizations if contains spread", () => {
+		const [a, b, ...[...[c]]] = [1, 2, [1, 2]];
+		expect(a).to.equal(1);
+		expect(b).to.equal(2);
+		expect(c[0]).to.equal(1);
+	});
+
 	it("should support spread destructure in nested binding patterns", () => {
 		const foo = {
 			a: 1,
