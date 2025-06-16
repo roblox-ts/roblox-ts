@@ -1,4 +1,5 @@
 import luau from "@roblox-ts/luau-ast";
+import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer/classes/TransformState";
 
 export function spreadDestructureObject(
@@ -12,7 +13,7 @@ export function spreadDestructureObject(
 				if (luau.isPropertyAccessExpression(expression)) return luau.string(expression.name);
 				if (luau.isComputedIndexExpression(expression)) return expression.index;
 
-				return expression;
+				assert(false, "Unknown expression type");
 			}),
 		),
 		"extracted",
