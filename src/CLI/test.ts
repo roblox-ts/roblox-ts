@@ -1,5 +1,6 @@
+/// <reference types="jest" />
+
 import fs from "fs-extra";
-import { describe } from "mocha";
 import path from "path";
 import { compileFiles } from "Project/functions/compileFiles";
 import { copyFiles } from "Project/functions/copyFiles";
