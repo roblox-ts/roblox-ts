@@ -45,7 +45,7 @@ export function transformObjectAssignmentPattern(
 			const value = spreadDestructureObject(state, parentId, preSpreadNames);
 			const expression = property.expression;
 
-			// Both diagnostics are needed because getTypeOfAssignmentPattern is implemented incorrectly:
+			// diagnostic is needed because getTypeOfAssignmentPattern is implemented incorrectly:
 			// it errors, if that parent of node being passed in is ts.SpreadElement
 			if (ts.isObjectLiteralExpression(expression) || ts.isArrayLiteralExpression(expression)) {
 				DiagnosticService.addDiagnostic(errors.noNestedSpreadsInAssignmentPatterns(property));
