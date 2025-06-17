@@ -17,7 +17,7 @@ import { ProjectOptions } from "Shared/types";
 import { getRootDirs } from "Shared/util/getRootDirs";
 import { hasErrors } from "Shared/util/hasErrors";
 import ts from "typescript";
-import yargs from "yargs";
+import type yargs from "yargs";
 
 function getTsConfigProjectOptions(tsConfigPath?: string): Partial<ProjectOptions> | undefined {
 	if (tsConfigPath !== undefined) {
@@ -51,8 +51,8 @@ export = ts.identity<yargs.CommandModule<object, BuildFlags & Partial<ProjectOpt
 
 	describe: "Build a project",
 
-	builder: () =>
-		yargs
+	builder: (parser: yargs.Argv) =>
+		parser
 			.option("project", {
 				alias: "p",
 				string: true,
