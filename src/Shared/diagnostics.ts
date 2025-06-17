@@ -41,7 +41,10 @@ function diagnosticWithContext<T extends Array<unknown> = []>(
 	...messages: Array<string | false>
 ): DiagnosticFactory<T> {
 	const result = (node: ts.Node | SourceFileWithTextRange, ...context: T) => {
-		if (category === ts.DiagnosticCategory.Error) {
+		if (
+			category === ts.DiagnosticCategory.Error &&
+			process.env.ROBLOX_TS_EXPECTED_DIAGNOSTIC_ID !== String(result.id)
+		) {
 			debugger;
 		}
 
