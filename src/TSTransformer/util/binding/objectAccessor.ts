@@ -30,6 +30,9 @@ export const objectAccessor = (
 	} else if (ts.isPrivateIdentifier(name)) {
 		DiagnosticService.addDiagnostic(errors.noPrivateIdentifier(name));
 		return luau.none();
+	} else if (ts.isBigIntLiteral(name)) {
+		DiagnosticService.addDiagnostic(errors.noBigInt(name));
+		return luau.none();
 	}
 	return assertNever(name, "objectAccessor");
 };
