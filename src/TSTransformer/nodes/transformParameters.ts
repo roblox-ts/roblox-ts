@@ -1,11 +1,10 @@
 import luau from "@roblox-ts/luau-ast";
-import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
-import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformArrayBindingPattern } from "TSTransformer/nodes/binding/transformArrayBindingPattern";
 import { transformObjectBindingPattern } from "TSTransformer/nodes/binding/transformObjectBindingPattern";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
+import { arrayLikeExpressionContainsSpread } from "TSTransformer/util/arrayLikeExpressionContainsSpread";
 import { isMethod } from "TSTransformer/util/isMethod";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import ts from "typescript";
@@ -22,10 +21,6 @@ function optimizeArraySpreadParameter(
 		if (ts.isOmittedExpression(element)) {
 			luau.list.push(parameters, luau.tempId());
 		} else {
-			if (element.dotDotDotToken) {
-				DiagnosticService.addDiagnostic(errors.noSpreadDestructuring(element));
-				return;
-			}
 			const name = element.name;
 			if (ts.isIdentifier(name)) {
 				const paramId = transformIdentifierDefined(state, name);
@@ -64,7 +59,11 @@ export function transformParameters(state: TransformState, node: ts.SignatureDec
 			continue;
 		}
 
-		if (parameter.dotDotDotToken && ts.isArrayBindingPattern(parameter.name)) {
+		if (
+			parameter.dotDotDotToken &&
+			ts.isArrayBindingPattern(parameter.name) &&
+			!arrayLikeExpressionContainsSpread(parameter.name)
+		) {
 			const prereqs = state.capturePrereqs(() =>
 				optimizeArraySpreadParameter(state, parameters, parameter.name as ts.ArrayBindingPattern),
 			);

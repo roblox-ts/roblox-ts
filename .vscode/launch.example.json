@@ -5,13 +5,10 @@
 			"request": "launch",
 			"name": "Unit Tests",
 			"preLaunchTask": "npm: build",
-			"runtimeArgs": [
-				"${workspaceRoot}/node_modules/.bin/mocha",
-				"--timeout",
-				"0",
-				"--recursive",
-				"out/CLI/test.js"
-			],
+			"program": "${workspaceFolder}/node_modules/jest/bin/jest.js",
+			"args": ["--runInBand"],
+			"cwd": "${workspaceFolder}",
+			"console": "integratedTerminal",
 			"sourceMaps": true,
 			"skipFiles": ["<node_internals>/**"]
 		},
