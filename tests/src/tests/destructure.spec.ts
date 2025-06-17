@@ -854,4 +854,16 @@ export = () => {
 		b(123);
 		expect(x).to.equal(123);
 	});
+
+	it("should support destructuring LuaTuple with spread", () => {
+		function returnsLuaTuple() {
+			return $tuple(1, 2, 3, 4, 5);
+		}
+		const [a, b, c, ...rest] = returnsLuaTuple();
+		expect(a).to.equal(1);
+		expect(b).to.equal(2);
+		expect(c).to.equal(3);
+		expect(rest[0]).to.equal(4);
+		expect(rest[1]).to.equal(5);
+	});
 };

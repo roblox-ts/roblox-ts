@@ -1,6 +1,7 @@
 import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer";
 import { arrayBindingPatternContainsHoists } from "TSTransformer/util/arrayBindingPatternContainsHoists";
+import { arrayLikeExpressionContainsSpread } from "TSTransformer/util/arrayLikeExpressionContainsSpread";
 import { skipUpwards } from "TSTransformer/util/traversal";
 import { isLuaTupleType } from "TSTransformer/util/types";
 import ts from "typescript";
@@ -27,7 +28,9 @@ function shouldWrapLuaTuple(state: TransformState, node: ts.CallExpression, exp:
 	if (
 		ts.isVariableDeclaration(parent) &&
 		ts.isArrayBindingPattern(parent.name) &&
-		!arrayBindingPatternContainsHoists(state, parent.name)
+		!arrayBindingPatternContainsHoists(state, parent.name) &&
+		!arrayLikeExpressionContainsSpread(parent.name) &&
+		node.questionDotToken === undefined
 	) {
 		return false;
 	}
