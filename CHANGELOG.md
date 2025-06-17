@@ -26,12 +26,16 @@
 - Fixed internal transformPaths transformer ([#2800][2800])
 - Added support for `.luau` file extension ([#2802][2802])
 - Fix typo in issue #1149's diagnostic ([#2649][2649])
-- Added an error if `types` is not found in tsconfig.json ([#2533][2533])
+- Added an error if `types` specified in tsconfig.json are not found ([#2533][2533])
 
 ### **Breaking Changes**
 - To continue using `@rbxts/roact` + JSX
-	- roblox-ts 3.0.0+ will require `@rbxts/roact` 3.0.0+
+	- roblox-ts 3.0.0+ will require `@rbxts/roact` 3.0.1+
 	- Class components must be tagged with `@Roact.ClassComponent`
+	- Top-level JSX expressions no longer support `Key`. To preserve previous behavior, you should wrap it in a fragment:
+		```tsx
+		<><screengui Key="ScreenGui" /></>
+		```
 	- In `tsconfig.json` you should set the following
 		```json
 		"jsx": "react",
@@ -42,6 +46,7 @@
 - The TypeScript update includes a few edge-case breaking changes: [5.4](https://devblogs.microsoft.com/typescript/announcing-typescript-5-4/#notable-behavioral-changes8) and [5.5](https://devblogs.microsoft.com/typescript/announcing-typescript-5-5/#notable-behavioral-changes30)
 - roblox-ts will emit compiled files as `.luau` by default. You can keep the old behaviour by running with `--luau=false`.
 - Parameter decorators will now be called with the name of the method, instead of the name of the parameter. This matches TypeScript behaviour.
+- `typeRoots` are now verified relative to the project folder, not the `package.json`. For more info, see ([#2533][2533])
 
 ## 2.3.0
 - Removed `rbxtsc init` in favor of `npm create roblox-ts` ([#2503][2503])

@@ -1,6 +1,6 @@
 {
 	"name": "roblox-ts",
-	"version": "2.3.0",
+	"version": "3.0.0",
 	"description": "A TypeScript-to-Luau Compiler for Roblox",
 	"main": "out/CLI/index.js",
 	"repository": {
@@ -18,32 +18,11 @@
 		"devlink": "npm run build && cd devlink && npm link",
 		"update-test-types": "cd tests && npm install github:roblox-ts/compiler-types @rbxts/types@latest && npm install",
 		"test": "npm run build && npm run test-compile && npm run test-rojo && npm run test-run",
-		"test-compile": "nyc mocha --timeout 0 --recursive out/CLI/test.js",
+		"test-compile": "jest --coverage --runInBand",
 		"test-rojo": "rojo build tests -o ./tests/test.rbxl",
 		"test-run": "lune run ./tests/runTestsWithLune.lua ./tests/test.rbxl",
 		"test-roblox": "npm run build && npm run test-compile && npm run test-rojo && npm run run-in-roblox",
 		"run-in-roblox": "run-in-roblox --place ./tests/test.rbxl --script ./tests/out/main.server.lua"
-	},
-	"nyc": {
-		"all": true,
-		"reporter": [
-			"lcov"
-		],
-		"extension": [
-			".ts"
-		],
-		"include": [
-			"out/**/*.js",
-			"src/**/*.ts"
-		],
-		"exclude": [
-			"src/CLI",
-			"src/Project",
-			"src/Shared/classes/LogService.ts",
-			"src/TSTransformer/util/getFlags.ts",
-			"src/TSTransformer/util/getKindName.ts",
-			"src/TSTransformer/util/jsx/constants.ts"
-		]
 	},
 	"author": "",
 	"license": "MIT",
@@ -51,36 +30,37 @@
 		"@roblox-ts/luau-ast": "=2.0.0",
 		"@roblox-ts/path-translator": "=1.1.0",
 		"@roblox-ts/rojo-resolver": "=1.1.0",
-		"chokidar": "^3.6.0",
-		"fs-extra": "^11.2.0",
+		"chokidar": "^4.0.3",
+		"fs-extra": "^11.3.0",
 		"kleur": "^4.1.5",
-		"resolve": "^1.22.6",
+		"resolve": "^1.22.10",
 		"typescript": "=5.5.3",
-		"yargs": "^17.7.2"
+		"yargs": "^18.0.0"
 	},
 	"devDependencies": {
-		"@eslint-community/eslint-plugin-eslint-comments": "^4.4.0",
+		"@eslint-community/eslint-plugin-eslint-comments": "^4.5.0",
 		"@types/eslint__eslintrc": "^2.1.2",
 		"@types/eslint__js": "^8.42.3",
 		"@types/eslint-config-prettier": "^6.11.3",
 		"@types/fs-extra": "^11.0.4",
-		"@types/mocha": "^10.0.7",
-		"@types/node": "^22.5.4",
+		"@types/node": "^24.0.3",
 		"@types/prompts": "^2.4.9",
 		"@types/resolve": "^1.20.6",
 		"@types/ts-expose-internals": "npm:ts-expose-internals@=5.5.3",
 		"@types/yargs": "^17.0.33",
 		"eslint": "^9.9.1",
-		"eslint-config-prettier": "^9.1.0",
-		"eslint-plugin-prettier": "^5.2.1",
+		"eslint-config-prettier": "^10.1.5",
+		"eslint-plugin-prettier": "^5.5.0",
 		"eslint-plugin-simple-import-sort": "^12.1.1",
-		"jiti": "^1.21.6",
-		"mocha": "^10.7.3",
-		"nyc": "^17.0.0",
-		"prettier": "^3.3.3",
-		"ts-patch": "^3.2.1",
-		"typescript-eslint": "^8.5.0",
-		"typescript-transform-paths": "^3.5.0"
+		"jiti": "^2.4.2",
+		"prettier": "^3.5.3",
+		"ts-patch": "^3.3.0",
+		"typescript-eslint": "^8.34.1",
+		"typescript-transform-paths": "^3.5.5",
+		"@types/jest": "^30.0.0",
+		"jest": "^30.0.0",
+		"ts-jest": "^29.1.1",
+		"ts-node": "^10.9.1"
 	},
 	"files": [
 		"out",
