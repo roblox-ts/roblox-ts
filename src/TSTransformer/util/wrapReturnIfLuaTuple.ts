@@ -36,7 +36,12 @@ function shouldWrapLuaTuple(state: TransformState, node: ts.CallExpression, exp:
 	}
 
 	// `[a] = foo()`
-	if (ts.isAssignmentExpression(parent) && ts.isArrayLiteralExpression(parent.left)) {
+	if (
+		ts.isAssignmentExpression(parent) &&
+		ts.isArrayLiteralExpression(parent.left) &&
+		!arrayLikeExpressionContainsSpread(parent.left) &&
+		node.questionDotToken === undefined
+	) {
 		return false;
 	}
 
