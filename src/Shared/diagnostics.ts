@@ -6,10 +6,6 @@ import { issue } from "Shared/util/createGithubLink";
 import { createTextDiagnostic } from "Shared/util/createTextDiagnostic";
 import ts from "typescript";
 
-export const diagnosticsFlags = {
-	expectedDiagnosticId: -1,
-};
-
 export type DiagnosticFactory<T extends Array<unknown> = []> = {
 	(node: ts.Node | SourceFileWithTextRange, ...context: T): ts.DiagnosticWithLocation;
 	id: number;
@@ -45,7 +41,10 @@ function diagnosticWithContext<T extends Array<unknown> = []>(
 	...messages: Array<string | false>
 ): DiagnosticFactory<T> {
 	const result = (node: ts.Node | SourceFileWithTextRange, ...context: T) => {
-		if (category === ts.DiagnosticCategory.Error && diagnosticsFlags.expectedDiagnosticId !== result.id) {
+		if (
+			category === ts.DiagnosticCategory.Error &&
+			process.env.ROBLOX_TS_EXPECTED_DIAGNOSTIC_ID !== String(result.id)
+		) {
 			debugger;
 		}
 

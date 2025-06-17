@@ -10,7 +10,7 @@ import { createProjectData } from "Project/functions/createProjectData";
 import { createProjectProgram } from "Project/functions/createProjectProgram";
 import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
 import { DEFAULT_PROJECT_OPTIONS, PACKAGE_ROOT, TS_EXT, TSX_EXT } from "Shared/constants";
-import { DiagnosticFactory, diagnosticsFlags, errors, getDiagnosticId } from "Shared/diagnostics";
+import { DiagnosticFactory, errors, getDiagnosticId } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { formatDiagnostics } from "Shared/util/formatDiagnostics";
 import { getRootDirs } from "Shared/util/getRootDirs";
@@ -52,9 +52,9 @@ describe("should compile tests project", () => {
 			assert(diagnosticName && errors[diagnosticName], `Diagnostic test for unknown diagnostic ${fileBaseName}`);
 			const expectedId = (errors[diagnosticName] as DiagnosticFactory).id;
 			it(`should compile ${fileName} and report diagnostic ${diagnosticName}`, done => {
-				diagnosticsFlags.expectedDiagnosticId = expectedId;
+				process.env.ROBLOX_TS_EXPECTED_DIAGNOSTIC_ID = String(expectedId);
 				const emitResult = compileFiles(program.getProgram(), data, pathTranslator, [sourceFile]);
-				diagnosticsFlags.expectedDiagnosticId = -1;
+				delete process.env.ROBLOX_TS_EXPECTED_DIAGNOSTIC_ID;
 				if (
 					emitResult.diagnostics.length > 0 &&
 					emitResult.diagnostics.every(d => getDiagnosticId(d) === expectedId)
