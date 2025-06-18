@@ -58,6 +58,6 @@ export default tseslint.config(
 		},
 	},
 	{
-		ignores: ["node_modules/", "tests/", "out/", "coverage/", "devlink/"],
+		ignores: ["node_modules/", "tests/", "out/", "coverage/", "devlink/", "jest.config.ts"],
 	},
 );
