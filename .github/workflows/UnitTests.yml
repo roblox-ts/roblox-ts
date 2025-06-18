@@ -15,7 +15,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Rokit
-        uses: CompeyDev/setup-rokit@v0.1.2
+        uses: roblox-ts/setup-rokit@v0.1.2
 
       - name: Install NPM Dependencies
         uses: bahmutov/npm-install@v1
@@ -28,13 +28,13 @@ jobs:
 
       - name: Upload Test Output
         if: failure()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: test-output
           path: tests/out
 
-      - name: Report Coverage
-        continue-on-error: true
-        uses: coverallsapp/github-action@v1.1.2
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage/lcov.info
