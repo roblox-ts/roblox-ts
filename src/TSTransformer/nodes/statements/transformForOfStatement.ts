@@ -25,6 +25,7 @@ import {
 	isIterableType,
 	isMapType,
 	isSetType,
+	isSharedTableType,
 	isStringType,
 } from "TSTransformer/util/types";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
@@ -412,7 +413,7 @@ function getLoopBuilder(state: TransformState, node: ts.Node, type: ts.Type): Lo
 		return buildArrayLoop;
 	} else if (isDefinitelyType(type, isSetType(state))) {
 		return buildSetLoop;
-	} else if (isDefinitelyType(type, isMapType(state))) {
+	} else if (isDefinitelyType(type, isMapType(state)) || isDefinitelyType(type, isSharedTableType(state))) {
 		return buildMapLoop;
 	} else if (isDefinitelyType(type, isStringType)) {
 		return buildStringLoop;
