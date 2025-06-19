@@ -58,7 +58,7 @@
 		"typescript-eslint": "^8.34.1",
 		"typescript-transform-paths": "^3.5.5",
 		"@types/jest": "^30.0.0",
-		"jest": "^30.0.0",
+		"jest": "^30.0.1",
 		"ts-jest": "^29.1.1",
 		"ts-node": "^10.9.1"
 	},
