@@ -246,6 +246,8 @@ function transformForStatementFallback(state: TransformState, node: ts.ForStatem
 		);
 	}
 
+	luau.list.pushList(whileStatements, state.processLoopLabel(node));
+
 	let [conditionExp, conditionPrereqs] = state.capture(() => {
 		if (condition) {
 			return createTruthinessChecks(state, transformExpression(state, condition), condition);
@@ -483,17 +485,24 @@ function transformForStatementOptimized(state: TransformState, node: ts.ForState
 		end = offset(end, 1);
 	}
 
+	luau.list.unshiftList(statements, state.processLoopLabel(node));
 	luau.list.push(result, luau.create(luau.SyntaxKind.NumericForStatement, { id, start, end, step, statements }));
 
 	return result;
 }
 
 export function transformForStatement(state: TransformState, node: ts.ForStatement): luau.List<luau.Statement> {
+	state.increaseLoopDepth();
 	if (state.data.projectOptions.optimizedLoops) {
 		const optimized = transformForStatementOptimized(state, node);
 		if (optimized) {
 			return optimized;
 		}
 	}
-	return transformForStatementFallback(state, node);
+
+	const statements = transformForStatementFallback(state, node);
+	luau.list.pushList(statements, state.generateLabelChecks());
+
+	state.decreaseLoopDepth();
+	return statements;
 }
