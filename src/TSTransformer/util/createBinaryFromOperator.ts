@@ -1,6 +1,7 @@
 import luau from "@roblox-ts/luau-ast";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer/classes/TransformState";
+import { createBitwiseFromOperator, isBitwiseOperator } from "TSTransformer/util/bitwise";
 import { getKindName } from "TSTransformer/util/getKindName";
 import { isDefinitelyType, isStringType } from "TSTransformer/util/types";
 import { wrapExpressionStatement } from "TSTransformer/util/wrapExpressionStatement";
@@ -23,24 +24,6 @@ const OPERATOR_MAP = new Map<ts.SyntaxKind, luau.BinaryOperator>([
 	[ts.SyntaxKind.PercentToken, "%"],
 ]);
 
-const BITWISE_OPERATOR_MAP = new Map<ts.SyntaxKind, string>([
-	// bitwise
-	[ts.SyntaxKind.AmpersandToken, "band"],
-	[ts.SyntaxKind.BarToken, "bor"],
-	[ts.SyntaxKind.CaretToken, "bxor"],
-	[ts.SyntaxKind.LessThanLessThanToken, "lshift"],
-	[ts.SyntaxKind.GreaterThanGreaterThanGreaterThanToken, "rshift"],
-	[ts.SyntaxKind.GreaterThanGreaterThanToken, "arshift"],
-
-	// bitwise compound assignment
-	[ts.SyntaxKind.AmpersandEqualsToken, "band"],
-	[ts.SyntaxKind.BarEqualsToken, "bor"],
-	[ts.SyntaxKind.CaretEqualsToken, "bxor"],
-	[ts.SyntaxKind.LessThanLessThanEqualsToken, "lshift"],
-	[ts.SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken, "rshift"],
-	[ts.SyntaxKind.GreaterThanGreaterThanEqualsToken, "arshift"],
-]);
-
 function createBinaryAdd(left: luau.Expression, leftType: ts.Type, right: luau.Expression, rightType: ts.Type) {
 	const leftIsString = isDefinitelyType(leftType, isStringType);
 	const rightIsString = isDefinitelyType(rightType, isStringType);
@@ -57,7 +40,6 @@ function createBinaryAdd(left: luau.Expression, leftType: ts.Type, right: luau.E
 
 export function createBinaryFromOperator(
 	state: TransformState,
-	node: ts.Node,
 	left: luau.Expression,
 	leftType: ts.Type,
 	operatorKind: ts.BinaryOperator,
@@ -76,9 +58,8 @@ export function createBinaryFromOperator(
 	}
 
 	// bitwise
-	const bit32Name = BITWISE_OPERATOR_MAP.get(operatorKind);
-	if (bit32Name !== undefined) {
-		return luau.call(luau.property(luau.globals.bit32, bit32Name), [left, right]);
+	if (isBitwiseOperator(operatorKind)) {
+		return createBitwiseFromOperator(operatorKind, [left, right]);
 	}
 
 	if (operatorKind === ts.SyntaxKind.CommaToken) {

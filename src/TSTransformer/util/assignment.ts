@@ -62,7 +62,7 @@ export function createCompoundAssignmentStatement(
 	return luau.create(luau.SyntaxKind.Assignment, {
 		left: writable,
 		operator: "=",
-		right: createBinaryFromOperator(state, node, readable, writableType, operator, value, valueType),
+		right: createBinaryFromOperator(state, readable, writableType, operator, value, valueType),
 	});
 }
 
@@ -80,6 +80,6 @@ export function createCompoundAssignmentExpression(
 		state,
 		writable,
 		"=",
-		createBinaryFromOperator(state, node, readable, writableType, operator, value, valueType),
+		createBinaryFromOperator(state, readable, writableType, operator, value, valueType),
 	);
 }
