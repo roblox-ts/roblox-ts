@@ -3,6 +3,7 @@ import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { getKindName } from "TSTransformer/util/getKindName";
+import { skipDownwards } from "TSTransformer/util/traversal";
 import ts from "typescript";
 
 const BITWISE_OPERATOR_MAP = new Map<ts.SyntaxKind, string>([
@@ -39,7 +40,7 @@ function buildVariadicExpressionList(
 		if (operatorKind === node.operatorToken.kind) {
 			buildVariadicExpressionList(expressions, operatorKind, node.left);
 
-			expressions.push(node.right);
+			expressions.push(skipDownwards(node.right));
 		} else {
 			expressions.push(node);
 		}
@@ -47,7 +48,7 @@ function buildVariadicExpressionList(
 		return;
 	}
 
-	expressions.push(node);
+	expressions.push(skipDownwards(node));
 }
 
 export function isBitwiseOperator(operatorKind: ts.BinaryOperator) {
