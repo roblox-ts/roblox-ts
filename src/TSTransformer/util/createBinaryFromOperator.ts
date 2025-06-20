@@ -40,6 +40,7 @@ function createBinaryAdd(left: luau.Expression, leftType: ts.Type, right: luau.E
 
 export function createBinaryFromOperator(
 	state: TransformState,
+	node: ts.Node,
 	left: luau.Expression,
 	leftType: ts.Type,
 	operatorKind: ts.BinaryOperator,

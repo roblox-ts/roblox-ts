@@ -264,5 +264,5 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 		}
 	}
 
-	return createBinaryFromOperator(state, left, leftType, operatorKind, right, rightType);
+	return createBinaryFromOperator(state, node, left, leftType, operatorKind, right, rightType);
 }
