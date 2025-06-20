@@ -32,7 +32,7 @@ function getBit32NameFromOperator(operatorKind: ts.BinaryOperator) {
 }
 
 function buildVariadicExpressionList(
-	expressions: ts.Expression[],
+	expressions: Array<ts.Expression>,
 	operatorKind: ts.BinaryOperator,
 	node: ts.Expression,
 ) {
@@ -61,7 +61,7 @@ export function isVariadicBitwiseOperator(operatorKind: ts.BinaryOperator) {
 
 export function createBitwiseFromOperator(
 	operatorKind: ts.BinaryOperator,
-	expressions: luau.Expression[],
+	expressions: Array<luau.Expression>,
 ): luau.Expression {
 	const name = getBit32NameFromOperator(operatorKind);
 	assert(name !== undefined, `createBitwiseFromOperator unknown operator: ${getKindName(operatorKind)}`);
