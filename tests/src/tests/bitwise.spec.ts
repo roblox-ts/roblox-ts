@@ -74,7 +74,7 @@ export = () => {
 		expect(a & b & c & d & e).to.equal(0b000);
 		expect(a | b | c | d | e).to.equal(0b111);
 		expect(a & b | 0b001).to.equal(0b101);
-		expect(a ^ b ^ c ^ d ^ e).to.equal(0b000);
+		expect(a ^ b ^ c ^ d ^ e).to.equal(0b001);
 		expect(a ^ b ^ c).to.equal(0b010);
 		expect(a & b | c | d ^ e).to.equal(0b111);
 		expect(a & b | c & d + 0b110 & e).to.equal(0b100);
