@@ -59,7 +59,7 @@ function isBitwiseLogicalOperator(operatorKind: ts.BinaryOperator) {
 }
 
 export function isBitwiseOperator(operatorKind: ts.BinaryOperator) {
-	return isBitwiseLogicalOperator(operatorKind) || OPERATOR_MAP.has(operatorKind);
+	return OPERATOR_MAP.has(operatorKind) || isBitwiseLogicalOperator(operatorKind);
 }
 
 export function createBitwiseFromOperator(

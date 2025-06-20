@@ -5,6 +5,7 @@ import { getKindName } from "TSTransformer/util/getKindName";
 import { isDefinitelyType, isStringType } from "TSTransformer/util/types";
 import { wrapExpressionStatement } from "TSTransformer/util/wrapExpressionStatement";
 import ts from "typescript";
+import { createBitwiseFromOperator, isBitwiseOperator } from "./bitwise";
 
 const OPERATOR_MAP = new Map<ts.SyntaxKind, luau.BinaryOperator>([
 	// comparison
@@ -55,6 +56,13 @@ export function createBinaryFromOperator(
 	// plus
 	if (operatorKind === ts.SyntaxKind.PlusToken || operatorKind === ts.SyntaxKind.PlusEqualsToken) {
 		return createBinaryAdd(left, leftType, right, rightType);
+	}
+
+	// bitwise assignment
+	if (isBitwiseOperator(operatorKind)) {
+		assert(ts.isBinaryExpression(node));
+
+		return createBitwiseFromOperator(state, operatorKind, node);
 	}
 
 	if (operatorKind === ts.SyntaxKind.CommaToken) {
