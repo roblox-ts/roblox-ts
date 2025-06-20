@@ -37,14 +37,14 @@ function createBitwiseCall(
 	return luau.call(luau.property(luau.globals.bit32, name), expressions);
 }
 
-function flattenBitwiseChainInto(
+function flattenBitwiseSegmentInto(
 	expressionList: Array<ts.Expression>,
 	operatorKind: ts.BinaryOperator,
 	node: ts.Expression,
 ) {
 	if (ts.isBinaryExpression(node)) {
 		if (operatorKind === node.operatorToken.kind) {
-			flattenBitwiseChainInto(expressionList, operatorKind, node.left);
+			flattenBitwiseSegmentInto(expressionList, operatorKind, node.left);
 
 			expressionList.push(skipDownwards(node.right));
 		} else {
@@ -72,7 +72,7 @@ export function createBitwiseFromOperator(
 ): luau.Expression {
 	const flattenedExpressions = new Array<ts.Expression>();
 	if (isBitwiseLogicalOperator(operatorKind)) {
-		flattenBitwiseChainInto(flattenedExpressions, operatorKind, node.left);
+		flattenBitwiseSegmentInto(flattenedExpressions, operatorKind, node.left);
 
 		flattenedExpressions.push(node.right);
 	} else {
