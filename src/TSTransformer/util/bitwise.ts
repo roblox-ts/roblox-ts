@@ -27,10 +27,7 @@ const LOGICAL_OPERATOR_MAP = new Map<ts.SyntaxKind, string>([
 	[ts.SyntaxKind.CaretToken, "bxor"],
 ]);
 
-function createBitwiseCall(
-	operatorKind: ts.BinaryOperator,
-	expressions: Array<luau.Expression>,
-): luau.Expression {
+function createBitwiseCall(operatorKind: ts.BinaryOperator, expressions: Array<luau.Expression>): luau.Expression {
 	const name = OPERATOR_MAP.get(operatorKind) ?? LOGICAL_OPERATOR_MAP.get(operatorKind);
 	assert(name !== undefined, `createBitwiseFromOperator unknown operator: ${getKindName(operatorKind)}`);
 
