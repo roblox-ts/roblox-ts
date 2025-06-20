@@ -55,7 +55,10 @@ export function isBitwiseOperator(operatorKind: ts.BinaryOperator) {
 	return OPERATOR_MAP.has(operatorKind) || isBitwiseLogicalOperator(operatorKind);
 }
 
-export function createBitwiseCall(operatorKind: ts.BinaryOperator, expressions: Array<luau.Expression>): luau.Expression {
+export function createBitwiseCall(
+	operatorKind: ts.BinaryOperator,
+	expressions: Array<luau.Expression>,
+): luau.Expression {
 	const name = OPERATOR_MAP.get(operatorKind) ?? LOGICAL_OPERATOR_MAP.get(operatorKind);
 	assert(name !== undefined, `createBitwiseFromOperator unknown operator: ${getKindName(operatorKind)}`);
 
