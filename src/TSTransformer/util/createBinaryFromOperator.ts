@@ -1,6 +1,7 @@
 import luau from "@roblox-ts/luau-ast";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer/classes/TransformState";
+import { createBitwiseCall, isBitwiseOperator } from "TSTransformer/util/bitwise";
 import { getKindName } from "TSTransformer/util/getKindName";
 import { isDefinitelyType, isStringType } from "TSTransformer/util/types";
 import { wrapExpressionStatement } from "TSTransformer/util/wrapExpressionStatement";
@@ -21,24 +22,6 @@ const OPERATOR_MAP = new Map<ts.SyntaxKind, luau.BinaryOperator>([
 	[ts.SyntaxKind.SlashToken, "/"],
 	[ts.SyntaxKind.AsteriskAsteriskToken, "^"],
 	[ts.SyntaxKind.PercentToken, "%"],
-]);
-
-const BITWISE_OPERATOR_MAP = new Map<ts.SyntaxKind, string>([
-	// bitwise
-	[ts.SyntaxKind.AmpersandToken, "band"],
-	[ts.SyntaxKind.BarToken, "bor"],
-	[ts.SyntaxKind.CaretToken, "bxor"],
-	[ts.SyntaxKind.LessThanLessThanToken, "lshift"],
-	[ts.SyntaxKind.GreaterThanGreaterThanGreaterThanToken, "rshift"],
-	[ts.SyntaxKind.GreaterThanGreaterThanToken, "arshift"],
-
-	// bitwise compound assignment
-	[ts.SyntaxKind.AmpersandEqualsToken, "band"],
-	[ts.SyntaxKind.BarEqualsToken, "bor"],
-	[ts.SyntaxKind.CaretEqualsToken, "bxor"],
-	[ts.SyntaxKind.LessThanLessThanEqualsToken, "lshift"],
-	[ts.SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken, "rshift"],
-	[ts.SyntaxKind.GreaterThanGreaterThanEqualsToken, "arshift"],
 ]);
 
 function createBinaryAdd(left: luau.Expression, leftType: ts.Type, right: luau.Expression, rightType: ts.Type) {
@@ -75,10 +58,9 @@ export function createBinaryFromOperator(
 		return createBinaryAdd(left, leftType, right, rightType);
 	}
 
-	// bitwise
-	const bit32Name = BITWISE_OPERATOR_MAP.get(operatorKind);
-	if (bit32Name !== undefined) {
-		return luau.call(luau.property(luau.globals.bit32, bit32Name), [left, right]);
+	// bitwise assignment
+	if (isBitwiseOperator(operatorKind)) {
+		return createBitwiseCall(operatorKind, [left, right]);
 	}
 
 	if (operatorKind === ts.SyntaxKind.CommaToken) {
