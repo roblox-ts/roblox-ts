@@ -27,13 +27,6 @@ const LOGICAL_OPERATOR_MAP = new Map<ts.SyntaxKind, string>([
 	[ts.SyntaxKind.CaretToken, "bxor"],
 ]);
 
-function createBitwiseCall(operatorKind: ts.BinaryOperator, expressions: Array<luau.Expression>): luau.Expression {
-	const name = OPERATOR_MAP.get(operatorKind) ?? LOGICAL_OPERATOR_MAP.get(operatorKind);
-	assert(name !== undefined, `createBitwiseFromOperator unknown operator: ${getKindName(operatorKind)}`);
-
-	return luau.call(luau.property(luau.globals.bit32, name), expressions);
-}
-
 function flattenBitwiseSegmentInto(
 	expressionList: Array<ts.Expression>,
 	operatorKind: ts.BinaryOperator,
@@ -60,6 +53,13 @@ function isBitwiseLogicalOperator(operatorKind: ts.BinaryOperator) {
 
 export function isBitwiseOperator(operatorKind: ts.BinaryOperator) {
 	return OPERATOR_MAP.has(operatorKind) || isBitwiseLogicalOperator(operatorKind);
+}
+
+export function createBitwiseCall(operatorKind: ts.BinaryOperator, expressions: Array<luau.Expression>): luau.Expression {
+	const name = OPERATOR_MAP.get(operatorKind) ?? LOGICAL_OPERATOR_MAP.get(operatorKind);
+	assert(name !== undefined, `createBitwiseFromOperator unknown operator: ${getKindName(operatorKind)}`);
+
+	return luau.call(luau.property(luau.globals.bit32, name), expressions);
 }
 
 export function createBitwiseFromOperator(
