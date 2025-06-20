@@ -21,63 +21,63 @@ const OPERATOR_MAP = new Map<ts.SyntaxKind, string>([
 	[ts.SyntaxKind.GreaterThanGreaterThanEqualsToken, "arshift"],
 ]);
 
-const VARIADIC_OPERATOR_MAP = new Map<ts.SyntaxKind, string>([
+const LOGICAL_OPERATOR_MAP = new Map<ts.SyntaxKind, string>([
 	[ts.SyntaxKind.AmpersandToken, "band"],
 	[ts.SyntaxKind.BarToken, "bor"],
 	[ts.SyntaxKind.CaretToken, "bxor"],
 ]);
 
-function getBit32NameFromOperator(operatorKind: ts.BinaryOperator) {
-	return OPERATOR_MAP.get(operatorKind) ?? VARIADIC_OPERATOR_MAP.get(operatorKind);
-}
-
-function buildVariadicExpressionList(
-	expressions: Array<ts.Expression>,
-	operatorKind: ts.BinaryOperator,
-	node: ts.Expression,
-) {
-	if (ts.isBinaryExpression(node)) {
-		if (operatorKind === node.operatorToken.kind) {
-			buildVariadicExpressionList(expressions, operatorKind, node.left);
-
-			expressions.push(skipDownwards(node.right));
-		} else {
-			expressions.push(node);
-		}
-
-		return;
-	}
-
-	expressions.push(skipDownwards(node));
-}
-
-export function isBitwiseOperator(operatorKind: ts.BinaryOperator) {
-	return OPERATOR_MAP.has(operatorKind);
-}
-
-export function isVariadicBitwiseOperator(operatorKind: ts.BinaryOperator) {
-	return VARIADIC_OPERATOR_MAP.has(operatorKind);
-}
-
-export function createBitwiseFromOperator(
+function createBitwiseCall(
 	operatorKind: ts.BinaryOperator,
 	expressions: Array<luau.Expression>,
 ): luau.Expression {
-	const name = getBit32NameFromOperator(operatorKind);
+	const name = OPERATOR_MAP.get(operatorKind) ?? LOGICAL_OPERATOR_MAP.get(operatorKind);
 	assert(name !== undefined, `createBitwiseFromOperator unknown operator: ${getKindName(operatorKind)}`);
 
 	return luau.call(luau.property(luau.globals.bit32, name), expressions);
 }
 
-export function createVariadicBitwiseFromOperator(
+function flattenBitwiseChainInto(
+	expressionList: Array<ts.Expression>,
+	operatorKind: ts.BinaryOperator,
+	node: ts.Expression,
+) {
+	if (ts.isBinaryExpression(node)) {
+		if (operatorKind === node.operatorToken.kind) {
+			flattenBitwiseChainInto(expressionList, operatorKind, node.left);
+
+			expressionList.push(skipDownwards(node.right));
+		} else {
+			expressionList.push(node);
+		}
+
+		return;
+	}
+
+	expressionList.push(skipDownwards(node));
+}
+
+function isBitwiseLogicalOperator(operatorKind: ts.BinaryOperator) {
+	return LOGICAL_OPERATOR_MAP.has(operatorKind);
+}
+
+export function isBitwiseOperator(operatorKind: ts.BinaryOperator) {
+	return isBitwiseLogicalOperator(operatorKind) || OPERATOR_MAP.has(operatorKind);
+}
+
+export function createBitwiseFromOperator(
 	state: TransformState,
 	operatorKind: ts.BinaryOperator,
 	node: ts.BinaryExpression,
 ): luau.Expression {
-	const separatedExpressions = new Array<ts.Expression>();
-	buildVariadicExpressionList(separatedExpressions, operatorKind, node.left);
+	const flattenedExpressions = new Array<ts.Expression>();
+	if (isBitwiseLogicalOperator(operatorKind)) {
+		flattenBitwiseChainInto(flattenedExpressions, operatorKind, node.left);
 
-	separatedExpressions.push(node.right);
+		flattenedExpressions.push(node.right);
+	} else {
+		flattenedExpressions.push(node.left, node.right);
+	}
 
-	return createBitwiseFromOperator(operatorKind, ensureTransformOrder(state, separatedExpressions));
+	return createBitwiseCall(operatorKind, ensureTransformOrder(state, flattenedExpressions));
 }

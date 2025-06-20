@@ -1,7 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer/classes/TransformState";
-import { createBitwiseFromOperator, isBitwiseOperator } from "TSTransformer/util/bitwise";
 import { getKindName } from "TSTransformer/util/getKindName";
 import { isDefinitelyType, isStringType } from "TSTransformer/util/types";
 import { wrapExpressionStatement } from "TSTransformer/util/wrapExpressionStatement";
@@ -56,11 +55,6 @@ export function createBinaryFromOperator(
 	// plus
 	if (operatorKind === ts.SyntaxKind.PlusToken || operatorKind === ts.SyntaxKind.PlusEqualsToken) {
 		return createBinaryAdd(left, leftType, right, rightType);
-	}
-
-	// bitwise
-	if (isBitwiseOperator(operatorKind)) {
-		return createBitwiseFromOperator(operatorKind, [left, right]);
 	}
 
 	if (operatorKind === ts.SyntaxKind.CommaToken) {

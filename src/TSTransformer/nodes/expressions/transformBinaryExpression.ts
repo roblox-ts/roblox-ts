@@ -16,7 +16,7 @@ import {
 	createCompoundAssignmentExpression,
 	getSimpleAssignmentOperator,
 } from "TSTransformer/util/assignment";
-import { createVariadicBitwiseFromOperator, isVariadicBitwiseOperator } from "TSTransformer/util/bitwise";
+import { createBitwiseFromOperator, isBitwiseOperator } from "TSTransformer/util/bitwise";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOperator";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
@@ -225,8 +225,8 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 		}
 	}
 
-	if (isVariadicBitwiseOperator(operatorKind)) {
-		return createVariadicBitwiseFromOperator(state, operatorKind, node);
+	if (isBitwiseOperator(operatorKind)) {
+		return createBitwiseFromOperator(state, operatorKind, node);
 	}
 
 	const [left, right] = ensureTransformOrder(state, [node.left, node.right]);
