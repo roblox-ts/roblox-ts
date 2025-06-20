@@ -6,7 +6,7 @@ import { getKindName } from "TSTransformer/util/getKindName";
 import { skipDownwards } from "TSTransformer/util/traversal";
 import ts from "typescript";
 
-const BITWISE_OPERATOR_MAP = new Map<ts.SyntaxKind, string>([
+const OPERATOR_MAP = new Map<ts.SyntaxKind, string>([
 	// bitwise
 	[ts.SyntaxKind.LessThanLessThanToken, "lshift"],
 	[ts.SyntaxKind.GreaterThanGreaterThanGreaterThanToken, "rshift"],
@@ -21,14 +21,14 @@ const BITWISE_OPERATOR_MAP = new Map<ts.SyntaxKind, string>([
 	[ts.SyntaxKind.GreaterThanGreaterThanEqualsToken, "arshift"],
 ]);
 
-const VARIADIC_BITWISE_OPERATOR_MAP = new Map<ts.SyntaxKind, string>([
+const VARIADIC_OPERATOR_MAP = new Map<ts.SyntaxKind, string>([
 	[ts.SyntaxKind.AmpersandToken, "band"],
 	[ts.SyntaxKind.BarToken, "bor"],
 	[ts.SyntaxKind.CaretToken, "bxor"],
 ]);
 
 function getBit32NameFromOperator(operatorKind: ts.BinaryOperator) {
-	return BITWISE_OPERATOR_MAP.get(operatorKind) ?? VARIADIC_BITWISE_OPERATOR_MAP.get(operatorKind);
+	return OPERATOR_MAP.get(operatorKind) ?? VARIADIC_OPERATOR_MAP.get(operatorKind);
 }
 
 function buildVariadicExpressionList(
@@ -52,11 +52,11 @@ function buildVariadicExpressionList(
 }
 
 export function isBitwiseOperator(operatorKind: ts.BinaryOperator) {
-	return BITWISE_OPERATOR_MAP.has(operatorKind);
+	return OPERATOR_MAP.has(operatorKind);
 }
 
 export function isVariadicBitwiseOperator(operatorKind: ts.BinaryOperator) {
-	return VARIADIC_BITWISE_OPERATOR_MAP.has(operatorKind);
+	return VARIADIC_OPERATOR_MAP.has(operatorKind);
 }
 
 export function createBitwiseFromOperator(
