@@ -225,7 +225,6 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 		}
 	}
 
-	// and/or/bxor
 	if (isVariadicBitwiseOperator(operatorKind)) {
 		return createVariadicBitwiseFromOperator(state, operatorKind, node);
 	}
