@@ -13,6 +13,7 @@ import {
 	isIterableType,
 	isMapType,
 	isSetType,
+	isSharedTableType,
 	isStringType,
 } from "TSTransformer/util/types";
 import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
@@ -356,7 +357,7 @@ export function getAddIterableToArrayBuilder(
 		return addString;
 	} else if (isDefinitelyType(type, isSetType(state))) {
 		return addSet;
-	} else if (isDefinitelyType(type, isMapType(state))) {
+	} else if (isDefinitelyType(type, isMapType(state)) || isDefinitelyType(type, isSharedTableType(state))) {
 		return addMap;
 	} else if (isDefinitelyType(type, isIterableFunctionLuaTupleType(state))) {
 		return addIterableFunctionLuaTuple;
