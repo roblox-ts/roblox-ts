@@ -16,6 +16,7 @@ import {
 	createCompoundAssignmentExpression,
 	getSimpleAssignmentOperator,
 } from "TSTransformer/util/assignment";
+import { createBitwiseFromOperator, isBitwiseOperator } from "TSTransformer/util/bitwise";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOperator";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
@@ -222,6 +223,10 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 				valueType,
 			);
 		}
+	}
+
+	if (isBitwiseOperator(operatorKind)) {
+		return createBitwiseFromOperator(state, operatorKind, node);
 	}
 
 	const [left, right] = ensureTransformOrder(state, [node.left, node.right]);
