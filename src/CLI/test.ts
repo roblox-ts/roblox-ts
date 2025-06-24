@@ -1,5 +1,6 @@
+/// <reference types="jest" />
+
 import fs from "fs-extra";
-import { describe } from "mocha";
 import path from "path";
 import { compileFiles } from "Project/functions/compileFiles";
 import { copyFiles } from "Project/functions/copyFiles";
@@ -51,7 +52,9 @@ describe("should compile tests project", () => {
 			assert(diagnosticName && errors[diagnosticName], `Diagnostic test for unknown diagnostic ${fileBaseName}`);
 			const expectedId = (errors[diagnosticName] as DiagnosticFactory).id;
 			it(`should compile ${fileName} and report diagnostic ${diagnosticName}`, done => {
+				process.env.ROBLOX_TS_EXPECTED_DIAGNOSTIC_ID = String(expectedId);
 				const emitResult = compileFiles(program.getProgram(), data, pathTranslator, [sourceFile]);
+				delete process.env.ROBLOX_TS_EXPECTED_DIAGNOSTIC_ID;
 				if (
 					emitResult.diagnostics.length > 0 &&
 					emitResult.diagnostics.every(d => getDiagnosticId(d) === expectedId)
