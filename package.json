@@ -50,7 +50,7 @@
 		"@types/yargs": "^17.0.33",
 		"eslint": "^9.9.1",
 		"eslint-config-prettier": "^10.1.5",
-		"eslint-plugin-prettier": "^5.5.0",
+		"eslint-plugin-prettier": "^5.5.1",
 		"eslint-plugin-simple-import-sort": "^12.1.1",
 		"jiti": "^2.4.2",
 		"prettier": "^3.6.1",
