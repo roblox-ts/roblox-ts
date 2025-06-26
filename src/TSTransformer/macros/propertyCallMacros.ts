@@ -925,6 +925,7 @@ export const PROPERTY_CALL_MACROS: { [className: string]: MacroList<PropertyCall
 	Vector2int16: makeMathSet("+", "-", "*", "/"),
 	Vector3: makeMathSet("+", "-", "*", "/", "//"),
 	Vector3int16: makeMathSet("+", "-", "*", "/"),
+	vector: makeMathSet("+", "-", "*", "/", "//"),
 	Number: makeMathSet("//"),
 
 	String: STRING_CALLBACKS,
