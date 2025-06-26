@@ -5,7 +5,7 @@ import { spreadDestructureArray } from "TSTransformer/util/spreadDestructuring/s
 import { spreadDestructureGenerator } from "TSTransformer/util/spreadDestructuring/spreadDestructureGenerator";
 import { spreadDestructureMap } from "TSTransformer/util/spreadDestructuring/spreadDestructureMap";
 import { spreadDestructureSet } from "TSTransformer/util/spreadDestructuring/spreadDestructureSet";
-import { spreadDestructureString } from "./spreadDestructureString";
+import { spreadDestructureString } from "TSTransformer/util/spreadDestructuring/spreadDestructureString";
 import { isArrayType, isDefinitelyType, isGeneratorType, isMapType, isSetType, isStringType } from "TSTransformer/util/types";
 import ts from "typescript";
 
