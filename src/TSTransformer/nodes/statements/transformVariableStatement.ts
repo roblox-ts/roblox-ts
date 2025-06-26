@@ -156,7 +156,14 @@ export function transformVariableDeclaration(
 			luau.list.pushList(
 				statements,
 				state.capturePrereqs(() =>
-					transformObjectBindingPattern(state, name, state.pushToVarIfNonId(value!, "binding")),
+					transformObjectBindingPattern(
+						state,
+						name,
+						// initializers could contain assignment expressions that can cause conflict
+						luau.isAnyIdentifier(value!) && name.elements.every(element => !element.initializer)
+							? value
+							: state.pushToVar(value, "binding"),
+					),
 				),
 			);
 		}
