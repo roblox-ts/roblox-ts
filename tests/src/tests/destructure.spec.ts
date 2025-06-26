@@ -809,6 +809,14 @@ export = () => {
 		expect(a).to.equal("f");
 	});
 
+	it("should spread destructure strings", () => {
+		const [h, e, ...llo] = "hello";
+
+		expect(h).to.equal("h");
+		expect(e).to.equal("e");
+		expect(llo.join("")).to.equal("llo");
+	});
+
 	it("should get sub type of iterable iterator", () => {
 		function* foo() {
 			yield "abc";
