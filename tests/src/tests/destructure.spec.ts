@@ -185,6 +185,19 @@ export = () => {
 		expect(z).to.equal(123);
 	});
 
+	it("should not keep variable changes inside binding elements", () => {
+		let notok = { foo: true, bar: false };
+		let ok = {
+			foo: undefined as boolean | undefined,
+			bar: true,
+		};
+		const { foo = (ok = notok).foo, bar } = ok;
+
+		expect(ok.foo).to.equal(true);
+		expect(foo).to.equal(true);
+		expect(bar).to.equal(true);
+	});
+
 	it("should not optimize array destructuring", () => {
 		function a() {
 			return [1, 2, 3];
