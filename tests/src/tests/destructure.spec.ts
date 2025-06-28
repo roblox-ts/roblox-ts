@@ -288,13 +288,13 @@ export = () => {
 	});
 
 	it("should not save variable changes made inside array binding elements", () => {
-		let notok = [false, true];
-		let ok = [undefined, false];
-		const [foo = (ok = notok), bar = ok[1]] = ok;
+		let notok = [true, false];
+		let ok = [undefined, true];
+		const [foo = (ok = notok)[0], bar] = ok;
 
-		expect(ok[0]).to.equal(false);
-		expect(foo).to.equal(notok);
-		expect(bar).to.equal(false);
+		expect(ok[0]).to.equal(true);
+		expect(foo).to.equal(true);
+		expect(bar).to.equal(true);
 	});
 
 	it("should support indexing a return value from a function", () => {
