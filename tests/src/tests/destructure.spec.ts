@@ -185,7 +185,7 @@ export = () => {
 		expect(z).to.equal(123);
 	});
 
-	it("should not keep variable changes inside binding elements", () => {
+	it("should not save variable changes made inside object binding elements", () => {
 		let notok = { foo: true, bar: false };
 		let ok = {
 			foo: undefined as boolean | undefined,
@@ -285,6 +285,16 @@ export = () => {
 		expect(obj.x).to.equal(1);
 		expect(obj.y).to.equal(2);
 		expect(obj.z).to.equal(3);
+	});
+
+	it("should not save variable changes made inside array binding elements", () => {
+		let notok = [false, true];
+		let ok = [undefined, false];
+		const [foo = (ok = notok), bar = ok[1]] = ok;
+
+		expect(ok[0]).to.equal(false);
+		expect(foo).to.equal(notok);
+		expect(bar).to.equal(false);
 	});
 
 	it("should support indexing a return value from a function", () => {
