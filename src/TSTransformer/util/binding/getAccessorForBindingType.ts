@@ -3,6 +3,7 @@ import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
+import { getStringAccessorTargetId } from "TSTransformer/util/binding/getStringAccessorTargetId";
 import {
 	isArrayType,
 	isDefinitelyType,
@@ -16,7 +17,6 @@ import {
 	isSharedTableType,
 	isStringType,
 } from "TSTransformer/util/types";
-import { getStringAccessorTargetId } from "TSTransformer/util/binding/getStringAccessorTargetId";
 import ts from "typescript";
 
 type BindingAccessor = (
