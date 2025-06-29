@@ -1,6 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer/classes/TransformState";
-import { getStringAccessorTargetId } from "../binding/getStringAccessorTargetId";
+import { getStringAccessorTargetId } from "TSTransformer/util/binding/getStringAccessorTargetId";
 
 export function spreadDestructureString(
 	state: TransformState,
