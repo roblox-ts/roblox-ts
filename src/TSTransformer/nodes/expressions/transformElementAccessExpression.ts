@@ -8,7 +8,7 @@ import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexa
 import { getConstantValueLiteral } from "TSTransformer/util/getConstantValueLiteral";
 import { offset } from "TSTransformer/util/offset";
 import { skipUpwards } from "TSTransformer/util/traversal";
-import { isLuaTupleType } from "TSTransformer/util/types";
+import { isDefinitelyType, isLuaTupleType, isStringType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import ts from "typescript";
 
@@ -46,6 +46,13 @@ export function transformElementAccessExpressionInner(
 		}
 		// parentheses to trim off the rest of the values
 		return luau.create(luau.SyntaxKind.ParenthesizedExpression, { expression });
+	}
+
+	// String indexing
+	if (isDefinitelyType(expType, isStringType)) {
+		const at = offset(index, 1);
+
+		return luau.call(luau.globals.string.sub, [expression, at, at]);
 	}
 
 	if (ts.isDeleteExpression(skipUpwards(node).parent)) {
