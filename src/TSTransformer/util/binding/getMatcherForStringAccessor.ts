@@ -11,7 +11,7 @@ export function getMatcherForStringAccessor(
 			luau.call(luau.globals.string.gmatch, [parentId, luau.globals.utf8.charpattern]),
 			"matcher",
 		);
-	} else {
-		return idStack[0];
 	}
+
+	return idStack[0];
 }
