@@ -3,7 +3,7 @@ import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
-import { getStringAccessorTargetId } from "TSTransformer/util/binding/getStringAccessorTargetId";
+import { getMatcherForStringAccessor } from "TSTransformer/util/binding/getMatcherForStringAccessor";
 import {
 	isArrayType,
 	isDefinitelyType,
@@ -39,7 +39,7 @@ const arrayAccessor: BindingAccessor = (state, parentId, index) => {
 };
 
 const stringAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted) => {
-	const id = getStringAccessorTargetId(state, parentId, idStack);
+	const id = getMatcherForStringAccessor(state, parentId, idStack);
 	const callExp = luau.call(id);
 
 	if (isOmitted) {

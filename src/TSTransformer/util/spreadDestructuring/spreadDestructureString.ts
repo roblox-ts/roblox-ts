@@ -1,6 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer/classes/TransformState";
-import { getStringAccessorTargetId } from "TSTransformer/util/binding/getStringAccessorTargetId";
+import { getMatcherForStringAccessor } from "TSTransformer/util/binding/getMatcherForStringAccessor";
 
 export function spreadDestructureString(
 	state: TransformState,
@@ -8,7 +8,7 @@ export function spreadDestructureString(
 	index: number,
 	idStack: Array<luau.AnyIdentifier>,
 ) {
-	const matcher = getStringAccessorTargetId(state, parentId, idStack);
+	const matcher = getMatcherForStringAccessor(state, parentId, idStack);
 	const rest = state.pushToVar(luau.array(), "rest");
 	const charId = luau.tempId("char");
 

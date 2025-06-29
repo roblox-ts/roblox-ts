@@ -1,7 +1,7 @@
 import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer/classes/TransformState";
 
-export function getStringAccessorTargetId(
+export function getMatcherForStringAccessor(
 	state: TransformState,
 	parentId: luau.AnyIdentifier,
 	idStack: Array<luau.AnyIdentifier>,
