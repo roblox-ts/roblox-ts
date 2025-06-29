@@ -51,8 +51,9 @@ export function transformElementAccessExpressionInner(
 	// String indexing
 	if (isDefinitelyType(expType, isStringType)) {
 		const at = offset(index, 1);
+		const indexExp = luau.isNumberLiteral(index) ? at : state.pushToVar(at, "index");
 
-		return luau.call(luau.globals.string.sub, [expression, at, at]);
+		return luau.call(luau.globals.string.sub, [expression, indexExp, indexExp]);
 	}
 
 	if (ts.isDeleteExpression(skipUpwards(node).parent)) {
