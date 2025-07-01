@@ -10,11 +10,13 @@ import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { transformLogical } from "TSTransformer/nodes/transformLogical";
 import { transformLogicalOrCoalescingAssignmentExpression } from "TSTransformer/nodes/transformLogicalOrCoalescingAssignmentExpression";
 import { transformWritableAssignment, transformWritableExpression } from "TSTransformer/nodes/transformWritable";
+import { arrayLikeExpressionContainsSpread } from "TSTransformer/util/arrayLikeExpressionContainsSpread";
 import {
 	createAssignmentExpression,
 	createCompoundAssignmentExpression,
 	getSimpleAssignmentOperator,
 } from "TSTransformer/util/assignment";
+import { createBitwiseFromOperator, isBitwiseOperator } from "TSTransformer/util/bitwise";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOperator";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
@@ -46,7 +48,7 @@ function transformOptimizedArrayAssignmentPattern(
 			if (ts.isOmittedExpression(element)) {
 				luau.list.push(writes, luau.tempId());
 			} else if (ts.isSpreadElement(element)) {
-				DiagnosticService.addDiagnostic(errors.noSpreadDestructuring(element));
+				assert(false, "Cannot optimize-assign spread element");
 			} else {
 				let initializer: ts.Expression | undefined;
 				if (ts.isBinaryExpression(element)) {
@@ -151,7 +153,11 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 				return rightExp;
 			}
 
-			if (luau.isCall(rightExp) && isLuaTupleType(state)(state.getType(node.right))) {
+			if (
+				luau.isCall(rightExp) &&
+				isLuaTupleType(state)(state.getType(node.right)) &&
+				!arrayLikeExpressionContainsSpread(node.left)
+			) {
 				transformOptimizedArrayAssignmentPattern(state, node.left, rightExp);
 				if (!isUsedAsStatement(node)) {
 					DiagnosticService.addDiagnostic(errors.noLuaTupleDestructureAssignmentExpression(node));
@@ -159,7 +165,12 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 				return luau.none();
 			}
 
-			if (luau.isArray(rightExp) && !luau.list.isEmpty(rightExp.members) && isUsedAsStatement(node)) {
+			if (
+				luau.isArray(rightExp) &&
+				!luau.list.isEmpty(rightExp.members) &&
+				isUsedAsStatement(node) &&
+				!arrayLikeExpressionContainsSpread(node.left)
+			) {
 				transformOptimizedArrayAssignmentPattern(state, node.left, rightExp.members);
 				return luau.none();
 			}
@@ -212,6 +223,10 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 				valueType,
 			);
 		}
+	}
+
+	if (isBitwiseOperator(operatorKind)) {
+		return createBitwiseFromOperator(state, operatorKind, node);
 	}
 
 	const [left, right] = ensureTransformOrder(state, [node.left, node.right]);

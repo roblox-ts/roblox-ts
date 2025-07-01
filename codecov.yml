@@ -1,0 +1,9 @@
+coverage:
+  status:
+    patch:
+      default:
+        target: 95%
+        threshold: 0%
+comment:
+  layout: "condensed_header, condensed_files"
+  require_changes: "coverage_drop OR uncovered_patch"
