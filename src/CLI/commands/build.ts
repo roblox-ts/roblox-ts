@@ -10,6 +10,7 @@ import { createProjectData } from "Project/functions/createProjectData";
 import { createProjectProgram } from "Project/functions/createProjectProgram";
 import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
 import { setupProjectWatchProgram } from "Project/functions/setupProjectWatchProgram";
+import { transformAndWriteDeclarationFiles } from "Project/functions/transformAndWriteDeclarationFiles";
 import { LogService } from "Shared/classes/LogService";
 import { DEFAULT_PROJECT_OPTIONS, ProjectType } from "Shared/constants";
 import { LoggableError } from "Shared/errors/LoggableError";
@@ -138,16 +139,19 @@ export = ts.identity<yargs.CommandModule<object, BuildFlags & Partial<ProjectOpt
 				setupProjectWatchProgram(data, projectOptions.usePolling);
 			} else {
 				const program = createProjectProgram(data);
+				const compilerOptions = program.getCompilerOptions();
 				const pathTranslator = createPathTranslator(program, data);
 				cleanup(pathTranslator);
 				copyInclude(data);
-				copyFiles(data, pathTranslator, new Set(getRootDirs(program.getCompilerOptions())));
-				const emitResult = compileFiles(
-					program.getProgram(),
-					data,
-					pathTranslator,
-					getChangedSourceFiles(program),
-				);
+				copyFiles(data, pathTranslator, new Set(getRootDirs(compilerOptions)));
+
+				const changedSourceFiles = getChangedSourceFiles(program);
+				const changedCompilableFiles = changedSourceFiles.filter(v => !v.isDeclarationFile);
+				if (compilerOptions.declaration) {
+					const changedDeclarationFiles = changedSourceFiles.filter(v => v.isDeclarationFile);
+					transformAndWriteDeclarationFiles(program.getProgram(), pathTranslator, changedDeclarationFiles);
+				}
+				const emitResult = compileFiles(program.getProgram(), data, pathTranslator, changedCompilableFiles);
 				for (const diagnostic of emitResult.diagnostics) {
 					diagnosticReporter(diagnostic);
 				}
