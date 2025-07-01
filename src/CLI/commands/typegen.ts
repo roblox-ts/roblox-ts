@@ -12,6 +12,8 @@ import yargs from "yargs";
 const BANNED_SERVICES = new Set([
 	// StarterPlayer contents are cloned elsewhere at runtime. They should not be accessed directly.
 	"StarterPlayer",
+	// Plugins in the debugger should not be accessed directly
+	"PluginDebugService",
 ]);
 
 function buildSignatures(children: ReadonlyArray<RojoSourceMap>, path: ReadonlyArray<string>) {
