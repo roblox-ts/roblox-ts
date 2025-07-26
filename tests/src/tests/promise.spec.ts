@@ -35,6 +35,21 @@ export = () => {
 		expect(value).to.equal("foobar");
 	});
 
+	it("should not execute code after cancellation", () => {
+		let executed = false;
+		let promise!: Promise<void>;
+
+		const foo = async function () {
+			promise.cancel();
+			executed = true
+		};
+
+		promise = foo();
+		const [success] = promise.await();
+		expect(success).to.equal(false);
+		expect(executed).to.equal(false);
+	})
+
 	it("should allow async static class methods", () => {
 		class X {
 			static async foo() {
