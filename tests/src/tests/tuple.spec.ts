@@ -299,4 +299,15 @@ export = () => {
 		expect(value).to.equal(1);
 		expect(test()[0]).to.equal(1);
 	});
+
+	it("should support spreading into $tuple macro", () => {
+		const arr = [1, 2, 3];
+		function test() {
+			return $tuple(...arr);
+		}
+		const [a, b, c] = test();
+		expect(a).to.equal(1);
+		expect(b).to.equal(2);
+		expect(c).to.equal(3);
+	});
 };
