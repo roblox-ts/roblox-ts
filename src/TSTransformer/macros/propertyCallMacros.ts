@@ -594,9 +594,25 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		expression = state.pushToVarIfComplex(expression, "exp");
 
 		for (let i = 0; i < args.length; i++) {
+			const arg = args[i];
+			if (luau.isCallExpression(arg) && arg.expression === luau.globals.unpack) {
+				const valueId = luau.tempId("v");
+				state.prereq(
+					luau.create(luau.SyntaxKind.ForStatement, {
+						expression: luau.call(luau.globals.pairs, luau.list.toArray(arg.args)),
+						ids: luau.list.make(luau.tempId(), valueId),
+						statements: luau.list.make(
+							luau.create(luau.SyntaxKind.CallStatement, {
+								expression: luau.call(luau.globals.table.insert, [expression, valueId]),
+							}),
+						),
+					}),
+				);
+				continue;
+			}
 			state.prereq(
 				luau.create(luau.SyntaxKind.CallStatement, {
-					expression: luau.call(luau.globals.table.insert, [expression, args[i]]),
+					expression: luau.call(luau.globals.table.insert, [expression, arg]),
 				}),
 			);
 		}
@@ -643,6 +659,22 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 		for (let i = args.length - 1; i >= 0; i--) {
 			const arg = args[i];
+			if (luau.isCallExpression(arg) && arg.expression === luau.globals.unpack) {
+				const valueId = luau.tempId("v");
+				state.prereq(
+					luau.create(luau.SyntaxKind.ForStatement, {
+						expression: luau.call(luau.globals.pairs, luau.list.toArray(arg.args)),
+						ids: luau.list.make(luau.tempId(), valueId),
+						statements: luau.list.make(
+							luau.create(luau.SyntaxKind.CallStatement, {
+								expression: luau.call(luau.globals.table.insert, [expression, luau.number(1), arg]),
+							}),
+						),
+					}),
+				);
+				continue;
+			}
+
 			state.prereq(
 				luau.create(luau.SyntaxKind.CallStatement, {
 					expression: luau.call(luau.globals.table.insert, [expression, luau.number(1), arg]),
