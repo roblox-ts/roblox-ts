@@ -667,7 +667,7 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 						ids: luau.list.make(luau.tempId(), valueId),
 						statements: luau.list.make(
 							luau.create(luau.SyntaxKind.CallStatement, {
-								expression: luau.call(luau.globals.table.insert, [expression, luau.number(1), arg]),
+								expression: luau.call(luau.globals.table.insert, [expression, luau.number(1), valueId]),
 							}),
 						),
 					}),
