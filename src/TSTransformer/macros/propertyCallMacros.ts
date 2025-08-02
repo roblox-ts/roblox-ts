@@ -595,26 +595,27 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 		for (let i = 0; i < args.length; i++) {
 			const arg = args[i];
-			if (luau.isCallExpression(arg) && arg.expression === luau.globals.unpack) {
+			let statement: luau.Statement = luau.create(luau.SyntaxKind.CallStatement, {
+				expression: luau.call(luau.globals.table.insert, [expression, arg]),
+			});
+
+			if (
+				luau.isCallExpression(arg) &&
+				luau.isIdentifier(arg.expression) &&
+				arg.expression.name === luau.globals.unpack.name
+			) {
 				const valueId = luau.tempId("v");
-				state.prereq(
-					luau.create(luau.SyntaxKind.ForStatement, {
-						expression: luau.call(luau.globals.pairs, luau.list.toArray(arg.args)),
-						ids: luau.list.make(luau.tempId(), valueId),
-						statements: luau.list.make(
-							luau.create(luau.SyntaxKind.CallStatement, {
-								expression: luau.call(luau.globals.table.insert, [expression, valueId]),
-							}),
-						),
-					}),
-				);
-				continue;
+				statement = luau.create(luau.SyntaxKind.ForStatement, {
+					expression: luau.call(luau.globals.pairs, luau.list.toArray(arg.args)),
+					ids: luau.list.make(luau.tempId(), valueId),
+					statements: luau.list.make(
+						luau.create(luau.SyntaxKind.CallStatement, {
+							expression: luau.call(luau.globals.table.insert, [expression, valueId]),
+						}),
+					),
+				});
 			}
-			state.prereq(
-				luau.create(luau.SyntaxKind.CallStatement, {
-					expression: luau.call(luau.globals.table.insert, [expression, arg]),
-				}),
-			);
+			state.prereq(statement);
 		}
 
 		return !isUsedAsStatement(node) ? luau.unary("#", expression) : luau.none();
@@ -659,27 +660,41 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 		for (let i = args.length - 1; i >= 0; i--) {
 			const arg = args[i];
-			if (luau.isCallExpression(arg) && arg.expression === luau.globals.unpack) {
-				const valueId = luau.tempId("v");
-				state.prereq(
-					luau.create(luau.SyntaxKind.ForStatement, {
-						expression: luau.call(luau.globals.pairs, luau.list.toArray(arg.args)),
-						ids: luau.list.make(luau.tempId(), valueId),
-						statements: luau.list.make(
-							luau.create(luau.SyntaxKind.CallStatement, {
-								expression: luau.call(luau.globals.table.insert, [expression, luau.number(1), valueId]),
-							}),
-						),
-					}),
-				);
-				continue;
+			let statement: luau.Statement = luau.create(luau.SyntaxKind.CallStatement, {
+				expression: luau.call(luau.globals.table.insert, [expression, luau.number(1), arg]),
+			});
+
+			if (
+				luau.isCallExpression(arg) &&
+				luau.isIdentifier(arg.expression) &&
+				arg.expression.name === luau.globals.unpack.name
+			) {
+				const indexId = luau.tempId("k");
+				const array = luau.list.toArray(arg.args).shift();
+				assert(array);
+				assert(luau.isIndexableExpression(array));
+
+				statement = luau.create(luau.SyntaxKind.NumericForStatement, {
+					start: luau.unary("#", array),
+					end: luau.number(1),
+					step: luau.number(-1),
+					id: indexId,
+					statements: luau.list.make(
+						luau.create(luau.SyntaxKind.CallStatement, {
+							expression: luau.call(luau.globals.table.insert, [
+								expression,
+								luau.number(1),
+								luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+									expression: array,
+									index: indexId,
+								}),
+							]),
+						}),
+					),
+				});
 			}
 
-			state.prereq(
-				luau.create(luau.SyntaxKind.CallStatement, {
-					expression: luau.call(luau.globals.table.insert, [expression, luau.number(1), arg]),
-				}),
-			);
+			state.prereq(statement);
 		}
 
 		return !isUsedAsStatement(node) ? luau.unary("#", expression) : luau.none();
