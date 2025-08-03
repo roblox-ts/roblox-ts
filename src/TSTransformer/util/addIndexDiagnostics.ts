@@ -4,7 +4,7 @@ import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { isMethod } from "TSTransformer/util/isMethod";
 import { isValidMethodIndexWithoutCall } from "TSTransformer/util/isValidMethodIndexWithoutCall";
 import { skipUpwards } from "TSTransformer/util/traversal";
-import { getFirstDefinedSymbol } from "TSTransformer/util/types";
+import { getFirstDefinedSymbol, isPossiblyType } from "TSTransformer/util/types";
 import ts from "typescript";
 
 export function addIndexDiagnostics(
@@ -51,16 +51,8 @@ export function addIndexDiagnostics(
 
 	if (ts.isElementAccessExpression(node)) {
 		const argumentType = state.getType(node.argumentExpression);
-		if (argumentType.isStringLiteral() && argumentType.value === "length") {
+		if (isPossiblyType(argumentType, type => type.isStringLiteral() && type.value === "length")) {
 			DiagnosticService.addDiagnostic(errors.noLengthIndexInTuples(node));
-			return;
-		}
-		if (
-			argumentType.isUnionOrIntersection() &&
-			argumentType.types.some(T => T.isStringLiteral() && T.value === "length")
-		) {
-			DiagnosticService.addDiagnostic(errors.noLengthIndexInTuples(node));
-			return;
 		}
 	}
 }
