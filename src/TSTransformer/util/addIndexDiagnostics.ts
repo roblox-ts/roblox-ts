@@ -23,4 +23,44 @@ export function addIndexDiagnostics(
 	if (ts.isPrototypeAccess(node)) {
 		DiagnosticService.addDiagnostic(errors.noPrototype(node));
 	}
+
+	let expressionType: ts.Type | undefined;
+	if (ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node)) {
+		expressionType = state.getType(node.expression);
+	}
+	if (ts.isPropertyName(node)) {
+		// node.parent.parent is bindingPattern
+		if (ts.isBindingElement(node.parent)) {
+			expressionType = state.getType(node.parent.parent);
+		}
+
+		// node.parent.parent.parent is binary exp within an assignment pattern
+		if (ts.isPropertyAssignment(node.parent) || ts.isShorthandPropertyAssignment(node.parent)) {
+			expressionType = state.getType(node.parent.parent.parent);
+		}
+	}
+
+	if (!expressionType || !state.typeChecker.isTupleType(expressionType)) return;
+	if (ts.isPropertyAccessExpression(node) && node.name.text === "length") {
+		DiagnosticService.addDiagnostic(errors.noLengthIndexInTuples(node));
+	}
+
+	if (ts.isPropertyName(node) && node.getText() === "length") {
+		DiagnosticService.addDiagnostic(errors.noLengthIndexInTuples(node));
+	}
+
+	if (ts.isElementAccessExpression(node)) {
+		const argumentType = state.getType(node.argumentExpression);
+		if (argumentType.isStringLiteral() && argumentType.value === "length") {
+			DiagnosticService.addDiagnostic(errors.noLengthIndexInTuples(node));
+			return;
+		}
+		if (
+			argumentType.isUnionOrIntersection() &&
+			argumentType.types.some(T => T.isStringLiteral() && T.value === "length")
+		) {
+			DiagnosticService.addDiagnostic(errors.noLengthIndexInTuples(node));
+			return;
+		}
+	}
 }
