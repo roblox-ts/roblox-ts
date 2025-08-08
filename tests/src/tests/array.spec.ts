@@ -134,7 +134,7 @@ export = () => {
 
 	it("should support spreading into push", () => {
 		const a = [];
-		const b = new Set([1, 2, 3]);
+		const b = [1, 2, 3];
 		a.push(...b);
 		expect(a[0]).to.equal(1);
 		expect(a[1]).to.equal(2);
