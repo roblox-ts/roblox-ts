@@ -132,6 +132,15 @@ export = () => {
 		expect([1, 2, 3].push(4, 5, 6)).to.equal(6);
 	});
 
+	it("should support spreading into push", () => {
+		const a = [];
+		const b = new Set([1, 2, 3]);
+		a.push(...b);
+		expect(a[0]).to.equal(1);
+		expect(a[1]).to.equal(2);
+		expect(a[2]).to.equal(3);
+	});
+
 	it("should support pop", () => {
 		const a = [456];
 		const b = a.pop();
@@ -202,6 +211,18 @@ export = () => {
 		expect(a[3]).to.equal(2);
 		expect(a[4]).to.equal(3);
 		expect(b).to.equal(4);
+	});
+
+	it("should support spreading into unshift", () => {
+		const a = [4, 5, 6];
+		const b = [1, 2, 3];
+		a.unshift(...b);
+		expect(a[0]).to.equal(1);
+		expect(a[1]).to.equal(2);
+		expect(a[2]).to.equal(3);
+		expect(a[3]).to.equal(4);
+		expect(a[4]).to.equal(5);
+		expect(a[5]).to.equal(6);
 	});
 
 	it("should support indexOf", () => {

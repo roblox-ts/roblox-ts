@@ -585,9 +585,9 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 };
 
 const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
-	push: (state, node, expression, args) => {
+	push: (state, node, expression, args, varArgs) => {
 		// for `a.push()` always emit luau.unary so the call doesn't disappear in emit
-		if (args.length === 0) {
+		if (args.length === 0 && !varArgs) {
 			return luau.unary("#", expression);
 		}
 
@@ -597,6 +597,21 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			state.prereq(
 				luau.create(luau.SyntaxKind.CallStatement, {
 					expression: luau.call(luau.globals.table.insert, [expression, args[i]]),
+				}),
+			);
+		}
+
+		if (varArgs) {
+			const valueId = luau.tempId("v");
+			state.prereq(
+				luau.create(luau.SyntaxKind.ForStatement, {
+					expression: varArgs,
+					ids: luau.list.make(luau.tempId(), valueId),
+					statements: luau.list.make(
+						luau.create(luau.SyntaxKind.CallStatement, {
+							expression: luau.call(luau.globals.table.insert, [expression, valueId]),
+						}),
+					),
 				}),
 			);
 		}
@@ -638,7 +653,7 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 	shift: (state, node, expression) => luau.call(luau.globals.table.remove, [expression, luau.number(1)]),
 
-	unshift: (state, node, expression, args) => {
+	unshift: (state, node, expression, args, varArg) => {
 		expression = state.pushToVarIfComplex(expression, "exp");
 
 		for (let i = args.length - 1; i >= 0; i--) {
@@ -646,6 +661,31 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			state.prereq(
 				luau.create(luau.SyntaxKind.CallStatement, {
 					expression: luau.call(luau.globals.table.insert, [expression, luau.number(1), arg]),
+				}),
+			);
+		}
+
+		if (varArg) {
+			const indexId = luau.tempId("k");
+			const varArgId = state.pushToVarIfComplex(varArg, "exp");
+			state.prereq(
+				luau.create(luau.SyntaxKind.NumericForStatement, {
+					start: luau.unary("#", varArgId),
+					end: luau.number(1),
+					step: luau.number(-1),
+					id: indexId,
+					statements: luau.list.make(
+						luau.create(luau.SyntaxKind.CallStatement, {
+							expression: luau.call(luau.globals.table.insert, [
+								expression,
+								luau.number(1),
+								luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+									expression: convertToIndexableExpression(varArgId),
+									index: indexId,
+								}),
+							]),
+						}),
+					),
 				}),
 			);
 		}
@@ -963,8 +1003,8 @@ function wasExpressionPushed(statements: luau.List<luau.Statement>, expression: 
 }
 
 function wrapComments(methodName: string, callback: PropertyCallMacro): PropertyCallMacro {
-	return (state, callNode, callExp, args) => {
-		const [expression, prereqs] = state.capture(() => callback(state, callNode, callExp, args));
+	return (state, callNode, callExp, args, varArg) => {
+		const [expression, prereqs] = state.capture(() => callback(state, callNode, callExp, args, varArg));
 
 		let size = luau.list.size(prereqs);
 		if (size > 0) {
