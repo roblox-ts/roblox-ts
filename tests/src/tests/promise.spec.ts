@@ -50,6 +50,22 @@ export = () => {
 		expect(value).to.equal("foobar");
 	});
 
+	it("should not run code after cancellation", () => {
+		let thread!: thread;
+
+		const foo = async function () {
+			thread = coroutine.running();
+			coroutine.yield();
+		};
+
+		const promise = foo();
+		promise.cancel();
+
+		const [success] = promise.await();
+		expect(success).to.equal(false);
+		expect(coroutine.status(thread) === "dead").to.equal(true);
+	});
+
 	it("should allow async class methods", () => {
 		class X {
 			async foo() {
