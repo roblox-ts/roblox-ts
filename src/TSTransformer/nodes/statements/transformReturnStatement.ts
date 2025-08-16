@@ -33,12 +33,13 @@ export function transformReturnStatementInner(
 
 	let expression: luau.Expression | luau.List<luau.Expression>;
 
-	if (ts.isCallExpression(returnExp) && isTupleMacro(state, returnExp)) {
-		const [args, prereqs] = state.capture(() => ensureTransformOrder(state, returnExp.arguments));
+	const innerReturnExp = skipDownwards(returnExp);
+	if (ts.isCallExpression(innerReturnExp) && isTupleMacro(state, innerReturnExp)) {
+		const [args, prereqs] = state.capture(() => ensureTransformOrder(state, innerReturnExp.arguments));
 		luau.list.pushList(result, prereqs);
 		expression = luau.list.make(...args);
 	} else {
-		expression = transformExpression(state, skipDownwards(returnExp));
+		expression = transformExpression(state, innerReturnExp);
 		if (isLuaTupleType(state)(state.getType(returnExp)) && !isTupleReturningCall(state, returnExp, expression)) {
 			if (luau.isArray(expression)) {
 				expression = expression.members;
