@@ -13,6 +13,7 @@ export type CallMacro = (
 	node: ts.CallExpression,
 	expression: luau.Expression,
 	args: Array<luau.Expression>,
+	varArg: luau.Expression | undefined,
 ) => luau.Expression;
 
 export type PropertyCallMacro = (
@@ -20,4 +21,5 @@ export type PropertyCallMacro = (
 	node: ts.CallExpression & { expression: ts.PropertyAccessExpression | ts.ElementAccessExpression },
 	expression: luau.Expression,
 	args: Array<luau.Expression>,
+	varArg: luau.Expression | undefined,
 ) => luau.Expression;
