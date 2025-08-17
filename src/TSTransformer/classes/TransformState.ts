@@ -10,7 +10,7 @@ import { getCanonicalFileName } from "Shared/util/getCanonicalFileName";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { MultiTransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
-import { TransformServices, TryUses } from "TSTransformer/types";
+import { LoopLabel, LoopLabelStackEntry, TransformServices, TryUses } from "TSTransformer/types";
 import { createGetService } from "TSTransformer/util/createGetService";
 import { propertyAccessExpressionChain } from "TSTransformer/util/expressionChain";
 import { getModuleAncestor, skipUpwards } from "TSTransformer/util/traversal";
@@ -65,7 +65,107 @@ export class TransformState {
 		this.isInReplicatedFirst = rbxPath !== undefined && rbxPath[0] === "ReplicatedFirst";
 	}
 
+	private loopStackDepth = 0;
+	public readonly loopLabelStack = new Array<LoopLabelStackEntry>();
+	public readonly statementToLabelIdMap = new Map<ts.Statement, luau.TemporaryIdentifier>();
 	public readonly tryUsesStack = new Array<TryUses>();
+
+	public pushLabelToLoopStack(labeledStatement: ts.LabeledStatement) {
+		const labelText = labeledStatement.label.text;
+		const id = luau.tempId(labelText);
+
+		this.statementToLabelIdMap.set(labeledStatement.statement, id);
+		this.loopLabelStack.push({
+			id,
+			name: labelText,
+			everBroken: false,
+			everContinued: false,
+		});
+		return id;
+	}
+
+	public shouldGenerateLabelAssignment(name: string) {
+		return this.loopLabelStack.findIndex(T => T.name === name) + 1 !== this.loopStackDepth;
+	}
+
+	public getLoopLabelDataByName(name: string) {
+		return this.loopLabelStack.find(entry => entry.name === name);
+	}
+
+	public processLoopLabel(loopStatement: ts.Statement) {
+		const id = this.statementToLabelIdMap.get(loopStatement);
+		if (!id) return luau.list.make<luau.Statement>();
+
+		return luau.list.make<luau.Statement>(
+			luau.create(luau.SyntaxKind.Assignment, {
+				left: id,
+				operator: "=",
+				right: luau.string(LoopLabel.none),
+			}),
+		);
+	}
+
+	public increaseLoopDepth() {
+		this.loopStackDepth++;
+	}
+
+	public decreaseLoopDepth() {
+		this.loopStackDepth--;
+	}
+
+	public generateLabelChecks() {
+		const statements = luau.list.make<luau.Statement>();
+		const labels = this.loopLabelStack.slice(0, this.loopStackDepth - 1);
+		if (labels.length === 0) return statements;
+
+		const continuedLabels = new Array<luau.BinaryExpression>();
+		for (const label of labels) {
+			const stackPos = labels.indexOf(label);
+			if (label.everContinued && stackPos === this.loopStackDepth - 2) {
+				continuedLabels.push(luau.binary(label.id, "==", luau.string(LoopLabel.continue)));
+			}
+		}
+
+		if (continuedLabels.length > 0) {
+			luau.list.push(
+				statements,
+				luau.create(luau.SyntaxKind.IfStatement, {
+					condition: continuedLabels.reduce((accum, exp) => luau.binary(accum, "or", exp)),
+					statements: luau.list.make(luau.create(luau.SyntaxKind.ContinueStatement, {})),
+					elseBody: luau.list.make(),
+				}),
+			);
+		}
+
+		const brokenLabels = new Array<luau.BinaryExpression>();
+		for (const label of labels) {
+			const stackPos = labels.indexOf(label);
+			const { everBroken, everContinued } = label;
+			if (everBroken) {
+				brokenLabels.push(luau.binary(label.id, "==", luau.string(LoopLabel.break)));
+			}
+			if (everContinued && stackPos !== this.loopStackDepth - 2) {
+				brokenLabels.push(luau.binary(label.id, "==", luau.string(LoopLabel.continue)));
+			}
+		}
+
+		if (brokenLabels.length > 0) {
+			luau.list.push(
+				statements,
+				luau.create(luau.SyntaxKind.IfStatement, {
+					condition: brokenLabels.reduce((accum, exp) => luau.binary(accum, "or", exp)),
+					statements: luau.list.make(luau.create(luau.SyntaxKind.BreakStatement, {})),
+					elseBody: luau.list.make(),
+				}),
+			);
+		}
+
+		return statements;
+	}
+
+	public popLoopLabelStack() {
+		this.loopLabelStack.pop();
+	}
 
 	/**
 	 * Pushes tryUses information onto the tryUses stack and returns it.
