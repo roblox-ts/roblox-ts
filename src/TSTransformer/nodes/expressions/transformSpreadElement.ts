@@ -7,7 +7,18 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { getAddIterableToArrayBuilder } from "TSTransformer/util/getAddIterableToArrayBuilder";
 import { isArrayType, isDefinitelyType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
+import { tryHandleVarArgsArraySpread } from "TSTransformer/util/varArgsOptimization";
 import ts from "typescript";
+
+function simplifyUnpackOfArray(expression: luau.Expression) {
+	if (!luau.isArray(expression)) return;
+	const { members } = expression;
+	if (members.head === undefined) return;
+	if (members.head === members.tail) {
+		return members.head.value;
+	}
+	// TODO ideally we should be able to return a list of expressions (members), but currently this function is expected to return a single expression
+}
 
 export function transformSpreadElement(state: TransformState, node: ts.SpreadElement) {
 	validateNotAnyType(state, node.expression);
@@ -22,7 +33,11 @@ export function transformSpreadElement(state: TransformState, node: ts.SpreadEle
 
 	const type = state.getType(node.expression);
 	if (isDefinitelyType(type, isArrayType(state))) {
-		return luau.call(luau.globals.unpack, [expression]);
+		return (
+			tryHandleVarArgsArraySpread(state, node) ??
+			simplifyUnpackOfArray(expression) ??
+			luau.call(luau.globals.unpack, [expression])
+		);
 	} else {
 		const addIterableToArrayBuilder = getAddIterableToArrayBuilder(state, node.expression, type);
 		const arrayId = state.pushToVar(luau.array(), "array");
