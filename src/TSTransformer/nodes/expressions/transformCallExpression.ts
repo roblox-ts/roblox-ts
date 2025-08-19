@@ -1,8 +1,5 @@
 import luau from "@roblox-ts/luau-ast";
-import { errors } from "Shared/diagnostics";
-import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
-import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { CallMacro, PropertyCallMacro } from "TSTransformer/macros/types";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformImportExpression } from "TSTransformer/nodes/expressions/transformImportExpression";
@@ -30,40 +27,30 @@ function runCallMacro(
 		args = ensureTransformOrder(state, nodeArguments);
 		const lastArg = nodeArguments[nodeArguments.length - 1];
 		if (lastArg && ts.isSpreadElement(lastArg)) {
-			const signature = state.typeChecker.getSignaturesOfType(
-				state.getType(node.expression),
-				ts.SignatureKind.Call,
-			)[0];
+			const lastArgType = state.getType(lastArg.expression);
 
-			const lastParameter = signature.parameters[signature.parameters.length - 1].valueDeclaration;
-			if (lastParameter && ts.isParameter(lastParameter) && lastParameter.dotDotDotToken) {
-				DiagnosticService.addDiagnostic(errors.noVarArgsMacroSpread(lastArg));
-				return;
+			// optimize tuple types
+			if (state.typeChecker.isTupleType(lastArgType)) {
+				const argumentCount = (lastArgType as ts.TupleTypeReference).target.elementFlags.length;
+				const spread = args.pop();
+				const tempIds = luau.list.make<luau.TemporaryIdentifier>();
+				for (let i = args.length; i < argumentCount; i++) {
+					const tempId = luau.tempId(`spread${i}`);
+					args.push(tempId);
+					luau.list.push(tempIds, tempId);
+				}
+				state.prereq(
+					luau.create(luau.SyntaxKind.VariableDeclaration, {
+						left: tempIds,
+						right: spread,
+					}),
+				);
 			}
-
-			// use .expression for the tuple type, simply `lastArg` would give the tuple's element type
-			const tupleArgType = state.getType(lastArg.expression);
-			// Since we've excluded vararg macros, TS will have ensured that the spread is from a tuple type
-			assert(state.typeChecker.isTupleType(tupleArgType));
-			const argumentCount = (tupleArgType as ts.TupleTypeReference).target.elementFlags.length;
-
-			const spread = args.pop();
-			const tempIds = luau.list.make<luau.TemporaryIdentifier>();
-			for (let i = args.length; i < argumentCount; i++) {
-				const tempId = luau.tempId(`spread${i}`);
-				args.push(tempId);
-				luau.list.push(tempIds, tempId);
-			}
-			state.prereq(
-				luau.create(luau.SyntaxKind.VariableDeclaration, {
-					left: tempIds,
-					right: spread,
-				}),
-			);
 		}
 
 		for (let i = 0; i < args.length; i++) {
 			if (expressionMightMutate(state, args[i], nodeArguments[i])) {
+				if (ts.isSpreadElement(nodeArguments[i])) continue;
 				args[i] = state.pushToVar(args[i], valueToIdStr(args[i]) || `arg${i}`);
 			}
 		}
