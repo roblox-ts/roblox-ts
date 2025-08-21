@@ -30,6 +30,7 @@ import {
 } from "TSTransformer/util/types";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
+import { getLiteralNumberValue } from "TSTransformer/util/getLiteralNumberValue";
 import ts from "typescript";
 
 type LoopBuilder = (
@@ -465,7 +466,7 @@ export function transformForOfRangeMacro(
 			id,
 			start,
 			end,
-			step: step === undefined || luau.isNumberLiteral(step) ? step : luau.binary(step, "or", luau.number(1)),
+			step: (step === undefined || getLiteralNumberValue(step) === undefined) ? step : luau.binary(step, "or", luau.number(1)),
 			statements,
 		}),
 	);
