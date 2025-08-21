@@ -466,7 +466,7 @@ export function transformForOfRangeMacro(
 			id,
 			start,
 			end,
-			step: (step === undefined || getLiteralNumberValue(step) === undefined) ? step : luau.binary(step, "or", luau.number(1)),
+			step: (step === undefined || getLiteralNumberValue(step) !== undefined) ? step : luau.binary(step, "or", luau.number(1)),
 			statements,
 		}),
 	);
