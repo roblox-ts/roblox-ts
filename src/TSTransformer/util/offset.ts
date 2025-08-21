@@ -1,5 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
-import { getLiteralNumberValue } from "./getLiteralNumberValue";
+
+import { getLiteralNumberValue } from "TSTransformer/util/getLiteralNumberValue";
 
 export function offset(expression: luau.Expression, value: number) {
 	if (value === 0) {
