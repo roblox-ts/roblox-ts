@@ -5,8 +5,18 @@ import { isCompilableFile } from "Project/util/isCompilableFile";
 import { DTS_EXT } from "Shared/constants";
 
 export function copyItem(data: ProjectData, pathTranslator: PathTranslator, item: string) {
+	// Check if source file/directory exists before attempting to copy
+	if (!fs.pathExistsSync(item)) {
+		return;
+	}
+
 	fs.copySync(item, pathTranslator.getOutputPath(item), {
 		filter: (src, dest) => {
+			// Check if source file exists before performing any operations
+			if (!fs.pathExistsSync(src)) {
+				return false;
+			}
+
 			if (
 				data.projectOptions.writeOnlyChanged &&
 				fs.pathExistsSync(dest) &&
