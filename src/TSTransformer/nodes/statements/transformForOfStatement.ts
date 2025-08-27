@@ -17,6 +17,7 @@ import { getStatements } from "TSTransformer/util/getStatements";
 import { skipDownwards } from "TSTransformer/util/traversal";
 import {
 	getFirstDefinedSymbol,
+	isAnyType,
 	isArrayType,
 	isDefinitelyType,
 	isGeneratorType,
@@ -27,6 +28,7 @@ import {
 	isSetType,
 	isSharedTableType,
 	isStringType,
+	isUnknownType,
 } from "TSTransformer/util/types";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
@@ -409,6 +411,17 @@ const buildGeneratorLoop: LoopBuilder = makeForLoopBuilder((state, initializer, 
 });
 
 function getLoopBuilder(state: TransformState, node: ts.Node, type: ts.Type): LoopBuilder {
+	// Check for 'any' or 'unknown' types first to provide better error messages
+	if (isDefinitelyType(type, isAnyType(state))) {
+		DiagnosticService.addDiagnostic(errors.noAnyForOfIteration(node));
+		return () => luau.list.make();
+	}
+
+	if (isDefinitelyType(type, isUnknownType())) {
+		DiagnosticService.addDiagnostic(errors.noAnyForOfIteration(node));
+		return () => luau.list.make();
+	}
+
 	if (isDefinitelyType(type, isArrayType(state))) {
 		return buildArrayLoop;
 	} else if (isDefinitelyType(type, isSetType(state))) {

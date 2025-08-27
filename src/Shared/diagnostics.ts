@@ -156,6 +156,13 @@ export const errors = {
 	noAsyncGeneratorFunctions: error("Async generator functions are not supported!"),
 	noNonStringModuleSpecifier: error("Module specifiers must be a string literal."),
 	noIterableIteration: error("Iterating on Iterable<T> is not supported! You must use a more specific type."),
+	noAnyForOfIteration: error(
+		"Cannot iterate over `any` type in for-of loop!",
+		"roblox-ts needs to know the specific type to generate the correct loop.",
+		suggestion(
+			"Add a type annotation to specify the iterable type (e.g., `Array<T>`, `Set<T>`, `Map<K, V>`, etc.).",
+		),
+	),
 	noMixedTypeCall: error(
 		"Attempted to call a function with mixed types! All definitions must either be a method or a callback.",
 	),

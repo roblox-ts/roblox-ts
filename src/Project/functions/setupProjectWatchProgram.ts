@@ -100,7 +100,6 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 			if (!fs.pathExistsSync(fsPath)) {
 				continue;
 			}
-			
 			if (fs.statSync(fsPath).isDirectory()) {
 				walkDirectorySync(fsPath, item => {
 					if (isCompilableFile(item)) {
@@ -123,7 +122,6 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 			if (!fs.pathExistsSync(fsPath)) {
 				continue;
 			}
-			
 			if (isCompilableFile(fsPath)) {
 				filesToCompile.add(fsPath);
 			} else {
