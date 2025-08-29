@@ -96,7 +96,8 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 	const filesToClean = new Set<string>();
 	function runIncrementalCompile(additions: Set<string>, changes: Set<string>, removals: Set<string>): ts.EmitResult {
 		for (const fsPath of additions) {
-			// Check if file/directory still exists before processing
+			// Guard against race condition where file watcher detects addition but file gets deleted
+			// before compilation runs (common during rapid file system changes like git operations)
 			if (!fs.pathExistsSync(fsPath)) {
 				continue;
 			}
@@ -118,7 +119,8 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		}
 
 		for (const fsPath of changes) {
-			// Check if file still exists before processing changes
+			// Guard against race condition where file watcher detects change but file gets deleted
+			// before compilation runs (common during rapid file system changes like git operations)
 			if (!fs.pathExistsSync(fsPath)) {
 				continue;
 			}
