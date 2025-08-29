@@ -84,10 +84,6 @@ export function isAnyType(state: TransformState): TypeCheck {
 	return type => type === state.typeChecker.getAnyType();
 }
 
-export function isUnknownType(): TypeCheck {
-	return type => !!(type.flags & ts.TypeFlags.Unknown);
-}
-
 export function isBooleanType(type: ts.Type) {
 	return !!(type.flags & (ts.TypeFlags.Boolean | ts.TypeFlags.BooleanLiteral));
 }
