@@ -1,6 +1,5 @@
 import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
-import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
@@ -372,6 +371,7 @@ export function getAddIterableToArrayBuilder(
 		DiagnosticService.addDiagnostic(errors.noMacroUnion(node));
 		return () => luau.list.make();
 	} else {
-		assert(false, `Iteration type not implemented: ${state.typeChecker.typeToString(type)}`);
+		DiagnosticService.addDiagnostic(errors.noUnsupportedForOfIteration(node));
+		return () => luau.list.make();
 	}
 }
