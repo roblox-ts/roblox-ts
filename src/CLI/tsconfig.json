@@ -1,8 +1,9 @@
 {
-	"extends": "../../tsconfig-base.json",
+	"extends": "../../tsconfig.json",
 	"compilerOptions": {
 		"outDir": "../../out/CLI",
 		"rootDir": "."
 	},
-	"references": [{ "path": "../Shared" }, { "path": "../Project" }]
+	"references": [{ "path": "../Shared" }, { "path": "../Project" }],
+	"include": ["."]
 }

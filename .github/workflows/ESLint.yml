@@ -18,4 +18,4 @@ jobs:
         uses: bahmutov/npm-install@v1
 
       - name: Run ESLint
-        run: npm run eslint
+        run: npm run eslint:ci
