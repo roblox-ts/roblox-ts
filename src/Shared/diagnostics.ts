@@ -203,8 +203,14 @@ export const errors = {
 	noPrecedingJsxSpreadElement: error("JSX spread expression must come last in children!"),
 
 	// semantic
-	expectedMethodGotFunction: error("Attempted to assign non-method where method was expected."),
-	expectedFunctionGotMethod: error("Attempted to assign method where non-method was expected."),
+	expectedMethodGotFunction: error(
+		"Attempted to assign non-method where method was expected.",
+		suggestion("Use the form `function() {}` or `name() {}` instead of `() => {}`."),
+	),
+	expectedFunctionGotMethod: error(
+		"Attempted to assign method where non-method was expected.",
+		suggestion("Use the form `() => {}` or `name: () => {}` instead of `function() {}`."),
+	),
 
 	// files
 	noRojoData: errorWithContext((path: string, isPackage: boolean) => [
