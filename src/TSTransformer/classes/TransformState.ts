@@ -4,7 +4,7 @@ import { RbxPath, RbxPathParent, RojoResolver } from "@roblox-ts/rojo-resolver";
 import path from "path";
 import { PARENT_FIELD, ProjectType } from "Shared/constants";
 import { errors, warnings } from "Shared/diagnostics";
-import { ProjectData } from "Shared/types";
+import { GetProjectPathTranslator, ProjectData } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { getCanonicalFileName } from "Shared/util/getCanonicalFileName";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
@@ -55,12 +55,13 @@ export class TransformState {
 		public readonly runtimeLibRbxPath: RbxPath | undefined,
 		public readonly typeChecker: ts.TypeChecker,
 		public readonly projectType: ProjectType,
+		public readonly getProjectPathTranslator: GetProjectPathTranslator,
 		sourceFile: ts.SourceFile,
 	) {
 		this.sourceFileText = sourceFile.getFullText();
 		this.resolver = typeChecker.getEmitResolver(sourceFile);
 
-		const sourceOutPath = this.pathTranslator.getOutputPath(sourceFile.fileName);
+		const sourceOutPath = this.getProjectPathTranslator(this.data.tsConfigPath).getOutputPath(sourceFile.fileName);
 		const rbxPath = this.rojoResolver.getRbxPathFromFilePath(sourceOutPath);
 		this.isInReplicatedFirst = rbxPath !== undefined && rbxPath[0] === "ReplicatedFirst";
 	}
@@ -396,5 +397,22 @@ export class TransformState {
 
 	public getClassElementObjectKey(classElement: ts.ClassElement) {
 		return this.classElementToObjectKeyMap.get(classElement);
+	}
+
+	public getPathTranslatorForFile(filePath: string): PathTranslator {
+		const normalizedFilePath = path.normalize(filePath);
+		for (const project of this.data.referencedProjects) {
+			const normalizedRootDir = path.normalize(project.rootDir);
+			const normalizedOutDir = path.normalize(project.outDir);
+			if (
+				normalizedFilePath.startsWith(normalizedRootDir + path.sep) ||
+				normalizedFilePath === normalizedRootDir ||
+				normalizedFilePath.startsWith(normalizedOutDir + path.sep) ||
+				normalizedFilePath === normalizedOutDir
+			) {
+				return this.getProjectPathTranslator(project.tsConfigPath);
+			}
+		}
+		return this.pathTranslator;
 	}
 }

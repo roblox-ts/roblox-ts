@@ -20,10 +20,10 @@ function y(str: string) {
 	return kleur.yellow(str);
 }
 
-function validateTypeRoots(nodeModulesPath: string, typeRoots: Array<string>) {
-	const typesPath = path.resolve(nodeModulesPath);
+function validateTypeRoots(projectPath: string, typeRoots: Array<string>): boolean {
 	for (const typeRoot of typeRoots) {
-		if (path.resolve(typeRoot) === typesPath) {
+		const resolvedTypeRoot = path.resolve(projectPath, typeRoot);
+		if (resolvedTypeRoot.endsWith(RBXTS_SCOPE) && fs.existsSync(resolvedTypeRoot)) {
 			return true;
 		}
 	}
@@ -62,9 +62,10 @@ export function validateCompilerOptions(opts: ts.CompilerOptions, projectPath: s
 		errors.push(`${y(`"allowSyntheticDefaultImports"`)} must be ${y(`true`)}`);
 	}
 
-	const rbxtsModules = path.join(projectPath, NODE_MODULES, RBXTS_SCOPE);
-	if (opts.typeRoots === undefined || !validateTypeRoots(rbxtsModules, opts.typeRoots)) {
-		errors.push(`${y(`"typeRoots"`)} must contain ${y(rbxtsModules)}`);
+	if (opts.typeRoots === undefined || !validateTypeRoots(projectPath, opts.typeRoots)) {
+		errors.push(
+			`${y(`"typeRoots"`)} must contain a path to ${y(`${NODE_MODULES}/${RBXTS_SCOPE}`)} (e.g., "node_modules/@rbxts" or "../../node_modules/@rbxts")`,
+		);
 	}
 
 	for (const typesLocation of opts.types ?? []) {

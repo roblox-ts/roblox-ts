@@ -30,6 +30,7 @@ function createServiceHost(program: ts.Program) {
 		getScriptVersion,
 		getScriptSnapshot,
 		readFile,
+		getProjectReferences: () => program.getProjectReferences(),
 	};
 
 	function getScriptVersion(fileName: string) {

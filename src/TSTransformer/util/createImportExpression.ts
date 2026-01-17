@@ -5,6 +5,7 @@ import { NODE_MODULES, PARENT_FIELD, ProjectType } from "Shared/constants";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { getCanonicalFileName } from "Shared/util/getCanonicalFileName";
+import { isPathDescendantOf } from "Shared/util/isPathDescendantOf";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { createGetService } from "TSTransformer/util/createGetService";
@@ -187,7 +188,6 @@ export function getImportParts(state: TransformState, sourceFile: ts.SourceFile,
 		DiagnosticService.addDiagnostic(errors.noModuleSpecifierFile(moduleSpecifier));
 		return [luau.none()];
 	}
-
 	const virtualPath = state.guessVirtualPath(moduleFile.fileName) || moduleFile.fileName;
 
 	if (ts.isInsideNodeModules(virtualPath)) {
@@ -197,7 +197,20 @@ export function getImportParts(state: TransformState, sourceFile: ts.SourceFile,
 		);
 		return getNodeModulesImportParts(state, sourceFile, moduleSpecifier, moduleOutPath);
 	} else {
-		const moduleOutPath = state.pathTranslator.getImportPath(virtualPath);
+		const modulePathTranslator = state.getPathTranslatorForFile(virtualPath);
+
+		let moduleOutPath: string;
+
+		if (isPathDescendantOf(virtualPath, modulePathTranslator.rootDir)) {
+			moduleOutPath = modulePathTranslator.getImportPath(virtualPath);
+		} else if (isPathDescendantOf(virtualPath, modulePathTranslator.outDir)) {
+			const relativePath = path.relative(modulePathTranslator.outDir, virtualPath);
+			const sourcePath = path.join(modulePathTranslator.rootDir, relativePath);
+			moduleOutPath = modulePathTranslator.getImportPath(sourcePath);
+		} else {
+			moduleOutPath = virtualPath;
+		}
+
 		const moduleRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
 		if (!moduleRbxPath) {
 			DiagnosticService.addDiagnostic(
