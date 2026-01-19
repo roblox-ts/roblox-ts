@@ -11,7 +11,7 @@
 		"rbxtsc": "out/CLI/cli.js"
 	},
 	"scripts": {
-		"prepack": "npm run build",
+		"prepublishOnly": "npm run build",
 		"build": "tspc -b",
 		"build-watch": "tspc -b -w",
 		"eslint": "eslint --flag unstable_ts_config --max-warnings 0",
