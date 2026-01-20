@@ -209,6 +209,7 @@ export = ts.identity<yargs.CommandModule<object, BuildFlags & Partial<ProjectOpt
 					program,
 					state.compilerOptions.incremental ? undefined : changedFiles,
 				);
+
 				const result = compileFiles(
 					program.getProgram(),
 					state.data,
@@ -262,8 +263,6 @@ export = ts.identity<yargs.CommandModule<object, BuildFlags & Partial<ProjectOpt
 					return fsPath.replace(/\\/g, "/");
 				}
 
-				let initialCompileCompleted = false;
-				let collecting = false;
 				let filesToAdd = new Set<string>();
 				let filesToChange = new Set<string>();
 				let filesToDelete = new Set<string>();
@@ -453,6 +452,8 @@ export = ts.identity<yargs.CommandModule<object, BuildFlags & Partial<ProjectOpt
 					return allDiagnostics;
 				}
 
+				let initialCompileCompleted = false;
+
 				function runCompile(): Array<ts.Diagnostic> {
 					try {
 						if (!initialCompileCompleted) {
@@ -480,8 +481,12 @@ export = ts.identity<yargs.CommandModule<object, BuildFlags & Partial<ProjectOpt
 					}
 				}
 
+				let collecting = false;
+				let collectionTimeout: NodeJS.Timeout | undefined;
+
 				function closeEventCollection() {
 					collecting = false;
+					collectionTimeout = undefined;
 					reportEmitResult(runCompile());
 				}
 
@@ -489,8 +494,11 @@ export = ts.identity<yargs.CommandModule<object, BuildFlags & Partial<ProjectOpt
 					if (!collecting) {
 						collecting = true;
 						reportText("File change detected. Starting incremental compilation...");
-						setTimeout(closeEventCollection, 100);
 					}
+					if (collectionTimeout) {
+						clearTimeout(collectionTimeout);
+					}
+					collectionTimeout = setTimeout(closeEventCollection, 100);
 				}
 
 				function collectAddEvent(fsPath: string) {
