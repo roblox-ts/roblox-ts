@@ -1,9 +1,11 @@
 import { TransformerWatcher } from "Shared/types";
+import crypto from "crypto";
 import ts from "typescript";
 
 function createServiceHost(program: ts.Program) {
 	const rootFileNames = program.getRootFileNames().map(x => x);
 	const files = new Map<string, number>();
+	const hashCache = new Map<string, string>();
 
 	rootFileNames.forEach(fileName => {
 		files.set(fileName, 0);
@@ -34,8 +36,20 @@ function createServiceHost(program: ts.Program) {
 	};
 
 	function getScriptVersion(fileName: string) {
-		const version = files.get(fileName)?.toString();
-		return version ?? "0";
+		const version = files.get(fileName);
+		if (version !== undefined) {
+			return version.toString();
+		}
+
+		const content = ts.sys.readFile(fileName);
+		if (!content) {
+			hashCache.delete(fileName);
+			return "0";
+		}
+
+		const hash = crypto.createHash("sha1").update(content).digest("hex");
+		hashCache.set(fileName, hash);
+		return hash;
 	}
 
 	function getScriptSnapshot(fileName: string) {
