@@ -228,7 +228,7 @@ export class TransformState {
 					right: expression,
 				});
 			} else {
-				const sourceOutPath = this.pathTranslator.getOutputPath(sourceFile.fileName);
+				const sourceOutPath = this.getPathTranslatorForFile(sourceFile.path).getOutputPath(sourceFile.fileName);
 				const rbxPath = this.rojoResolver.getRbxPathFromFilePath(sourceOutPath);
 				if (!rbxPath) {
 					DiagnosticService.addDiagnostic(
