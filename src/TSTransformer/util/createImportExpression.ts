@@ -1,7 +1,7 @@
 import luau from "@roblox-ts/luau-ast";
 import { FileRelation, NetworkType, RbxPath, RbxPathParent, RbxType, RojoResolver } from "@roblox-ts/rojo-resolver";
 import path from "path";
-import { NODE_MODULES, PARENT_FIELD, ProjectType } from "Shared/constants";
+import { DTS_EXT, NODE_MODULES, PARENT_FIELD, ProjectType } from "Shared/constants";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { getCanonicalFileName } from "Shared/util/getCanonicalFileName";
@@ -208,7 +208,16 @@ export function getImportParts(state: TransformState, sourceFile: ts.SourceFile,
 			const sourcePath = path.join(modulePathTranslator.rootDir, relativePath);
 			moduleOutPath = modulePathTranslator.getImportPath(sourcePath);
 		} else {
-			moduleOutPath = virtualPath;
+			// This will need to be addressed..
+			// If .d.ts files are found outside of the rootDir and outDir, then we need
+			// to tell Rojo that we are talking about a Luau file here.
+			if (virtualPath.endsWith(DTS_EXT)) {
+				moduleOutPath =
+					virtualPath.slice(0, -DTS_EXT.length) + (modulePathTranslator.useLuauExtension ? ".luau" : ".lua");
+			} else {
+				// Probably json?
+				moduleOutPath = virtualPath;
+			}
 		}
 
 		const moduleRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
