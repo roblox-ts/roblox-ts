@@ -502,17 +502,25 @@ export = ts.identity<yargs.CommandModule<object, BuildFlags & Partial<ProjectOpt
 				}
 
 				function collectAddEvent(fsPath: string) {
-					filesToAdd.add(fixSlashes(fsPath));
+					const norm = fixSlashes(fsPath);
+					filesToDelete.delete(norm);
+					filesToChange.delete(norm);
+					filesToAdd.add(norm);
 					openEventCollection();
 				}
 
 				function collectChangeEvent(fsPath: string) {
-					filesToChange.add(fixSlashes(fsPath));
+					const norm = fixSlashes(fsPath);
+					filesToDelete.delete(norm);
+					filesToChange.add(norm);
 					openEventCollection();
 				}
 
 				function collectDeleteEvent(fsPath: string) {
-					filesToDelete.add(fixSlashes(fsPath));
+					const norm = fixSlashes(fsPath);
+					filesToAdd.delete(norm);
+					filesToChange.delete(norm);
+					filesToDelete.add(norm);
 					openEventCollection();
 				}
 
