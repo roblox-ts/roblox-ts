@@ -251,10 +251,11 @@ export = ts.identity<yargs.CommandModule<object, BuildFlags & Partial<ProjectOpt
 			}
 
 			if (rootData.projectOptions.watch) {
+				const EMIT_INTERVAL = 200;
+
 				const CHOKIDAR_OPTIONS: ChokidarOptions = {
 					awaitWriteFinish: {
-						pollInterval: 10,
-						stabilityThreshold: 50,
+						stabilityThreshold: EMIT_INTERVAL,
 					},
 					ignoreInitial: true,
 				};
@@ -487,18 +488,18 @@ export = ts.identity<yargs.CommandModule<object, BuildFlags & Partial<ProjectOpt
 				function closeEventCollection() {
 					collecting = false;
 					collectionTimeout = undefined;
+					reportText("File change detected. Starting incremental compilation...");
 					reportEmitResult(runCompile());
 				}
 
 				function openEventCollection() {
 					if (!collecting) {
 						collecting = true;
-						reportText("File change detected. Starting incremental compilation...");
 					}
 					if (collectionTimeout) {
 						clearTimeout(collectionTimeout);
 					}
-					collectionTimeout = setTimeout(closeEventCollection, 100);
+					collectionTimeout = setTimeout(closeEventCollection, EMIT_INTERVAL);
 				}
 
 				function collectAddEvent(fsPath: string) {
