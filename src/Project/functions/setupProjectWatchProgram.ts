@@ -187,7 +187,7 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 					diagnostics: e.diagnostics,
 				};
 			} else {
-				const message = e instanceof Error ? e.stack ?? e.message : String(e);
+				const message = e instanceof Error ? (e.stack ?? e.message) : String(e);
 				return {
 					emitSkipped: true,
 					diagnostics: [createTextDiagnostic(`Unexpected error during compilation:\n${message}`)],
