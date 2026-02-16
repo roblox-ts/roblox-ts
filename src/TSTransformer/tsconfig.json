@@ -1,8 +1,9 @@
 {
-	"extends": "../../tsconfig-base.json",
+	"extends": "../../tsconfig.json",
 	"compilerOptions": {
 		"outDir": "../../out/TSTransformer",
 		"rootDir": "."
 	},
-	"references": [{ "path": "../Shared" }]
+	"references": [{ "path": "../Shared" }],
+	"include": ["."]
 }

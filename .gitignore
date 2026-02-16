@@ -8,6 +8,7 @@ out
 .history
 .vscode/launch.json
 .vscode/settings.json
+.eslintcache
 
 /tests/*.rbxl
 /tests/*.rbxl.lock

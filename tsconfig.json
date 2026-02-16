@@ -1,10 +1,35 @@
 {
-	"files": [],
 	"compilerOptions": {
+		"declaration": true,
+		"module": "commonjs",
+		"target": "ES2019",
+		"lib": ["ES2019"],
+		"strict": true,
+		"noFallthroughCasesInSwitch": true,
+		"strictNullChecks": true,
+		"esModuleInterop": true,
+		"removeComments": true,
+		"forceConsistentCasingInFileNames": true,
 		"composite": true,
+		"sourceMap": true,
+		"outDir": "out",
 		"baseUrl": "src",
-		"outDir": "out"
+		"paths": {
+			"*": ["*"]
+		},
+		"plugins": [
+			{
+				"transform": "typescript-transform-paths",
+				"exclude": ["**/node_modules/**"]
+			},
+			{
+				"transform": "typescript-transform-paths",
+				"exclude": ["**/node_modules/**"],
+				"afterDeclarations": true
+			}
+		]
 	},
+	"files": [],
 	"references": [
 		{ "path": "./src/Shared" },
 		{ "path": "./src/CLI" },
