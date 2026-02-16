@@ -44,7 +44,7 @@ function error(message: string): never {
  */
 export function assertNever(value: never, message: string): never {
 	/* istanbul ignore */
-	const isTsNode = typeof value === "object" && "kind" in value && ts.isNode(value);
+	const isTsNode = typeof value === "object" && "kind" in value && ts.isNodeKind(value);
 	error(
 		`${message}, value was ${isTsNode ? `a TS node of kind ${getKindName((value as ts.Node).kind)}` : util.inspect(value)}`,
 	);
