@@ -1,10 +1,11 @@
 import luau from "@roblox-ts/luau-ast";
 import { FileRelation, NetworkType, RbxPath, RbxPathParent, RbxType, RojoResolver } from "@roblox-ts/rojo-resolver";
 import path from "path";
-import { NODE_MODULES, PARENT_FIELD, ProjectType } from "Shared/constants";
+import { DTS_EXT, NODE_MODULES, PARENT_FIELD, ProjectType } from "Shared/constants";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { getCanonicalFileName } from "Shared/util/getCanonicalFileName";
+import { isPathDescendantOf } from "Shared/util/isPathDescendantOf";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { createGetService } from "TSTransformer/util/createGetService";
@@ -187,7 +188,6 @@ export function getImportParts(state: TransformState, sourceFile: ts.SourceFile,
 		DiagnosticService.addDiagnostic(errors.noModuleSpecifierFile(moduleSpecifier));
 		return [luau.none()];
 	}
-
 	const virtualPath = state.guessVirtualPath(moduleFile.fileName) || moduleFile.fileName;
 
 	if (ts.isInsideNodeModules(virtualPath)) {
@@ -197,7 +197,29 @@ export function getImportParts(state: TransformState, sourceFile: ts.SourceFile,
 		);
 		return getNodeModulesImportParts(state, sourceFile, moduleSpecifier, moduleOutPath);
 	} else {
-		const moduleOutPath = state.pathTranslator.getImportPath(virtualPath);
+		const modulePathTranslator = state.getPathTranslatorForFile(virtualPath);
+
+		let moduleOutPath: string;
+
+		if (isPathDescendantOf(virtualPath, modulePathTranslator.rootDir)) {
+			moduleOutPath = modulePathTranslator.getImportPath(virtualPath);
+		} else if (isPathDescendantOf(virtualPath, modulePathTranslator.outDir)) {
+			const relativePath = path.relative(modulePathTranslator.outDir, virtualPath);
+			const sourcePath = path.join(modulePathTranslator.rootDir, relativePath);
+			moduleOutPath = modulePathTranslator.getImportPath(sourcePath);
+		} else {
+			// This will need to be addressed..
+			// If .d.ts files are found outside of the rootDir and outDir, then we need
+			// to tell Rojo that we are talking about a Luau file here.
+			if (virtualPath.endsWith(DTS_EXT)) {
+				moduleOutPath =
+					virtualPath.slice(0, -DTS_EXT.length) + (modulePathTranslator.useLuauExtension ? ".luau" : ".lua");
+			} else {
+				// Probably json?
+				moduleOutPath = virtualPath;
+			}
+		}
+
 		const moduleRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
 		if (!moduleRbxPath) {
 			DiagnosticService.addDiagnostic(

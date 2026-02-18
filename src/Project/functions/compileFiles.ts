@@ -14,7 +14,7 @@ import { getPluginConfigs } from "Project/transformers/getPluginConfigs";
 import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagnostics";
 import { LogService } from "Shared/classes/LogService";
 import { ProjectType } from "Shared/constants";
-import { ProjectData } from "Shared/types";
+import { GetProjectPathTranslator, ProjectData } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { benchmarkIfVerbose } from "Shared/util/benchmark";
 import { createTextDiagnostic } from "Shared/util/createTextDiagnostic";
@@ -50,6 +50,7 @@ export function compileFiles(
 	program: ts.Program,
 	data: ProjectData,
 	pathTranslator: PathTranslator,
+	getProjectPathTranslator: GetProjectPathTranslator,
 	sourceFiles: Array<ts.SourceFile>,
 ): ts.EmitResult {
 	const compilerOptions = program.getCompilerOptions();
@@ -170,6 +171,7 @@ export function compileFiles(
 				runtimeLibRbxPath,
 				typeChecker,
 				projectType,
+				getProjectPathTranslator,
 				sourceFile,
 			);
 
