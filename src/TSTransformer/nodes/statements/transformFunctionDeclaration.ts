@@ -4,7 +4,7 @@ import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
-import { transformParameters } from "TSTransformer/nodes/transformParameters";
+import { FunctionLikeWithBody, transformParameters } from "TSTransformer/nodes/transformParameters";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import { wrapStatementsAsGenerator } from "TSTransformer/util/wrapStatementsAsGenerator";
@@ -25,7 +25,13 @@ export function transformFunctionDeclaration(state: TransformState, node: ts.Fun
 
 	const name = node.name ? transformIdentifierDefined(state, node.name) : luau.id("default");
 
-	let { statements, parameters, hasDotDotDot } = transformParameters(state, node);
+	let { statements, parameters, hasDotDotDot, varArgsData } = transformParameters(
+		state,
+		node as FunctionLikeWithBody,
+	);
+
+	state.pushFunction(varArgsData);
+
 	luau.list.pushList(statements, transformStatementList(state, node.body, node.body.statements));
 
 	let localize = isExportDefault;
@@ -41,8 +47,10 @@ export function transformFunctionDeclaration(state: TransformState, node: ts.Fun
 		if (isAsync) {
 			DiagnosticService.addDiagnostic(errors.noAsyncGeneratorFunctions(node));
 		}
-		statements = wrapStatementsAsGenerator(state, node, statements);
+		statements = wrapStatementsAsGenerator(state, node, statements, hasDotDotDot);
 	}
+
+	state.popFunction();
 
 	if (isAsync) {
 		const right = luau.call(state.TS(node, "async"), [
