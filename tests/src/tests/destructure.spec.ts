@@ -832,6 +832,22 @@ export = () => {
 		expect(a).to.equal("f");
 	});
 
+	it("should spread destructure strings", () => {
+		const [h, e, ...llo] = "hello";
+
+		expect(h).to.equal("h");
+		expect(e).to.equal("e");
+		expect(llo.join("")).to.equal("llo");
+
+		const [...fruits] = "🍓a🍉b🥝c";
+		expect(fruits[0]).to.equal("🍓");
+		expect(fruits[1]).to.equal("a");
+		expect(fruits[2]).to.equal("🍉");
+		expect(fruits[3]).to.equal("b");
+		expect(fruits[4]).to.equal("🥝");
+		expect(fruits[5]).to.equal("c");
+	});
+
 	it("should get sub type of iterable iterator", () => {
 		function* foo() {
 			yield "abc";
