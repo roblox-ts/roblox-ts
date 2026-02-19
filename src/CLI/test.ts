@@ -9,6 +9,7 @@ import { createPathTranslator } from "Project/functions/createPathTranslator";
 import { createProjectData } from "Project/functions/createProjectData";
 import { createProjectProgram } from "Project/functions/createProjectProgram";
 import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
+import { transformAndWriteDeclarationFiles } from "Project/functions/transformAndWriteDeclarationFiles";
 import { DEFAULT_PROJECT_OPTIONS, PACKAGE_ROOT, TS_EXT, TSX_EXT } from "Shared/constants";
 import { DiagnosticFactory, errors, getDiagnosticId } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
@@ -28,6 +29,7 @@ describe("should compile tests project", () => {
 		}),
 	);
 	const program = createProjectProgram(data);
+	const compilerOptions = program.getCompilerOptions();
 	const pathTranslator = createPathTranslator(program, data);
 
 	// clean outDir between test runs
@@ -35,12 +37,21 @@ describe("should compile tests project", () => {
 
 	it("should copy include files", () => copyInclude(data));
 
-	it("should copy non-compiled files", () =>
-		copyFiles(data, pathTranslator, new Set(getRootDirs(program.getCompilerOptions()))));
+	it("should copy non-compiled files", () => copyFiles(data, pathTranslator, new Set(getRootDirs(compilerOptions))));
+
+	const changedSourceFiles = getChangedSourceFiles(program);
+	const changedCompilableFiles = changedSourceFiles.filter(v => !v.isDeclarationFile);
+
+	it("should transform .d.ts files in rootDir and write to outDir", () => {
+		if (compilerOptions.declaration) {
+			const changedDeclarationFiles = changedSourceFiles.filter(v => v.isDeclarationFile);
+			transformAndWriteDeclarationFiles(program.getProgram(), pathTranslator, changedDeclarationFiles);
+		}
+	});
 
 	const diagnosticsFolder = path.join(PACKAGE_ROOT, "tests", "src", "diagnostics");
 
-	for (const sourceFile of getChangedSourceFiles(program)) {
+	for (const sourceFile of changedCompilableFiles) {
 		const fileName = path.relative(process.cwd(), sourceFile.fileName);
 		if (isPathDescendantOf(path.normalize(sourceFile.fileName), diagnosticsFolder)) {
 			let fileBaseName = path.basename(sourceFile.fileName);
