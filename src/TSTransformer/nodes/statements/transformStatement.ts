@@ -18,6 +18,7 @@ import { transformFunctionDeclaration } from "TSTransformer/nodes/statements/tra
 import { transformIfStatement } from "TSTransformer/nodes/statements/transformIfStatement";
 import { transformImportDeclaration } from "TSTransformer/nodes/statements/transformImportDeclaration";
 import { transformImportEqualsDeclaration } from "TSTransformer/nodes/statements/transformImportEqualsDeclaration";
+import { transformLabeledStatement } from "TSTransformer/nodes/statements/transformLabeledStatement";
 import { transformModuleDeclaration } from "TSTransformer/nodes/statements/transformModuleDeclaration";
 import { transformReturnStatement } from "TSTransformer/nodes/statements/transformReturnStatement";
 import { transformSwitchStatement } from "TSTransformer/nodes/statements/transformSwitchStatement";
@@ -67,10 +68,10 @@ const TRANSFORMER_BY_KIND = createTransformerMap([
 
 	// banned statements
 	[ts.SyntaxKind.ForInStatement, DIAGNOSTIC(errors.noForInStatement)],
-	[ts.SyntaxKind.LabeledStatement, DIAGNOSTIC(errors.noLabeledStatement)],
 	[ts.SyntaxKind.DebuggerStatement, DIAGNOSTIC(errors.noDebuggerStatement)],
 
 	// regular transforms
+	[ts.SyntaxKind.LabeledStatement, transformLabeledStatement],
 	[ts.SyntaxKind.Block, transformBlock],
 	[ts.SyntaxKind.BreakStatement, transformBreakStatement],
 	[ts.SyntaxKind.ClassDeclaration, transformClassDeclaration],
