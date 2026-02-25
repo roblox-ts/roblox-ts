@@ -225,7 +225,6 @@ export = ts.identity<yargs.CommandModule<object, BuildFlags & Partial<ProjectOpt
 				copyInclude(rootState.data);
 
 				const allDiagnostics: Array<ts.Diagnostic> = [];
-				let depEmitSkipped = false;
 
 				for (const refProject of rootData.referencedProjects) {
 					const state = projectStates.get(refProject.tsConfigPath);
@@ -235,8 +234,7 @@ export = ts.identity<yargs.CommandModule<object, BuildFlags & Partial<ProjectOpt
 					allDiagnostics.push(...result.diagnostics);
 
 					if (result.emitSkipped) {
-						depEmitSkipped = true;
-						break;
+						return { diagnostics: allDiagnostics, emitSkipped: true };
 					}
 
 					if (hasErrors(result.diagnostics)) {
@@ -247,7 +245,7 @@ export = ts.identity<yargs.CommandModule<object, BuildFlags & Partial<ProjectOpt
 				const { result: rootResult } = buildProject(rootState, undefined, true);
 				allDiagnostics.push(...rootResult.diagnostics);
 
-				return { diagnostics: allDiagnostics, emitSkipped: depEmitSkipped || rootResult.emitSkipped };
+				return { diagnostics: allDiagnostics, emitSkipped: rootResult.emitSkipped };
 			}
 
 			if (rootData.projectOptions.watch) {
