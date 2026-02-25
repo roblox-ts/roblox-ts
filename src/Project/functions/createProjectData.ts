@@ -4,7 +4,7 @@ import path from "path";
 import { LogService } from "Shared/classes/LogService";
 import { NODE_MODULES } from "Shared/constants";
 import { ProjectError } from "Shared/errors/ProjectError";
-import { ProjectData, ProjectOptions } from "Shared/types";
+import { ProjectData, ProjectOptions, ReferencedProjectInfo } from "Shared/types";
 import ts from "typescript";
 
 const PACKAGE_REGEX = /^@[a-z0-9-]*\//;
@@ -49,5 +49,79 @@ export function createProjectData(tsConfigPath: string, projectOptions: ProjectO
 		projectOptions,
 		projectPath,
 		rojoConfigPath,
+		referencedProjects: collectProjectReferences(tsConfigPath, new Set(), projectOptions.luau),
 	};
+}
+
+function collectProjectReferences(
+	tsConfigPath: string,
+	visited: Set<string>,
+	luau: boolean,
+): Array<ReferencedProjectInfo> {
+	const normalizedPath = path.normalize(tsConfigPath);
+	if (visited.has(normalizedPath)) {
+		return [];
+	}
+	visited.add(normalizedPath);
+
+	const parsed = parseProjectConfig(tsConfigPath);
+	if (!parsed) {
+		return [];
+	}
+
+	const results: Array<ReferencedProjectInfo> = [];
+
+	for (const ref of parsed.references) {
+		const refConfigPath = resolveReferencePath(tsConfigPath, ref.path);
+		const refParsed = parseProjectConfig(refConfigPath);
+		if (!refParsed) {
+			continue;
+		}
+
+		results.push(...collectProjectReferences(refConfigPath, visited, luau), {
+			tsConfigPath: refConfigPath,
+			rootDir: refParsed.rootDir,
+			outDir: refParsed.outDir,
+		});
+	}
+
+	return results;
+}
+
+interface ParsedProjectReference {
+	tsConfigPath: string;
+	rootDir: string;
+	outDir: string;
+	references: ReadonlyArray<ts.ProjectReference>;
+}
+
+function parseProjectConfig(tsConfigPath: string): ParsedProjectReference | undefined {
+	const configFile = ts.readConfigFile(tsConfigPath, ts.sys.readFile);
+	if (configFile.error) {
+		return undefined;
+	}
+
+	const configDir = path.dirname(tsConfigPath);
+	const parsedConfig = ts.parseJsonConfigFileContent(configFile.config, ts.sys, configDir);
+
+	const rootDir = parsedConfig.options.rootDir ?? configDir;
+	const outDir = parsedConfig.options.outDir ?? configDir;
+
+	return {
+		tsConfigPath,
+		rootDir: path.resolve(configDir, rootDir),
+		outDir: path.resolve(configDir, outDir),
+		references: parsedConfig.projectReferences ?? [],
+	};
+}
+
+function resolveReferencePath(fromConfigPath: string, refPath: string): string {
+	const configDir = path.dirname(fromConfigPath);
+	const resolvedPath = path.resolve(configDir, refPath);
+
+	if (ts.sys.directoryExists(resolvedPath)) {
+		return path.join(resolvedPath, "tsconfig.json");
+	}
+
+	return resolvedPath;
 }
