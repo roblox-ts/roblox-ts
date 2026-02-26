@@ -1,4 +1,5 @@
 import luau from "@roblox-ts/luau-ast";
+import { assertNever } from "Shared/util/assertNever";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformWritableExpression } from "TSTransformer/nodes/transformWritable";
@@ -124,8 +125,10 @@ export function transformLogicalOrCoalescingAssignmentExpression(
 		return transformCoalescingAssignmentExpression(state, node.left, node.right);
 	} else if (operator === ts.SyntaxKind.AmpersandAmpersandEqualsToken) {
 		return transformLogicalAndAssignmentExpression(state, node.left, node.right);
-	} else {
+	} else if (operator === ts.SyntaxKind.BarBarEqualsToken) {
 		return transformLogicalOrAssignmentExpression(state, node.left, node.right);
+	} else {
+		assertNever(operator, `transformLogicalOrCoalescingAssignmentExpression unknown operator`);
 	}
 }
 
