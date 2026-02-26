@@ -118,16 +118,31 @@ export class MacroManager {
 		}
 
 		for (const [className, methods] of Object.entries(PROPERTY_CALL_MACROS)) {
-			const symbol = getGlobalSymbolByNameOrThrow(typeChecker, className, ts.SymbolFlags.Interface);
+			const symbol = getGlobalSymbolByNameOrThrow(typeChecker, className, ts.SymbolFlags.All);
 
 			const methodMap = new Map<string, ts.Symbol>();
 			for (const declaration of symbol.declarations ?? []) {
 				if (ts.isInterfaceDeclaration(declaration)) {
 					for (const member of declaration.members) {
 						if (ts.isMethodSignature(member) && ts.isIdentifier(member.name)) {
-							const symbol = getType(typeChecker, member).symbol;
-							assert(symbol);
-							methodMap.set(member.name.text, symbol);
+							const memberSymbol = getType(typeChecker, member).symbol;
+							assert(memberSymbol);
+							methodMap.set(member.name.text, memberSymbol);
+						}
+					}
+				} else if (
+					ts.isTypeAliasDeclaration(declaration) &&
+					declaration.typeParameters &&
+					declaration.typeParameters.length === 1
+				) {
+					const type = declaration.type;
+					if (ts.isObjectTypeDeclaration(type)) {
+						for (const member of type.members) {
+							if (ts.isPropertySignature(member) && ts.isIdentifier(member.name)) {
+								const memberSymbol = typeChecker.getSymbolAtLocation(member.name);
+								assert(memberSymbol);
+								methodMap.set(member.name.text, memberSymbol);
+							}
 						}
 					}
 				}
