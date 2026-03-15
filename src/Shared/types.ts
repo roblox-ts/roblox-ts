@@ -24,12 +24,6 @@ export interface ProjectData {
 	projectPath: string;
 	rojoConfigPath: string | undefined;
 	tsConfigPath: string;
-	transformerWatcher?: TransformerWatcher;
-}
-
-export interface TransformerWatcher {
-	service: ts.LanguageService;
-	updateFile: (fileName: string, text: string) => void;
 }
 
 export interface TransformerPluginConfig {

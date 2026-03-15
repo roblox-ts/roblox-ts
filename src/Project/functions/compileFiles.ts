@@ -9,7 +9,6 @@ import { createNodeModulesPathMapping } from "Project/functions/createNodeModule
 import transformPathsTransformer from "Project/transformers/builtin/transformPaths";
 import { transformTypeReferenceDirectives } from "Project/transformers/builtin/transformTypeReferenceDirectives";
 import { createTransformerList, flattenIntoTransformers } from "Project/transformers/createTransformerList";
-import { createTransformerWatcher } from "Project/transformers/createTransformerWatcher";
 import { getPluginConfigs } from "Project/transformers/getPluginConfigs";
 import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagnostics";
 import { LogService } from "Shared/classes/LogService";
@@ -39,6 +38,22 @@ function emitResultFailure(messageText: string): ts.EmitResult {
 		emitSkipped: true,
 		diagnostics: [createTextDiagnostic(messageText)],
 	};
+}
+
+function createProgramWithOverrides(originalProgram: ts.Program, overrides: Map<string, string>): ts.Program {
+	const originalHost = ts.createCompilerHost(originalProgram.getCompilerOptions());
+	const host: ts.CompilerHost = {
+		...originalHost,
+		getSourceFile(fileName, languageVersion, onError) {
+			const overriddenText = overrides.get(fileName);
+			if (overriddenText !== undefined) {
+				return ts.createSourceFile(fileName, overriddenText, languageVersion, true);
+			}
+			// return the original source file to avoid reparsing unmodified files
+			return originalProgram.getSourceFile(fileName) ?? originalHost.getSourceFile(fileName, languageVersion, onError);
+		},
+	};
+	return ts.createProgram(originalProgram.getRootFileNames(), originalProgram.getCompilerOptions(), host, originalProgram);
 }
 
 /**
@@ -112,7 +127,7 @@ export function compileFiles(
 			const transformerList = createTransformerList(program, pluginConfigs, data.projectPath);
 			const transformers = flattenIntoTransformers(transformerList);
 			if (transformers.length > 0) {
-				const { service, updateFile } = (data.transformerWatcher ??= createTransformerWatcher(program));
+				const originalSourceFiles = new Map(sourceFiles.map(sf => [sf.fileName, sf]));
 				const transformResult = ts.transformNodes(
 					undefined,
 					undefined,
@@ -125,12 +140,18 @@ export function compileFiles(
 
 				if (transformResult.diagnostics) DiagnosticService.addDiagnostics(transformResult.diagnostics);
 
+				const modifiedSources = new Map<string, string>();
+				const printer = ts.createPrinter();
+
 				for (const sourceFile of transformResult.transformed) {
 					if (ts.isSourceFile(sourceFile)) {
-						// transformed nodes don't have symbol or type information (or they have out of date information)
-						// there's no way to "rebind" an existing file, so we have to reprint it
-						const source = ts.createPrinter().printFile(sourceFile);
-						updateFile(sourceFile.fileName, source);
+						// skip files the transformer didn't modify
+						if (originalSourceFiles.get(sourceFile.fileName) === sourceFile) continue;
+
+						// transformed nodes don't have symbol or type information
+						// reprint so a fresh program can rebind them
+						const source = printer.printFile(sourceFile);
+						modifiedSources.set(sourceFile.fileName, source);
 						if (data.projectOptions.writeTransformedFiles) {
 							const outPath = pathTranslator.getOutputTransformedPath(sourceFile.fileName);
 							fs.outputFileSync(outPath, source);
@@ -138,7 +159,9 @@ export function compileFiles(
 					}
 				}
 
-				proxyProgram = service.getProgram()!;
+				if (modifiedSources.size > 0) {
+					proxyProgram = createProgramWithOverrides(program, modifiedSources);
+				}
 			}
 		});
 	}
