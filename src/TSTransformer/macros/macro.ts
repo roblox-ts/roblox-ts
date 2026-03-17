@@ -1,6 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer";
-import { PropertyCallMacro } from "TSTransformer/macros/types";
+import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import ts from "typescript";
 
 /**
@@ -58,6 +58,18 @@ export function resolveInput(
 }
 
 /**
+ * The emit function type for defineMacro. After input resolution:
+ * - expression is IndexableExpression (identifier, temp, or simple value)
+ * - args remain as Expression (use convertToIndexableExpression for callable args)
+ */
+export type MacroEmitFn = (
+	state: TransformState,
+	node: ts.CallExpression & { expression: ts.PropertyAccessExpression | ts.ElementAccessExpression },
+	expression: luau.IndexableExpression,
+	args: Array<luau.Expression>,
+) => luau.Expression;
+
+/**
  * Declarative macro definition. Describes how inputs are used so the
  * framework can produce the minimum set of temporary variables.
  */
@@ -67,7 +79,7 @@ export interface MacroDefinition {
 	/** How each positional argument is used (by index) */
 	args?: Array<MacroInput>;
 	/** The macro implementation, receiving pre-resolved inputs */
-	emit: PropertyCallMacro;
+	emit: MacroEmitFn;
 }
 
 /**
@@ -82,28 +94,33 @@ export interface MacroDefinition {
  * - `callable`: Temp only if expression is not already an identifier
  * - `write`:    Always creates a temp variable
  *
+ * The resolved expression is guaranteed to be IndexableExpression (since
+ * read/callable/write all produce identifiers, temps, or simple values).
+ * Resolved callable args should be narrowed with convertToIndexableExpression()
+ * when used as the function target in luau.call().
+ *
  * @example
  * ```ts
  * filter: defineMacro({
  *     expression: read("exp"),
  *     args: [callable("callback")],
  *     emit: (state, node, expression, args) => {
- *         // expression is guaranteed simple (identifier or temp)
- *         // args[0] is guaranteed an identifier (original or temp)
+ *         // expression is IndexableExpression (identifier or temp)
+ *         // args[0] is an identifier - use convertToIndexableExpression for luau.call
  *         const resultId = state.pushToVar(luau.array(), "result");
- *         // ... emit loop using expression and args[0] directly
+ *         // ... emit loop
  *         return resultId;
  *     },
  * }),
  * ```
  */
-export function defineMacro(def: MacroDefinition): PropertyCallMacro {
-	return (
-		state: TransformState,
-		node: ts.CallExpression & { expression: ts.PropertyAccessExpression | ts.ElementAccessExpression },
-		expression: luau.Expression,
-		args: Array<luau.Expression>,
-	) => {
+export function defineMacro(def: MacroDefinition): (
+	state: TransformState,
+	node: ts.CallExpression & { expression: ts.PropertyAccessExpression | ts.ElementAccessExpression },
+	expression: luau.Expression,
+	args: Array<luau.Expression>,
+) => luau.Expression {
+	return (state, node, expression, args) => {
 		if (def.expression) {
 			expression = resolveInput(state, expression, def.expression);
 		}
@@ -112,6 +129,8 @@ export function defineMacro(def: MacroDefinition): PropertyCallMacro {
 				args[i] = resolveInput(state, args[i], def.args[i]);
 			}
 		}
-		return def.emit(state, node, expression, args);
+		// After resolution with read/callable/write, expression is always
+		// an identifier or simple value - guaranteed to be indexable
+		return def.emit(state, node, convertToIndexableExpression(expression), args);
 	};
 }

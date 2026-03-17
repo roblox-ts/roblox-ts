@@ -78,7 +78,10 @@ function makeEveryOrSomeMethod(
 			const keyId = luau.tempId("k");
 			const valueId = luau.tempId("v");
 
-			const callCallback = luau.call(args[0], callbackArgsListMaker(keyId, valueId, expression));
+			const callCallback = luau.call(
+				convertToIndexableExpression(args[0]),
+				callbackArgsListMaker(keyId, valueId, expression),
+			);
 			state.prereq(
 				luau.create(luau.SyntaxKind.ForStatement, {
 					ids: luau.list.make(keyId, valueId),
@@ -250,7 +253,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 					expression,
 					statements: luau.list.make(
 						luau.create(luau.SyntaxKind.CallStatement, {
-							expression: luau.call(args[0], [valueId, offset(keyId, -1), expression]),
+							expression: luau.call(convertToIndexableExpression(args[0]), [valueId, offset(keyId, -1), expression]),
 						}),
 					),
 				}),
@@ -281,7 +284,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 								index: keyId,
 							}),
 							operator: "=",
-							right: luau.call(args[0], [valueId, offset(keyId, -1), expression]),
+							right: luau.call(convertToIndexableExpression(args[0]), [valueId, offset(keyId, -1), expression]),
 						}),
 					),
 				}),
@@ -307,7 +310,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 					statements: luau.list.make<luau.Statement>(
 						luau.create(luau.SyntaxKind.VariableDeclaration, {
 							left: resultId,
-							right: luau.call(args[0], [valueId, offset(keyId, -1), expression]),
+							right: luau.call(convertToIndexableExpression(args[0]), [valueId, offset(keyId, -1), expression]),
 						}),
 						luau.create(luau.SyntaxKind.IfStatement, {
 							condition: luau.binary(resultId, "~=", luau.nil()),
@@ -376,7 +379,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 						luau.create(luau.SyntaxKind.VariableDeclaration, {
 							left: valueId,
 							right: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-								expression: convertToIndexableExpression(expression),
+								expression: expression,
 								index: indexId2,
 							}),
 						}),
@@ -422,7 +425,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 					statements: luau.list.make(
 						luau.create(luau.SyntaxKind.IfStatement, {
 							condition: luau.create(luau.SyntaxKind.BinaryExpression, {
-								left: luau.call(args[0], [valueId, offset(keyId, -1), expression]),
+								left: luau.call(convertToIndexableExpression(args[0]), [valueId, offset(keyId, -1), expression]),
 								operator: "==",
 								right: luau.bool(true),
 							}),
@@ -478,7 +481,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 				);
 				resultId = state.pushToVar(
 					luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-						expression: convertToIndexableExpression(expression),
+						expression: expression,
 						index: start,
 					}),
 					"result",
@@ -499,10 +502,10 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 						luau.create(luau.SyntaxKind.Assignment, {
 							left: resultId,
 							operator: "=",
-							right: luau.call(args[0], [
+							right: luau.call(convertToIndexableExpression(args[0]), [
 								resultId,
 								luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-									expression: convertToIndexableExpression(expression),
+									expression: expression,
 									index: iteratorId,
 								}),
 								offset(iteratorId, -1),
@@ -532,7 +535,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 					statements: luau.list.make<luau.Statement>(
 						luau.create(luau.SyntaxKind.IfStatement, {
 							condition: luau.create(luau.SyntaxKind.BinaryExpression, {
-								left: luau.call(args[0], [valueId, offset(loopId, -1), expression]),
+								left: luau.call(convertToIndexableExpression(args[0]), [valueId, offset(loopId, -1), expression]),
 								operator: "==",
 								right: luau.bool(true),
 							}),
@@ -569,7 +572,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 					statements: luau.list.make<luau.Statement>(
 						luau.create(luau.SyntaxKind.IfStatement, {
 							condition: luau.create(luau.SyntaxKind.BinaryExpression, {
-								left: luau.call(args[0], [valueId, offset(loopId, -1), expression]),
+								left: luau.call(convertToIndexableExpression(args[0]), [valueId, offset(loopId, -1), expression]),
 								operator: "==",
 								right: luau.bool(true),
 							}),
@@ -829,7 +832,7 @@ const READONLY_SET_METHODS: MacroList<PropertyCallMacro> = {
 					expression,
 					statements: luau.list.make(
 						luau.create(luau.SyntaxKind.CallStatement, {
-							expression: luau.call(args[0], [valueId, valueId, expression]),
+							expression: luau.call(convertToIndexableExpression(args[0]), [valueId, valueId, expression]),
 						}),
 					),
 				}),
@@ -877,7 +880,7 @@ const READONLY_MAP_METHODS: MacroList<PropertyCallMacro> = {
 					expression,
 					statements: luau.list.make(
 						luau.create(luau.SyntaxKind.CallStatement, {
-							expression: luau.call(args[0], [valueId, keyId, expression]),
+							expression: luau.call(convertToIndexableExpression(args[0]), [valueId, keyId, expression]),
 						}),
 					),
 				}),
