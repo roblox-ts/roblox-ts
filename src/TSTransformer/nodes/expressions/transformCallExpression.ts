@@ -3,6 +3,7 @@ import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
+import { managedMacros } from "TSTransformer/macros/macro";
 import { CallMacro, PropertyCallMacro } from "TSTransformer/macros/types";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformImportExpression } from "TSTransformer/nodes/expressions/transformImportExpression";
@@ -62,9 +63,15 @@ function runCallMacro(
 			);
 		}
 
-		for (let i = 0; i < args.length; i++) {
-			if (expressionMightMutate(state, args[i], nodeArguments[i])) {
-				args[i] = state.pushToVar(args[i], valueToIdStr(args[i]) || `arg${i}`);
+		// Managed macros (from defineMacro) handle their own input resolution
+		// via declared usage patterns, so skip the blanket temp loop for them.
+		// Unmanaged macros need all mutable args captured to temps since
+		// the macro could use them in any order or emit prereqs between reads.
+		if (!managedMacros.has(macro)) {
+			for (let i = 0; i < args.length; i++) {
+				if (expressionMightMutate(state, args[i], nodeArguments[i])) {
+					args[i] = state.pushToVar(args[i], valueToIdStr(args[i]) || `arg${i}`);
+				}
 			}
 		}
 	});
