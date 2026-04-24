@@ -46,10 +46,7 @@ export function createNodeModulesPathMapping(typeRoots: Array<string>) {
 
 					// only map if both sides exist
 					if (dtsPath && jsPath) {
-						nodeModulesPathMapping.set(
-							getCanonicalFileName(dtsPath),
-							jsPath,
-						);
+						nodeModulesPathMapping.set(getCanonicalFileName(dtsPath), jsPath);
 					}
 				}
 			}
