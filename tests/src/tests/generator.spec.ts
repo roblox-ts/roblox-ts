@@ -87,4 +87,18 @@ export = () => {
 		expect(result[3]).to.equal(3);
 		expect(result[4]).to.equal(4);
 	});
+
+	it("should pass next(...) parameters to yield*", () => {
+		function* a(): Generator<undefined, number, number> {
+			return yield;
+		}
+		function* b() {
+			return yield* a();
+		}
+
+		const iter = b();
+		iter.next();
+		const second = iter.next(1);
+		expect(second.value).to.equal(1);
+	});
 };
