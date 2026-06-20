@@ -5,7 +5,8 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        required: true
+        description: Version to publish. Leave empty to publish a @next build.
+        required: false
         type: string
   schedule:
     - cron: '0 7 * * *'
@@ -36,13 +37,13 @@ jobs:
         uses: bahmutov/npm-install@v1
 
       - name: Publish @next
-        if: github.event_name == 'schedule'
+        if: inputs.version == ''
         run: |
           npm version --no-git-tag-version $(jq -r .version package.json)-dev-$(git rev-parse --short HEAD)
           npm publish --tag next
 
       - name: Publish
-        if: github.event_name == 'workflow_dispatch'
+        if: inputs.version != ''
         run: |
           git config user.name "GitHub Actions"
           git config user.email "noreply@github.com"
