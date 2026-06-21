@@ -18,9 +18,12 @@ function getExportPair(state: TransformState, exportSymbol: ts.Symbol): [name: s
 		if (ts.isIdentifier(exportName)) {
 			return [declaration.name.text, transformIdentifierDefined(state, exportName)];
 		} else {
-			return [declaration.name.text, luau.create(luau.SyntaxKind.Identifier, {
-				name: exportName.text,
-			})];
+			return [
+				declaration.name.text,
+				luau.create(luau.SyntaxKind.Identifier, {
+					name: exportName.text,
+				}),
+			];
 		}
 	} else {
 		let name = exportSymbol.name;
