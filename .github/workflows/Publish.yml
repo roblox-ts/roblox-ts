@@ -39,7 +39,13 @@ jobs:
       - name: Publish @next
         if: inputs.version == ''
         run: |
-          npm version --no-git-tag-version $(jq -r .version package.json)-dev-$(git rev-parse --short HEAD)
+          VERSION="$(jq -r .version package.json)-dev-$(git rev-parse --short HEAD)"
+          NAME="$(jq -r .name package.json)"
+          if [ -n "$(npm view "$NAME@$VERSION" version 2>/dev/null)" ]; then
+            echo "$NAME@$VERSION has already been published, skipping."
+            exit 0
+          fi
+          npm version --no-git-tag-version "$VERSION"
           npm publish --tag next
 
       - name: Publish
