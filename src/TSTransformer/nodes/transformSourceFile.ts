@@ -15,16 +15,9 @@ function getExportPair(state: TransformState, exportSymbol: ts.Symbol): [name: s
 	const declaration = exportSymbol.getDeclarations()?.[0];
 	if (declaration && ts.isExportSpecifier(declaration)) {
 		const exportName = declaration.propertyName ?? declaration.name;
-		if (ts.isIdentifier(exportName)) {
-			return [declaration.name.text, transformIdentifierDefined(state, exportName)];
-		} else {
-			return [
-				declaration.name.text,
-				luau.create(luau.SyntaxKind.Identifier, {
-					name: exportName.text,
-				}),
-			];
-		}
+		// exportName is only a StringLiteral for re-exports, which are filtered out in handleExports
+		assert(ts.isIdentifier(exportName));
+		return [declaration.name.text, transformIdentifierDefined(state, exportName)];
 	} else {
 		let name = exportSymbol.name;
 		if (
