@@ -39,7 +39,9 @@ function countImportExpUses(state: TransformState, importClause: ts.ImportClause
 export function transformImportDeclaration(state: TransformState, node: ts.ImportDeclaration) {
 	// no emit for type only
 	const importClause = node.importClause;
-	if (importClause && importClause.isTypeOnly) return luau.list.make<luau.Statement>();
+	if (importClause && importClause.phaseModifier === ts.SyntaxKind.TypeKeyword) {
+		return luau.list.make<luau.Statement>();
+	}
 
 	const statements = luau.list.make<luau.Statement>();
 

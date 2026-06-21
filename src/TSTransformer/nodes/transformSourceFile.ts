@@ -14,7 +14,10 @@ import ts from "typescript";
 function getExportPair(state: TransformState, exportSymbol: ts.Symbol): [name: string, id: luau.AnyIdentifier] {
 	const declaration = exportSymbol.getDeclarations()?.[0];
 	if (declaration && ts.isExportSpecifier(declaration)) {
-		return [declaration.name.text, transformIdentifierDefined(state, declaration.propertyName ?? declaration.name)];
+		const exportName = declaration.propertyName ?? declaration.name;
+		// exportName is only a StringLiteral for re-exports, which are filtered out in handleExports
+		assert(ts.isIdentifier(exportName));
+		return [declaration.name.text, transformIdentifierDefined(state, exportName)];
 	} else {
 		let name = exportSymbol.name;
 		if (
