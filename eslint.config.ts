@@ -1,10 +1,12 @@
 import eslint from "@eslint/js";
+// @ts-expect-error -- No types
 import comments from "@eslint-community/eslint-plugin-eslint-comments";
+import { defineConfig, globalIgnores } from "eslint/config";
 import prettier from "eslint-plugin-prettier/recommended";
 import simpleImportSort from "eslint-plugin-simple-import-sort";
 import tseslint from "typescript-eslint";
 
-export default tseslint.config(
+export default defineConfig(
 	eslint.configs.recommended,
 	...tseslint.configs.recommended,
 	prettier,
@@ -14,8 +16,10 @@ export default tseslint.config(
 			parserOptions: {
 				ecmaVersion: "latest",
 				sourceType: "module",
-				project: ["./tsconfig.json", "./tsconfig.eslint.json", "./src/*/tsconfig.json"],
 				ecmaFeatures: { jsx: true },
+				projectService: {
+					allowDefaultProject: ["*.ts"],
+				},
 			},
 		},
 		plugins: {
@@ -57,7 +61,5 @@ export default tseslint.config(
 			"no-restricted-imports": ["error", { patterns: [".*"] }],
 		},
 	},
-	{
-		ignores: ["node_modules/", "tests/", "out/", "coverage/", "devlink/", "jest.config.ts"],
-	},
+	globalIgnores(["node_modules/", "tests/", "out/", "coverage/", "devlink/"]),
 );

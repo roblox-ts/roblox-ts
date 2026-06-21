@@ -17,5 +17,14 @@ jobs:
       - name: Install NPM Dependencies
         uses: bahmutov/npm-install@v1
 
+      - name: Cache ESLint
+        uses: actions/cache@v4.3.0
+        with:
+          key: eslint-cache-${{ runner.os }}-${{ hashFiles('**/package-lock.json', 'eslint.config.*') }}-${{ github.run_id }}
+          path: .eslintcache
+          restore-keys: |
+            eslint-cache-${{ runner.os }}-${{ hashFiles('**/package-lock.json', 'eslint.config.*') }}-
+            eslint-cache-${{ runner.os }}-
+
       - name: Run ESLint
-        run: npm run eslint
+        run: npm run eslint:ci
