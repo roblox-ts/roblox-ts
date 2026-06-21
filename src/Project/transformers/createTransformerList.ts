@@ -76,8 +76,8 @@ export function flattenIntoTransformers(
 ): Array<ts.TransformerFactory<ts.SourceFile | ts.Bundle>> {
 	const result: Array<ts.TransformerFactory<ts.SourceFile | ts.Bundle>> = [];
 	result.push(
-		...(transformers.after as Array<ts.TransformerFactory<ts.SourceFile | ts.Bundle>>),
 		...(transformers.before as Array<ts.TransformerFactory<ts.SourceFile | ts.Bundle>>),
+		...(transformers.after as Array<ts.TransformerFactory<ts.SourceFile | ts.Bundle>>),
 		...(transformers.afterDeclarations as Array<ts.TransformerFactory<ts.SourceFile | ts.Bundle>>),
 	);
 	return result;
