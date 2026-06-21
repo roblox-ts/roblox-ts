@@ -1,31 +1,52 @@
 name: Publish
-run-name: Publish ${{ inputs.version }} (@${{ github.actor }})
+run-name: Publish ${{ inputs.version || 'next' }} (@${{ github.actor }})
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        required: true
+        description: Version to publish. Leave empty to publish a @next build.
+        required: false
         type: string
+  schedule:
+    - cron: '0 7 * * *'
 
 jobs:
   publish:
-    if: github.ref == 'refs/heads/master'
+    if: github.repository == 'roblox-ts/roblox-ts' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write # required for npm trusted publishing (OIDC)
+      contents: write # required to push the version bump commit and tags
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v2.3.4
+        uses: actions/checkout@v7
         with:
           token: ${{ secrets.pat }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - name: Update npm
+        run: npm install -g npm@latest # trusted publishing requires npm >= 11.5.1
 
       - name: Install NPM Dependencies
         uses: bahmutov/npm-install@v1
 
+      - name: Publish @next
+        if: inputs.version == ''
+        run: |
+          npm version --no-git-tag-version $(jq -r .version package.json)-dev-$(git rev-parse --short HEAD)
+          npm publish --tag next
+
       - name: Publish
+        if: inputs.version != ''
         run: |
           git config user.name "GitHub Actions"
           git config user.email "noreply@github.com"
-          echo "//registry.npmjs.org/:_authToken=${{ secrets.npm_token }}" > .npmrc
           npm version ${{ inputs.version }}
           npm publish
           git push
