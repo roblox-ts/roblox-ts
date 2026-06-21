@@ -26,9 +26,7 @@ function TS.getModule(context, scope, moduleName)
 		game.Loaded:Wait()
 	end
 
-	local object = context
-	repeat
-		local nodeModulesFolder = object:FindFirstChild(NODE_MODULES)
+	local function tryFindIn(nodeModulesFolder)
 		if nodeModulesFolder then
 			local scopeFolder = nodeModulesFolder:FindFirstChild(scope)
 			if scopeFolder then
@@ -37,6 +35,37 @@ function TS.getModule(context, scope, moduleName)
 					return module
 				end
 			end
+		end
+	end
+
+	-- Server-only modules first (node_modules in ServerScriptService)
+	if RunService:IsServer() then
+		local serverRbxts = game:GetService("ServerScriptService"):FindFirstChild("rbxts_include")
+		if serverRbxts then
+			local serverNodeModules = serverRbxts:FindFirstChild(NODE_MODULES)
+			local found = tryFindIn(serverNodeModules)
+			if found then
+				return found
+			end
+		end
+	end
+
+	-- Shared modules next (node_modules directly in ReplicatedStorage)
+	local replicatedRbxts = game:GetService("ReplicatedStorage"):FindFirstChild("rbxts_include")
+	if replicatedRbxts then
+		local replicatedNodeModules = replicatedRbxts:FindFirstChild(NODE_MODULES)
+		local found = tryFindIn(replicatedNodeModules)
+		if found then
+			return found
+		end
+	end
+
+	local object = context
+	repeat
+		local nodeModulesFolder = object:FindFirstChild(NODE_MODULES)
+		local found = tryFindIn(nodeModulesFolder)
+		if found then
+			return found
 		end
 		object = object.Parent
 	until object == nil
