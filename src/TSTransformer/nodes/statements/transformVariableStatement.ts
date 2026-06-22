@@ -18,7 +18,12 @@ import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import { wrapExpressionStatement } from "TSTransformer/util/wrapExpressionStatement";
 import ts from "typescript";
 
-export function transformVariable(state: TransformState, identifier: ts.Identifier, right?: luau.Expression) {
+export function transformVariable(
+	state: TransformState,
+	identifier: ts.Identifier,
+	right?: luau.Expression,
+	annotation?: ts.Type,
+) {
 	validateIdentifier(state, identifier);
 
 	const symbol = state.typeChecker.getSymbolAtLocation(identifier);
@@ -41,7 +46,7 @@ export function transformVariable(state: TransformState, identifier: ts.Identifi
 		}
 	}
 
-	const left: luau.AnyIdentifier = transformIdentifierDefined(state, identifier);
+	const left: luau.AnyIdentifier = transformIdentifierDefined(state, identifier, annotation);
 
 	checkVariableHoist(state, identifier, symbol);
 	if (state.isHoisted.get(symbol) === true) {
@@ -115,7 +120,7 @@ export function transformVariableDeclaration(
 	if (ts.isIdentifier(name)) {
 		luau.list.pushList(
 			statements,
-			state.capturePrereqs(() => transformVariable(state, name, value)),
+			state.capturePrereqs(() => transformVariable(state, name, value, state.getType(node))),
 		);
 	} else {
 		// in destructuring, rhs must be executed first

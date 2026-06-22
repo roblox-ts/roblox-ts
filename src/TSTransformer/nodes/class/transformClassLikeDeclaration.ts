@@ -19,6 +19,7 @@ import { getKindName } from "TSTransformer/util/getKindName";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import { validateMethodAssignment } from "TSTransformer/util/validateMethodAssignment";
 import ts from "typescript";
+import { transformClassLikeDeclarationType } from "./transformClassLikeDeclarationType";
 
 const MAGIC_TO_STRING_METHOD = "toString";
 
@@ -39,6 +40,8 @@ function createBoilerplate(
 	node: ts.ClassLikeDeclaration,
 	className: luau.Identifier | luau.TemporaryIdentifier,
 	isClassExpression: boolean,
+	implType?: luau.TypeIdentifier,
+	type?: luau.TypeIdentifier,
 ) {
 	const isAbstract = ts.hasAbstractModifier(node);
 	const statements = luau.list.make<luau.Statement>();
@@ -71,7 +74,7 @@ function createBoilerplate(
 			luau.create(luau.SyntaxKind.Assignment, {
 				left: className,
 				operator: "=",
-				right: luau.map(),
+				right: implType ? luau.cast(luau.cast(luau.map(), luau.any()), implType) : luau.map(),
 			}),
 		);
 	} else {
@@ -106,10 +109,14 @@ function createBoilerplate(
 			);
 		}
 
-		const metatable = luau.call(luau.globals.setmetatable, [
+		let metatable: luau.Expression = luau.call(luau.globals.setmetatable, [
 			luau.map(),
 			luau.create(luau.SyntaxKind.Map, { fields: metatableFields }),
 		]);
+
+		if (implType) {
+			metatable = luau.cast(luau.cast(metatable, luau.any()), implType);
+		}
 
 		if (isClassExpression && node.name) {
 			luau.list.push(
@@ -146,11 +153,12 @@ function createBoilerplate(
 		const statementsInner = luau.list.make<luau.Statement>();
 
 		//	local self = setmetatable({}, className);
+		const selfExpression = luau.call(luau.globals.setmetatable, [luau.map(), className]);
 		luau.list.push(
 			statementsInner,
 			luau.create(luau.SyntaxKind.VariableDeclaration, {
 				left: luau.globals.self,
-				right: luau.call(luau.globals.setmetatable, [luau.map(), className]),
+				right: type ? luau.cast(selfExpression, type) : selfExpression,
 			}),
 		);
 
@@ -180,6 +188,7 @@ function createBoilerplate(
 				hasDotDotDot: true,
 				statements: statementsInner,
 				localize: false,
+				returnType: undefined,
 			}),
 		);
 	}
@@ -207,7 +216,8 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 	}
 
 	/*
-		local className;
+		type className = ...;
+		local className: className;
 		do
 			OOP boilerplate
 			class functions
@@ -234,19 +244,29 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 		internalName = returnVar;
 	}
 	state.classIdentifierMap.set(node, internalName);
-	if (!isClassHoisted(state, node)) {
-		luau.list.push(
-			statements,
-			luau.create(luau.SyntaxKind.VariableDeclaration, {
-				left: returnVar,
-				right: undefined,
-			}),
-		);
+
+	// Calculate types
+	const [classLuauType, classLuauTypeIdentifier, classLuauInstanceTypeIdentifier] = luau.isIdentifier(internalName)
+		? transformClassLikeDeclarationType(state, node, internalName)
+		: [undefined, undefined, undefined];
+
+	if (classLuauType) {
+		luau.list.pushList(statements, classLuauType);
 	}
 
 	// OOP boilerplate + class functions
 	const statementsInner = luau.list.make<luau.Statement>();
-	luau.list.pushList(statementsInner, createBoilerplate(state, node, internalName, isClassExpression));
+	luau.list.pushList(
+		statementsInner,
+		createBoilerplate(
+			state,
+			node,
+			internalName,
+			isClassExpression,
+			classLuauTypeIdentifier,
+			classLuauInstanceTypeIdentifier,
+		),
+	);
 
 	const constructor = findConstructor(node);
 	if (constructor) {
@@ -367,6 +387,16 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 				left: returnVar,
 				operator: "=",
 				right: internalName,
+			}),
+		);
+	}
+
+	if (!isClassHoisted(state, node)) {
+		luau.list.push(
+			statements,
+			luau.create(luau.SyntaxKind.VariableDeclaration, {
+				left: { ...returnVar, annotation: classLuauTypeIdentifier },
+				right: undefined,
 			}),
 		);
 	}

@@ -10,6 +10,7 @@ import { isMethod } from "TSTransformer/util/isMethod";
 import { assignToMapPointer, Pointer } from "TSTransformer/util/pointer";
 import { wrapStatementsAsGenerator } from "TSTransformer/util/wrapStatementsAsGenerator";
 import ts from "typescript";
+import { transformType } from "./types/transformType";
 
 export function transformMethodDeclaration(
 	state: TransformState,
@@ -80,6 +81,7 @@ export function transformMethodDeclaration(
 					statements,
 					parameters,
 					hasDotDotDot,
+					returnType: node.type && transformType(state, state.getType(node), node),
 				}),
 			);
 		}
