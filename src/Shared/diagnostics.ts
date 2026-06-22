@@ -103,6 +103,7 @@ export const errors = {
 	noReservedIdentifier: error("Cannot use identifier reserved for compiler internal usage."),
 	noReservedClassFields: error("Cannot use class field reserved for compiler internal usage."),
 	noClassMetamethods: error("Metamethods cannot be used in class definitions!"),
+	noLengthIndexInTuples: error("Cannot index member `length` in a tuple!", suggestion("Use .size() instead.")),
 
 	// banned statements
 	noForInStatement: error("for-in loop statements are not supported!"),
