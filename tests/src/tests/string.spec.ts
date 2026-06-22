@@ -139,4 +139,20 @@ export = () => {
 		const str2 = `A string with a " and ' ending in a ]] ]=`;
 		expect(str2.size()).to.equal(41);
 	});
+
+	it("should support string indexing", () => {
+		const str1 = "Hello, world!";
+		expect(str1[0]).to.equal("H");
+		expect(str1[13]).to.equal("");
+
+		const str2 = "I like 苺"; // 苺 = Strawberry
+		expect(str2[7]).to.equal("耀");
+
+		const str3 = "However, 西瓜 is awesome too"; // 西瓜 = Watermelon
+		expect(str3[9]).to.equal("耀");
+		expect(str3[16]).to.equal("i");
+
+		const str4 = "😂 that was fun!";
+		expect(str4[5]).to.equal("t");
+	});
 };
