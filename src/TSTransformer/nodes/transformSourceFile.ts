@@ -214,7 +214,9 @@ export function transformSourceFile(state: TransformState, node: ts.SourceFile) 
 	const lastStatement = getLastNonCommentStatement(statements.tail);
 	if (!lastStatement || !luau.isReturnStatement(lastStatement.value)) {
 		const outputPath = state.pathTranslator.getOutputPath(node.fileName);
-		if (state.rojoResolver.getRbxTypeFromFilePath(outputPath) === RbxType.ModuleScript) {
+		const outputFileType = state.rojoResolver.getRbxTypeFromFilePath(outputPath);
+
+		if (outputFileType !== RbxType.Script && outputFileType !== RbxType.LocalScript) {
 			luau.list.push(statements, luau.create(luau.SyntaxKind.ReturnStatement, { expression: luau.nil() }));
 		}
 	}
