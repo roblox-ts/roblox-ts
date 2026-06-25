@@ -1,3 +1,4 @@
+import { PathTranslator } from "@roblox-ts/path-translator";
 import { ProjectType } from "Shared/constants";
 import ts from "typescript";
 
@@ -18,14 +19,23 @@ export interface ProjectOptions {
 }
 
 export interface ProjectData {
-	isPackage: boolean;
-	nodeModulesPath: string;
-	projectOptions: ProjectOptions;
-	projectPath: string;
-	rojoConfigPath: string | undefined;
-	tsConfigPath: string;
+	readonly isPackage: boolean;
+	readonly nodeModulesPath: string;
+	readonly projectOptions: ProjectOptions;
+	readonly projectPath: string;
+	readonly rojoConfigPath: string | undefined;
+	readonly tsConfigPath: string;
 	transformerWatcher?: TransformerWatcher;
+	readonly referencedProjects: Array<ReferencedProjectInfo>;
 }
+
+export interface ReferencedProjectInfo {
+	readonly tsConfigPath: string;
+	readonly rootDir: string;
+	readonly outDir: string;
+}
+
+export type GetProjectPathTranslator = (tsConfigPath: string) => PathTranslator;
 
 export interface TransformerWatcher {
 	service: ts.LanguageService;

@@ -5,9 +5,8 @@ import { findAncestorDir } from "Shared/util/findAncestorDir";
 import { getRootDirs } from "Shared/util/getRootDirs";
 import ts from "typescript";
 
-export function createPathTranslator(program: ts.BuilderProgram, data: ProjectData) {
-	const compilerOptions = program.getCompilerOptions();
-	const rootDir = findAncestorDir([program.getProgram().getCommonSourceDirectory(), ...getRootDirs(compilerOptions)]);
+export function createPathTranslator(compilerOptions: ts.CompilerOptions, data: ProjectData) {
+	const rootDir = findAncestorDir(getRootDirs(compilerOptions));
 	const outDir = compilerOptions.outDir!;
 	let buildInfoPath = ts.getTsBuildInfoEmitOutputFilePath(compilerOptions);
 	if (buildInfoPath !== undefined) {

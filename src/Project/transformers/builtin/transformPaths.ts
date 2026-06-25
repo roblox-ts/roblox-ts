@@ -211,12 +211,28 @@ export default function transformer(program: ts.Program, config: TsTransformPath
 				ts.isStringLiteral(node.moduleSpecifier)
 			)
 				return update(node, node.moduleSpecifier.text, p => {
-					const newNode = factory.cloneNode(node.moduleSpecifier!) as ts.StringLiteral;
-					ts.setSourceMapRange(newNode, ts.getSourceMapRange(node));
-					ts.setTextRange(newNode, node.moduleSpecifier);
-					newNode.text = p.text;
+					const moduleSpecifier = factory.createStringLiteral(p.text);
+					ts.setSourceMapRange(moduleSpecifier, ts.getSourceMapRange(node));
+					ts.setTextRange(moduleSpecifier, node.moduleSpecifier);
 
-					return Object.assign(node, { moduleSpecifier: newNode });
+					if (ts.isImportDeclaration(node)) {
+						return factory.updateImportDeclaration(
+							node,
+							node.modifiers,
+							node.importClause,
+							moduleSpecifier,
+							node.attributes,
+						);
+					}
+
+					return factory.updateExportDeclaration(
+						node,
+						node.modifiers,
+						node.isTypeOnly,
+						node.exportClause,
+						moduleSpecifier,
+						node.attributes,
+					);
 				});
 
 			/* Update ImportTypeNode - typeof import("./bar"); */
