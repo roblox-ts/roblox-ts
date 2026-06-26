@@ -14,7 +14,11 @@ function transformCaseClauseExpression(
 ) {
 	let [expression, prereqStatements] = state.capture(() => transformExpression(state, caseClauseExpression));
 
-	expression = luau.create(luau.SyntaxKind.ParenthesizedExpression, { expression });
+	// Only wrap in parentheses if the expression is not simple (identifier, literal, etc.)
+	// This avoids unnecessary parentheses for enum values and simple comparisons
+	if (!luau.isSimple(expression)) {
+		expression = luau.create(luau.SyntaxKind.ParenthesizedExpression, { expression });
+	}
 
 	let condition: luau.Expression = luau.binary(switchExpression, "==", expression);
 
