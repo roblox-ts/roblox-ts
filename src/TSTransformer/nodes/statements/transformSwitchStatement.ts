@@ -110,7 +110,7 @@ function transformCaseClause(
 }
 
 export function transformSwitchStatement(state: TransformState, node: ts.SwitchStatement) {
-	const expression = state.pushToVarIfComplex(transformExpression(state, node.expression), "exp");
+	const expression = state.pushToVar(transformExpression(state, node.expression), "exp");
 	const fallThroughFlagId = luau.tempId("fallthrough");
 
 	let isFallThroughFlagNeeded = false;
