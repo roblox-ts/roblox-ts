@@ -86,7 +86,8 @@ function TS.import(context, module, ...)
 	end
 
 	if not registeredLibraries[module] then
-		if _G[module] then
+		local existing = _G[module]
+		if existing and existing ~= TS then
 			error(
 				OUTPUT_PREFIX
 				.. "Invalid module access! Do you have multiple TS runtimes trying to import this? "
