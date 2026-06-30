@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Implementing Luau `const` in roblox-ts — Investigation Report</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --panel: #171a23;
+    --panel2: #1e222e;
+    --ink: #e6e8ed;
+    --muted: #9aa3b2;
+    --accent: #6ea8fe;
+    --good: #4ade80;
+    --bad: #f87171;
+    --warn: #fbbf24;
+    --border: #2a2f3d;
+    --code: #11141b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 940px; margin: 0 auto; padding: 40px 24px 96px; }
+  header h1 { font-size: 30px; margin: 0 0 8px; line-height: 1.25; }
+  header .sub { color: var(--muted); font-size: 15px; margin-bottom: 8px; }
+  header .meta { color: var(--muted); font-size: 13px; }
+  h2 { font-size: 22px; margin: 44px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+  h3 { font-size: 17px; margin: 26px 0 8px; }
+  p { margin: 10px 0; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code { background: var(--code); padding: 1px 6px; border-radius: 4px; font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace; font-size: 13.5px; }
+  pre { background: var(--code); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; overflow-x: auto; font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace; font-size: 13px; line-height: 1.5; }
+  pre .c { color: var(--muted); }       /* comment */
+  pre .k { color: #c792ea; }            /* keyword */
+  pre .s { color: #a5d6a7; }            /* string */
+  pre .l { color: var(--good); }        /* local */
+  pre .cst { color: var(--warn); font-weight: 600; } /* const */
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; margin: 16px 0; }
+  .callout { border-left: 3px solid var(--accent); background: var(--panel2); padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 16px 0; }
+  .callout.warn { border-left-color: var(--warn); }
+  .callout.bad { border-left-color: var(--bad); }
+  .callout.good { border-left-color: var(--good); }
+  table { border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 14px; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 12.5px; text-transform: uppercase; letter-spacing: .04em; }
+  td.path { font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace; font-size: 12.5px; color: var(--accent); white-space: nowrap; }
+  .tag { display: inline-block; font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+  .tag.no { background: rgba(248,113,113,.15); color: var(--bad); }
+  .tag.yes { background: rgba(74,222,128,.15); color: var(--good); }
+  .tag.maybe { background: rgba(251,191,36,.15); color: var(--warn); }
+  ul, ol { margin: 10px 0; padding-left: 22px; }
+  li { margin: 6px 0; }
+  .toc { columns: 2; column-gap: 32px; font-size: 14.5px; }
+  .toc a { display: block; padding: 3px 0; }
+  .pill { font-size: 12px; color: var(--muted); border: 1px solid var(--border); border-radius: 999px; padding: 2px 10px; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+  .small { font-size: 13px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Implementing the Luau <code>const</code> keyword in roblox-ts</h1>
+  <div class="sub">An investigation into feasibility, risks, and the variables we declare-then-reassign.</div>
+  <div class="meta">Repository: <code>roblox-ts/roblox-ts</code> &middot; Generated 2026-06-30 &middot; Investigation only — no code changed.</div>
+</header>
+
+<div class="callout">
+  <strong>TL;DR.</strong> Adding <code>const</code> is feasible and mostly mechanical, but it <em>cannot</em> be a blanket
+  rename of <code>local</code>. Luau <code>const</code> requires an initializer and forbids <em>any</em> later reassignment
+  (including compound assignment and reassignment of captured upvalues from nested functions). roblox-ts has
+  <strong>many</strong> codegen patterns that deliberately declare a variable and reassign it later — your instinct about
+  <strong>optional chaining</strong> and <strong>destructuring defaults</strong> is correct, and there are several more
+  (ternaries, <code>&amp;&amp;</code>/<code>||</code>/<code>??</code>, hoisting, class/enum scaffolding, <code>for</code> loops).
+  The safe path is an <strong>analysis pass that only promotes declarations that are provably never reassigned</strong>,
+  rather than auditing 40+ emit sites by hand.
+</div>
+
+<h2 id="toc">Contents</h2>
+<div class="toc panel">
+  <a href="#luau">1. What Luau <code>const</code> actually guarantees</a>
+  <a href="#today">2. How roblox-ts emits locals today</a>
+  <a href="#reassign">3. Declare-then-reassign sites (must stay <code>local</code>)</a>
+  <a href="#eligible">4. Const-eligible sites (the safe win)</a>
+  <a href="#strategy">5. Recommended implementation strategy</a>
+  <a href="#pass">6. The promotion pass in detail</a>
+  <a href="#caveats">7. Caveats &amp; edge cases</a>
+  <a href="#plan">8. Suggested rollout plan</a>
+</div>
+
+<h2 id="luau">1. What Luau <code>const</code> actually guarantees</h2>
+<p>
+  From the Luau <a href="https://rfcs.luau.org/const-keyword.html">const-keyword RFC</a> and language docs, <code>const</code> is a
+  <em>contextual</em> keyword usable anywhere <code>local</code> is. The semantics that constrain us:
+</p>
+<table>
+  <tr><th>Property</th><th>Rule</th><th>Consequence for codegen</th></tr>
+  <tr><td>Initializer</td><td><strong>Mandatory.</strong> A <code>const</code> binding must be initialized at the point of declaration.</td><td>Any <code>local x</code> with no right-hand side can never become <code>const</code>.</td></tr>
+  <tr><td>Reassignment</td><td><strong>Forbidden in all forms</strong> — simple <code>=</code>, compound <code>+=</code> etc., and reassignment of a captured upvalue from inside a nested function.</td><td>If we ever emit an <code>Assignment</code> targeting the binding, it must stay <code>local</code>.</td></tr>
+  <tr><td>Multiple assignment</td><td>Supported: <code>const a, b = f()</code>.</td><td>Tuple declarations are eligible — but only if <em>none</em> of the names is later reassigned.</td></tr>
+  <tr><td>Binding vs value</td><td>Only the <strong>binding</strong> is immutable; the referenced table can still be mutated.</td><td>Tables we build up via <code>t.x = ...</code> after declaration are fine to mark <code>const</code> (the binding isn't reassigned).</td></tr>
+  <tr><td>Shadowing / redeclaration</td><td>Allowed.</td><td>No conflict with roblox-ts's existing shadowing behavior.</td></tr>
+  <tr><td>Motivation</td><td>Clarity, intent, stable exports, better tooling/type-checker reasoning. The RFC explicitly says it is <strong>not</strong> a performance feature.</td><td>This is a <em>readability/correctness-signal</em> change, not an optimization. Worth weighing against added compiler complexity.</td></tr>
+</table>
+
+<h2 id="today">2. How roblox-ts emits locals today</h2>
+<p>
+  Every <code>local</code> in the output comes from a single AST node, <code>luau.SyntaxKind.VariableDeclaration</code>, defined in the
+  <code>@roblox-ts/luau-ast</code> package (currently pinned to <code>=2.0.0</code> in <code>package.json</code>):
+</p>
+<pre><span class="c">// node_modules/@roblox-ts/luau-ast/.../nodes.d.ts</span>
+<span class="k">interface</span> VariableDeclaration <span class="k">extends</span> BaseStatement&lt;SyntaxKind.VariableDeclaration&gt; {
+    left: AnyIdentifier | List&lt;AnyIdentifier&gt;;
+    right: Expression | List&lt;Expression&gt; | <span class="k">undefined</span>;   <span class="c">// undefined ⇒ `local x` with no value</span>
+}</pre>
+<p>It is rendered by <code>renderVariableDeclaration</code> — note that the keyword <code>local</code> is hard-coded here:</p>
+<pre><span class="c">// node_modules/@roblox-ts/luau-ast/.../renderVariableDeclaration.js</span>
+<span class="k">if</span> (node.right) {
+    <span class="k">return</span> state.line(`<span class="l">local</span> ${leftStr} = ${rightStr}`, node);
+} <span class="k">else</span> {
+    <span class="k">return</span> state.line(`<span class="l">local</span> ${leftStr}`, node);   <span class="c">// no initializer</span>
+}</pre>
+<div class="callout warn">
+  <strong>Key structural fact:</strong> the AST node and its renderer live in the <em>separate, published</em>
+  <code>@roblox-ts/luau-ast</code> dependency — not in this repo. Emitting <code>const</code> requires a change there
+  (a flag on the node + a renderer branch), a new release, and a version bump here. Everything in roblox-ts itself is just
+  <em>deciding when to set that flag</em>.
+</div>
+<p class="small">
+  Aside: TypeScript's three declaration forms are already collapsed. <code>var</code> is rejected
+  (<code>errors.noVar</code> in <code>src/Shared/diagnostics.ts</code>), and both <code>let</code> and <code>const</code> currently
+  compile to the same Luau <code>local</code>. So the TS keyword the user wrote is <em>not</em> currently a reliable signal on its own —
+  see caveats.
+</p>
+
+<h2 id="reassign">3. Declare-then-reassign sites — these must stay <code>local</code></h2>
+<p>
+  These are the patterns where roblox-ts intentionally creates a binding and writes to it afterward. Every one of them would be a
+  <strong>compile-to-broken-Luau bug</strong> if naively emitted as <code>const</code>. This is the heart of your concern, and it is
+  broader than just destructuring/optional chaining.
+</p>
+<table>
+  <tr><th>Pattern</th><th>Where</th><th>Const?</th><th>Why it reassigns</th></tr>
+  <tr>
+    <td><strong>Optional chaining</strong> <code>a?.b?.c()</code></td>
+    <td class="path">transformOptionalChain.ts<br>(createOrSetTempId ~L199/L207)</td>
+    <td><span class="tag no">never</span></td>
+    <td>Declares a temp, then reassigns it inside each <code>if x ~= nil then …</code> nil-guard as the chain advances.</td>
+  </tr>
+  <tr>
+    <td><strong>Destructuring with defaults</strong> <code>{ a = 5 } = obj</code></td>
+    <td class="path">transformInitializer.ts<br>(via transformObject/ArrayBindingPattern)</td>
+    <td><span class="tag no">never</span></td>
+    <td>Emits <code>local a = obj.a</code> then <code>if a == nil then a = 5 end</code>. The default is a reassignment.</td>
+  </tr>
+  <tr>
+    <td><strong>Optimized array destructure</strong> <code>[a, b] = f()</code></td>
+    <td class="path">transformVariableStatement.ts L94<br>transformBinaryExpression.ts L97</td>
+    <td><span class="tag no">never</span></td>
+    <td>Declares <code>local a, b</code> with <em>no</em> value, then <code>a, b = …</code> — fails the initializer rule outright.</td>
+  </tr>
+  <tr>
+    <td><strong>Ternary</strong> <code>cond ? x : y</code> (with prereqs)</td>
+    <td class="path">transformConditionalExpression.ts L37</td>
+    <td><span class="tag no">never</span></td>
+    <td><code>local result</code> (no value) then <code>result = …</code> in both if/else branches.</td>
+  </tr>
+  <tr>
+    <td><strong>Logical chains</strong> <code>&amp;&amp;</code> / <code>||</code> / <code>??</code> (non-inlined)</td>
+    <td class="path">transformLogical.ts L69</td>
+    <td><span class="tag no">never</span></td>
+    <td>First link is <code>local condition = a</code>; later links reassign <code>condition = b</code> inside nested guards.</td>
+  </tr>
+  <tr>
+    <td><strong>Hoisted variables</strong> (used before declaration)</td>
+    <td class="path">transformVariableStatement.ts L47–51<br>createHoistDeclaration.ts L11</td>
+    <td><span class="tag no">never</span></td>
+    <td><code>local x</code> is emitted at the top of the scope and the real value is assigned later via <code>x = …</code>.</td>
+  </tr>
+  <tr>
+    <td><strong>Class declarations</strong> (hoisted)</td>
+    <td class="path">transformClassLikeDeclaration.ts L240</td>
+    <td><span class="tag no">never</span></td>
+    <td><code>local Class</code> with no value, populated afterward.</td>
+  </tr>
+  <tr>
+    <td><strong>Enum scaffolding</strong></td>
+    <td class="path">transformEnumDeclaration.ts L125</td>
+    <td><span class="tag no">never</span></td>
+    <td><code>local Enum</code> declared empty, then filled by member assignments.</td>
+  </tr>
+  <tr>
+    <td><strong><code>for</code> loop control / increment flags</strong></td>
+    <td class="path">transformForStatement.ts L217<br>transformForOfStatement.ts</td>
+    <td><span class="tag no">never</span></td>
+    <td>e.g. <code>local _shouldIncrement = false</code> → reassigned to <code>true</code>; numeric loop vars are mutated each iteration.</td>
+  </tr>
+  <tr>
+    <td><strong>Compound assignment temps</strong>, spread-destructure generator, iterable counters</td>
+    <td class="path">transformUnaryExpression.ts, spreadDestructureGenerator.ts, getAddIterableToArrayBuilder.ts</td>
+    <td><span class="tag no">never</span></td>
+    <td>Counters/accumulators that are incremented or reassigned by design.</td>
+  </tr>
+</table>
+
+<div class="callout bad">
+  <strong>The trap:</strong> "has an initializer ⇒ make it <code>const</code>" is <em>not</em> safe. Several of the cases above
+  (logical chains, <code>_shouldIncrement = false</code>) declare <em>with</em> a value and still reassign later. Initializer
+  presence is necessary but not sufficient.
+</div>
+
+<h2 id="eligible">4. Const-eligible sites — the safe win</h2>
+<p>The large majority of generated locals are write-once. These are the ones worth promoting:</p>
+<table>
+  <tr><th>Pattern</th><th>Where</th><th>Const?</th></tr>
+  <tr><td>Plain <code>const x = …</code> / <code>let x = …</code> never reassigned, not hoisted</td><td class="path">transformVariableStatement.ts L53 (transformVariable)</td><td><span class="tag yes">eligible</span></td></tr>
+  <tr><td>Simple destructure field <em>without</em> a default — <code>local a = obj.a</code></td><td class="path">transformObjectBindingPattern.ts / transformArrayBindingPattern.ts</td><td><span class="tag yes">eligible</span></td></tr>
+  <tr><td>RuntimeLib import — <code>local TS = require(…)</code></td><td class="path">TransformState.ts (createRuntimeLibImport) L225+</td><td><span class="tag yes">eligible</span></td></tr>
+  <tr><td>Import / export declarations</td><td class="path">transformImportDeclaration.ts L59, transformExportDeclaration.ts L57</td><td><span class="tag yes">eligible</span></td></tr>
+  <tr><td>Cached complex sub-expressions — <code>pushToVarIfComplex</code> with a value, never written again</td><td class="path">TransformState.ts (pushToVar / pushToVarIfComplex)</td><td><span class="tag maybe">usually</span></td></tr>
+  <tr><td><code>next()</code> key/value temps in map destructuring</td><td class="path">getAccessorForBindingType.ts (mapAccessor)</td><td><span class="tag yes">eligible</span></td></tr>
+</table>
+<p class="small">"usually" = eligible whenever that particular temp is not subsequently used as an <code>Assignment</code> target. This is exactly the
+distinction the promotion pass below makes automatically.</p>
+
+<h2 id="strategy">5. Recommended implementation strategy</h2>
+<p>Two layers of change, and a clear choice on the decision logic.</p>
+
+<h3>Layer A — <code>@roblox-ts/luau-ast</code> (the dependency)</h3>
+<ol>
+  <li>Add an optional flag to the node, defaulting to <code>local</code> for backward compatibility:
+    <pre><span class="k">interface</span> VariableDeclaration … {
+    left: AnyIdentifier | List&lt;AnyIdentifier&gt;;
+    right: Expression | List&lt;Expression&gt; | <span class="k">undefined</span>;
+    isConst?: <span class="k">boolean</span>;   <span class="c">// NEW</span>
+}</pre>
+  </li>
+  <li>In <code>renderVariableDeclaration</code>, choose the keyword — and <code>assert</code> the initializer invariant so a bad
+    promotion fails loudly in tests rather than producing invalid Luau:
+    <pre><span class="k">const</span> keyword = node.isConst ? <span class="s">"const"</span> : <span class="s">"local"</span>;
+<span class="k">if</span> (node.isConst) assert(node.right !== <span class="k">undefined</span>, <span class="s">"const requires an initializer"</span>);
+<span class="k">return</span> node.right
+    ? state.line(`${keyword} ${leftStr} = ${rightStr}`, node)
+    : state.line(`${keyword} ${leftStr}`, node);</pre>
+  </li>
+  <li>Release a new luau-ast version and bump the <code>=2.0.0</code> pin in this repo's <code>package.json</code>.</li>
+</ol>
+
+<h3>Layer B — roblox-ts (deciding when it's <code>const</code>)</h3>
+<p>Two viable approaches:</p>
+<table>
+  <tr><th>Approach</th><th>How</th><th>Trade-off</th></tr>
+  <tr>
+    <td><strong>Per-site opt-in</strong></td>
+    <td>Hand-set <code>isConst: true</code> only at the known-safe emit sites from §4.</td>
+    <td>Simple, incremental, low risk — but covers only the sites you remember to touch, and every future codegen change risks introducing an unsafe one.</td>
+  </tr>
+  <tr>
+    <td><strong>Promotion pass (recommended)</strong></td>
+    <td>Leave all emit sites alone. After transform, run one analysis pass that promotes every declaration <em>proven</em> write-once.</td>
+    <td>Correct by construction for all of §3 automatically (those bindings <em>are</em> assigned later, so they stay <code>local</code>); slightly more upfront work, one place to reason about.</td>
+  </tr>
+</table>
+<div class="callout good">
+  <strong>Recommendation:</strong> the <strong>promotion pass</strong>. It makes the §3 footguns impossible to hit — a binding that
+  is ever an <code>Assignment</code> target is simply never promoted — and it doesn't require auditing or babysitting 40+ creation
+  sites. The per-site approach can ship first as a smaller stepping stone if desired.
+</div>
+
+<h2 id="pass">6. The promotion pass in detail</h2>
+<p>Run once over each source file's finished Luau AST, just before rendering (e.g. invoked from <code>transformSourceFile</code>):</p>
+<ol>
+  <li><strong>Collect assignment targets.</strong> Walk the whole tree and record every identifier that appears on the left of an
+    <code>Assignment</code> (any operator, including compound) — this also covers writes that happen inside nested function bodies,
+    which is required because Luau forbids reassigning a captured <code>const</code> upvalue.</li>
+  <li><strong>Promote.</strong> Walk again; for each <code>VariableDeclaration</code>, set <code>isConst = true</code> iff:
+    <ul>
+      <li><code>right</code> is defined (initializer present), <em>and</em></li>
+      <li>none of the identifiers in <code>left</code> (whether a single id or a tuple) is in the assignment-target set.</li>
+    </ul>
+  </li>
+</ol>
+<p>Worked example — what the pass produces:</p>
+<pre><span class="c">-- write-once: promoted</span>
+<span class="cst">const</span> player = Players.LocalPlayer
+<span class="cst">const</span> TS = <span class="k">require</span>(game:GetService(<span class="s">"ReplicatedStorage"</span>).rbxts_include.RuntimeLib)
+
+<span class="c">-- optional chain temp: reassigned in the guard, stays local</span>
+<span class="l">local</span> _result = a
+<span class="k">if</span> _result ~= <span class="k">nil</span> <span class="k">then</span> _result = _result.b <span class="k">end</span>
+
+<span class="c">-- destructure default: reassigned, stays local</span>
+<span class="l">local</span> count = opts.count
+<span class="k">if</span> count == <span class="k">nil</span> <span class="k">then</span> count = 10 <span class="k">end</span>
+
+<span class="c">-- ternary: declared empty then assigned, stays local</span>
+<span class="l">local</span> _result
+<span class="k">if</span> cond <span class="k">then</span> _result = x <span class="k">else</span> _result = y <span class="k">end</span></pre>
+
+<h2 id="caveats">7. Caveats &amp; edge cases</h2>
+<ul>
+  <li><strong>Identity-based matching, not name-based.</strong> roblox-ts already uses unique <code>TemporaryIdentifier</code> objects and
+    renames collisions only at render time. Match assignment targets by identifier identity/symbol where possible. If you fall back to
+    name matching, ensure errors bias toward <em>keeping</em> <code>local</code> (a false "is assigned" is safe; a false "not assigned"
+    is a bug). Over-matching is the safe direction.</li>
+  <li><strong>Nested-function captures.</strong> Because a captured <code>const</code> can't be reassigned from an inner closure, the
+    assignment-target scan must be whole-tree, not per-scope. The pass above already does this.</li>
+  <li><strong><code>export let</code> is not a local.</strong> Mutable exports compile to module-table field writes
+    (<code>transformVariable</code> L28–42), not <code>local</code>, so they're outside this feature entirely — no action needed.</li>
+  <li><strong>TS <code>let</code> can still be write-once.</strong> A <code>let</code> the user never reassigns will be correctly
+    promoted by the pass. Conversely a TS <code>const</code> is never reassigned <em>at the TS level</em>, but roblox-ts may still
+    reassign a related compiler temp — so trust the Luau-AST analysis, not the TS keyword.</li>
+  <li><strong>Opt-in / config.</strong> Since the RFC frames <code>const</code> as a clarity feature (not perf) and it changes output
+    for nearly every file, consider gating it behind a compiler option (e.g. <code>luau.const</code> in <code>tsconfig</code>) at least
+    initially, and confirm the minimum Luau/runtime version your users target supports the keyword.</li>
+  <li><strong>Test surface.</strong> The compile-snapshot tests under <code>tests/</code> will churn heavily. That's expected and is
+    actually the best validation that promotions landed exactly where intended.</li>
+</ul>
+
+<h2 id="plan">8. Suggested rollout plan</h2>
+<ol>
+  <li>Land the <code>isConst</code> flag + renderer branch + <code>assert</code> in <code>@roblox-ts/luau-ast</code>; release and bump the pin.</li>
+  <li>Implement the promotion pass behind an off-by-default flag.</li>
+  <li>Regenerate compile snapshots; spot-check the §3 patterns (optional chain, destructure defaults, ternary, logical, hoists, enum/class, loops) to confirm they remain <code>local</code>.</li>
+  <li>Run the full Luau test suite (<code>test-run</code> / <code>run-in-roblox</code>) to confirm runtime parity.</li>
+  <li>Decide whether to flip the flag on by default or keep it opt-in.</li>
+</ol>
+
+<hr>
+<p class="small">
+  Files referenced: <code>src/TSTransformer/nodes/statements/transformVariableStatement.ts</code>,
+  <code>nodes/transformOptionalChain.ts</code>, <code>nodes/transformLogical.ts</code>,
+  <code>nodes/expressions/transformConditionalExpression.ts</code>, <code>nodes/transformInitializer.ts</code>,
+  <code>nodes/binding/transformObjectBindingPattern.ts</code>, <code>util/binding/getAccessorForBindingType.ts</code>,
+  <code>util/createHoistDeclaration.ts</code>, <code>classes/TransformState.ts</code>,
+  <code>nodes/class/transformClassLikeDeclaration.ts</code>, <code>nodes/statements/transformEnumDeclaration.ts</code>,
+  <code>nodes/statements/transformForStatement.ts</code>, plus
+  <code>@roblox-ts/luau-ast</code> (<code>nodes.d.ts</code>, <code>renderVariableDeclaration.js</code>).
+  External: <a href="https://rfcs.luau.org/const-keyword.html">Luau const-keyword RFC</a>.
+</p>
+
+</div>
+</body>
+</html>
