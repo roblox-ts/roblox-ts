@@ -3,7 +3,7 @@ import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
-import { transformParameters } from "TSTransformer/nodes/transformParameters";
+import { FunctionLikeWithBody, transformParameters } from "TSTransformer/nodes/transformParameters";
 import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { isMethod } from "TSTransformer/util/isMethod";
@@ -19,16 +19,22 @@ export function transformMethodDeclaration(
 	const result = luau.list.make<luau.Statement>();
 
 	if (!node.body) {
-		return luau.list.make<luau.Statement>();
+		return result;
 	}
 
 	assert(node.name);
 	if (ts.isPrivateIdentifier(node.name)) {
 		DiagnosticService.addDiagnostic(errors.noPrivateIdentifier(node.name));
-		return luau.list.make<luau.Statement>();
+		return result;
 	}
 
-	let { statements, parameters, hasDotDotDot } = transformParameters(state, node);
+	let { statements, parameters, hasDotDotDot, varArgsData } = transformParameters(
+		state,
+		node as FunctionLikeWithBody,
+	);
+
+	state.pushFunction(varArgsData);
+
 	luau.list.pushList(statements, transformStatementList(state, node.body, node.body.statements));
 
 	let name = transformPropertyName(state, node.name);
@@ -54,7 +60,7 @@ export function transformMethodDeclaration(
 		if (isAsync) {
 			DiagnosticService.addDiagnostic(errors.noAsyncGeneratorFunctions(node));
 		}
-		statements = wrapStatementsAsGenerator(state, node, statements);
+		statements = wrapStatementsAsGenerator(state, node, statements, hasDotDotDot);
 	}
 
 	// can we use `function class:name() end`?
@@ -83,6 +89,7 @@ export function transformMethodDeclaration(
 				}),
 			);
 		}
+		state.popFunction();
 		return result;
 	}
 
@@ -101,6 +108,6 @@ export function transformMethodDeclaration(
 		result,
 		state.capturePrereqs(() => assignToMapPointer(state, ptr, name, expression)),
 	);
-
+	state.popFunction();
 	return result;
 }

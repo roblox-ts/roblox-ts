@@ -10,6 +10,7 @@ import { offset } from "TSTransformer/util/offset";
 import { skipUpwards } from "TSTransformer/util/traversal";
 import { isLuaTupleType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
+import { tryHandleVarArgsIndexableExpression } from "TSTransformer/util/varArgsOptimization";
 import ts from "typescript";
 
 export function transformElementAccessExpressionInner(
@@ -62,10 +63,13 @@ export function transformElementAccessExpressionInner(
 		return luau.none();
 	}
 
-	return luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-		expression: convertToIndexableExpression(expression),
-		index: addOneIfArrayType(state, expType, index),
-	});
+	return (
+		tryHandleVarArgsIndexableExpression(state, node, index) ??
+		luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+			expression: convertToIndexableExpression(expression),
+			index: addOneIfArrayType(state, expType, index),
+		})
+	);
 }
 
 export function transformElementAccessExpression(state: TransformState, node: ts.ElementAccessExpression) {

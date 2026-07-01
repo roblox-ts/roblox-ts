@@ -7,6 +7,11 @@ import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { arrayLikeExpressionContainsSpread } from "TSTransformer/util/arrayLikeExpressionContainsSpread";
 import { isMethod } from "TSTransformer/util/isMethod";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
+import {
+	analyzeVarArgsOptimization,
+	handleVarArgsParameterOptimization,
+	VarArgsData,
+} from "TSTransformer/util/varArgsOptimization";
 import ts from "typescript";
 
 /**
@@ -45,10 +50,14 @@ function optimizeArraySpreadParameter(
 	}
 }
 
-export function transformParameters(state: TransformState, node: ts.SignatureDeclarationBase) {
+export type FunctionLikeWithBody = ts.FunctionLikeDeclarationBase & {
+	body: NonNullable<ts.FunctionLikeDeclarationBase["body"]>;
+};
+export function transformParameters(state: TransformState, node: FunctionLikeWithBody) {
 	const parameters = luau.list.make<luau.AnyIdentifier>();
 	const statements = luau.list.make<luau.Statement>();
 	let hasDotDotDot = false;
+	let varArgsData: VarArgsData | undefined;
 
 	if (isMethod(state, node)) {
 		luau.list.push(parameters, luau.globals.self);
@@ -81,15 +90,8 @@ export function transformParameters(state: TransformState, node: ts.SignatureDec
 
 		if (parameter.dotDotDotToken) {
 			hasDotDotDot = true;
-			luau.list.push(
-				statements,
-				luau.create(luau.SyntaxKind.VariableDeclaration, {
-					left: paramId,
-					right: luau.create(luau.SyntaxKind.Array, {
-						members: luau.list.make(luau.create(luau.SyntaxKind.VarArgsLiteral, {})),
-					}),
-				}),
-			);
+			varArgsData = analyzeVarArgsOptimization(state, node.body, parameter, paramId);
+			handleVarArgsParameterOptimization(statements, varArgsData, paramId);
 		} else {
 			luau.list.push(parameters, paramId);
 		}
@@ -119,5 +121,6 @@ export function transformParameters(state: TransformState, node: ts.SignatureDec
 		parameters,
 		statements,
 		hasDotDotDot,
+		varArgsData,
 	};
 }
