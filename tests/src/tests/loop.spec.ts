@@ -587,6 +587,46 @@ export = () => {
 		expect(n).to.equal(1);
 	});
 
+	it("should support break out of a labeled block", () => {
+		let n = 0;
+		a: {
+			n++;
+			if (n === 1) {
+				break a;
+			}
+			n += 100;
+		}
+		expect(n).to.equal(1);
+	});
+
+	it("should support labeled break out of a block from a loop", () => {
+		let n = 0;
+		a: {
+			for (const x of [1, 2, 3]) {
+				n++;
+				if (x === 2) {
+					break a;
+				}
+			}
+			n += 100;
+		}
+		expect(n).to.equal(2);
+	});
+
+	it("should support labeled continue out of a block", () => {
+		let n = 0;
+		outer: for (const x of [1, 2, 3]) {
+			a: {
+				if (x === 2) {
+					continue outer;
+				}
+				n++;
+			}
+			n += 10;
+		}
+		expect(n).to.equal(22);
+	});
+
 	it("should support the $range macro with a decimal step", () => {
 		const hit = new Set<number>();
 		let sum = 19;

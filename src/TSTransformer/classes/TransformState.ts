@@ -12,8 +12,8 @@ import { MultiTransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { LoopLabel, LoopLabelStackEntry, TransformServices, TryUses } from "TSTransformer/types";
 import { createGetService } from "TSTransformer/util/createGetService";
-import { getLabelsOfStatement } from "TSTransformer/util/getLabelsOfStatement";
 import { propertyAccessExpressionChain } from "TSTransformer/util/expressionChain";
+import { getLabelsOfStatement } from "TSTransformer/util/getLabelsOfStatement";
 import { getModuleAncestor, skipUpwards } from "TSTransformer/util/traversal";
 import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
 import ts from "typescript";
@@ -86,11 +86,16 @@ export class TransformState {
 	public shouldGenerateLabelAssignment(node: ts.BreakOrContinueStatement) {
 		assert(node.label);
 		// A plain break/continue suffices only when the label is (one of those) directly on the
-		// innermost enclosing loop. Otherwise the jump crosses a loop boundary and needs the
-		// label-propagation assignment.
-		const enclosingLoop = ts.findAncestor(node.parent, ancestor => ts.isIterationStatement(ancestor, false));
-		if (!enclosingLoop) return true;
-		return !getLabelsOfStatement(enclosingLoop).includes(node.label.text);
+		// innermost enclosing break boundary (a loop, or a labeled block emulated with a `repeat`).
+		// Otherwise the jump crosses a boundary and needs the label-propagation assignment.
+		const boundary = ts.findAncestor(
+			node.parent,
+			ancestor =>
+				ts.isIterationStatement(ancestor, false) ||
+				(ts.isBlock(ancestor) && ts.isLabeledStatement(ancestor.parent)),
+		);
+		if (!boundary) return true;
+		return !getLabelsOfStatement(boundary).includes(node.label.text);
 	}
 
 	public getLoopLabelDataByName(name: string) {
