@@ -12,6 +12,7 @@ import { MultiTransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { LoopLabel, LoopLabelStackEntry, TransformServices, TryUses } from "TSTransformer/types";
 import { createGetService } from "TSTransformer/util/createGetService";
+import { getLabelsOfStatement } from "TSTransformer/util/getLabelsOfStatement";
 import { propertyAccessExpressionChain } from "TSTransformer/util/expressionChain";
 import { getModuleAncestor, skipUpwards } from "TSTransformer/util/traversal";
 import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
@@ -67,14 +68,12 @@ export class TransformState {
 
 	private loopStackDepth = 0;
 	public readonly loopLabelStack = new Array<LoopLabelStackEntry>();
-	public readonly statementToLabelIdMap = new Map<ts.Statement, luau.TemporaryIdentifier>();
 	public readonly tryUsesStack = new Array<TryUses>();
 
 	public pushLabelToLoopStack(labeledStatement: ts.LabeledStatement) {
 		const labelText = labeledStatement.label.text;
 		const id = luau.tempId(labelText);
 
-		this.statementToLabelIdMap.set(labeledStatement.statement, id);
 		this.loopLabelStack.push({
 			id,
 			name: labelText,
@@ -84,8 +83,14 @@ export class TransformState {
 		return id;
 	}
 
-	public shouldGenerateLabelAssignment(name: string) {
-		return this.loopLabelStack.findIndex(T => T.name === name) + 1 !== this.loopStackDepth;
+	public shouldGenerateLabelAssignment(node: ts.BreakOrContinueStatement) {
+		assert(node.label);
+		// A plain break/continue suffices only when the label is (one of those) directly on the
+		// innermost enclosing loop. Otherwise the jump crosses a loop boundary and needs the
+		// label-propagation assignment.
+		const enclosingLoop = ts.findAncestor(node.parent, ancestor => ts.isIterationStatement(ancestor, false));
+		if (!enclosingLoop) return true;
+		return !getLabelsOfStatement(enclosingLoop).includes(node.label.text);
 	}
 
 	public getLoopLabelDataByName(name: string) {
@@ -93,16 +98,22 @@ export class TransformState {
 	}
 
 	public processLoopLabel(loopStatement: ts.Statement) {
-		const id = this.statementToLabelIdMap.get(loopStatement);
-		if (!id) return luau.list.make<luau.Statement>();
-
-		return luau.list.make<luau.Statement>(
-			luau.create(luau.SyntaxKind.Assignment, {
-				left: id,
-				operator: "=",
-				right: luau.string(LoopLabel.none),
-			}),
-		);
+		// Reset every label stacked directly on this loop (e.g. `a: b: for`) at the top of each
+		// iteration so a stale value can't re-trigger a check on a later pass.
+		const statements = luau.list.make<luau.Statement>();
+		for (const label of getLabelsOfStatement(loopStatement)) {
+			const labelData = this.getLoopLabelDataByName(label);
+			if (!labelData) continue;
+			luau.list.push(
+				statements,
+				luau.create(luau.SyntaxKind.Assignment, {
+					left: labelData.id,
+					operator: "=",
+					right: luau.string(LoopLabel.none),
+				}),
+			);
+		}
+		return statements;
 	}
 
 	public increaseLoopDepth() {
@@ -118,19 +129,16 @@ export class TransformState {
 		const labels = this.loopLabelStack.slice(0, this.loopStackDepth - 1);
 		if (labels.length === 0) return statements;
 
-		const continuedLabels = new Array<luau.BinaryExpression>();
-		for (const label of labels) {
-			const stackPos = labels.indexOf(label);
-			if (label.everContinued && stackPos === this.loopStackDepth - 2) {
-				continuedLabels.push(luau.binary(label.id, "==", luau.string(LoopLabel.continue)));
-			}
-		}
-
-		if (continuedLabels.length > 0) {
+		// Only the loop directly enclosing the continue target (stackPos === depth - 2) turns a
+		// pending "continue" into an actual `continue`, so at most one label qualifies here.
+		const continuedLabel = labels.find(
+			(label, stackPos) => label.everContinued && stackPos === this.loopStackDepth - 2,
+		);
+		if (continuedLabel) {
 			luau.list.push(
 				statements,
 				luau.create(luau.SyntaxKind.IfStatement, {
-					condition: continuedLabels.reduce((accum, exp) => luau.binary(accum, "or", exp)),
+					condition: luau.binary(continuedLabel.id, "==", luau.string(LoopLabel.continue)),
 					statements: luau.list.make(luau.create(luau.SyntaxKind.ContinueStatement, {})),
 					elseBody: luau.list.make(),
 				}),

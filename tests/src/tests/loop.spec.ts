@@ -459,6 +459,134 @@ export = () => {
 		expect(hit.has(9)).to.equal(true);
 	});
 
+	it("should support a label on the enclosing loop", () => {
+		let n = 0;
+		loop: for (let i = 0; i < 3; i++) {
+			n++;
+			break loop;
+		}
+		expect(n).to.equal(1);
+	});
+
+	it("should support labeled break", () => {
+		let n = 0;
+		outer: for (const a of [1, 2]) {
+			for (const b of [1, 2]) {
+				n++;
+				break outer;
+			}
+		}
+		expect(n).to.equal(1);
+	});
+
+	it("should support labeled continue", () => {
+		let n = 0;
+		outer: for (const a of [1, 2]) {
+			for (const b of [1, 2]) {
+				continue outer;
+			}
+			n += 100;
+		}
+		expect(n).to.equal(0);
+	});
+
+	it("should support labeled continue across multiple loops", () => {
+		let n = 0;
+		outer: for (const a of [1, 2]) {
+			for (const b of [1, 2]) {
+				for (const c of [1, 2]) {
+					continue outer;
+				}
+			}
+		}
+		expect(n).to.equal(0);
+	});
+
+	it("should support multiple labels on one loop", () => {
+		let n = 0;
+		a: b: for (const x of [1, 2, 3]) {
+			n++;
+			if (x === 1) {
+				continue a;
+			}
+			if (x === 2) {
+				break b;
+			}
+		}
+		expect(n).to.equal(2);
+	});
+
+	it("should support break to two different outer labels", () => {
+		let n = 0;
+		a: for (const x of [1, 2]) {
+			b: for (const y of [1, 2]) {
+				for (const z of [1, 2]) {
+					n++;
+					if (x === 1) {
+						break a;
+					}
+					break b;
+				}
+			}
+		}
+		expect(n).to.equal(1);
+	});
+
+	it("should support labeled while loops", () => {
+		let n = 0;
+		outer: while (n < 3) {
+			n++;
+			while (true) {
+				continue outer;
+			}
+		}
+		expect(n).to.equal(3);
+	});
+
+	it("should support labeled do-while loops", () => {
+		let n = 0;
+		outer: do {
+			n++;
+			do {
+				break outer;
+			} while (true);
+		} while (true);
+		expect(n).to.equal(1);
+	});
+
+	it("should support labeled non-optimized for loops", () => {
+		let n = 0;
+		outer: for (let i = 0, guard = 0; i < 2; i++) {
+			for (const b of [1, 2]) {
+				n++;
+				break outer;
+			}
+		}
+		expect(n).to.equal(1);
+	});
+
+	it("should support labeled for-of destructuring", () => {
+		let n = 0;
+		outer: for (const [a, b] of [[1, 2]]) {
+			for (const c of [1, 2]) {
+				n += a + b;
+				break outer;
+			}
+		}
+		expect(n).to.equal(3);
+	});
+
+	it("should support labeled $range loops", () => {
+		let n = 0;
+		outer: for (const i of $range(1, 2)) {
+			for (const j of $range(1, 2)) {
+				n++;
+				break outer;
+			}
+		}
+		expect(n).to.equal(1);
+	});
+
 	it("should support the $range macro with a decimal step", () => {
 		const hit = new Set<number>();
 		let sum = 19;

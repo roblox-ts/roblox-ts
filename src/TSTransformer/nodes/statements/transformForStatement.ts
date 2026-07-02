@@ -493,14 +493,13 @@ function transformForStatementOptimized(state: TransformState, node: ts.ForState
 
 export function transformForStatement(state: TransformState, node: ts.ForStatement): luau.List<luau.Statement> {
 	state.increaseLoopDepth();
-	if (state.data.projectOptions.optimizedLoops) {
-		const optimized = transformForStatementOptimized(state, node);
-		if (optimized) {
-			return optimized;
-		}
-	}
 
-	const statements = transformForStatementFallback(state, node);
+	let statements: luau.List<luau.Statement> | undefined;
+	if (state.data.projectOptions.optimizedLoops) {
+		statements = transformForStatementOptimized(state, node);
+	}
+	statements ??= transformForStatementFallback(state, node);
+
 	luau.list.pushList(statements, state.generateLabelChecks());
 
 	state.decreaseLoopDepth();

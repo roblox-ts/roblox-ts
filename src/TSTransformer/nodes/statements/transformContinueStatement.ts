@@ -14,7 +14,7 @@ export function transformContinueStatement(state: TransformState, node: ts.Conti
 		return luau.list.make<luau.Statement>();
 	}
 
-	if (node.label && state.shouldGenerateLabelAssignment(node.label.text)) {
+	if (node.label && state.shouldGenerateLabelAssignment(node)) {
 		const labelData = state.getLoopLabelDataByName(node.label.text);
 		assert(labelData);
 

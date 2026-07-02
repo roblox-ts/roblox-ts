@@ -15,7 +15,7 @@ export function transformBreakStatement(state: TransformState, node: ts.BreakSta
 		return luau.list.make<luau.Statement>();
 	}
 
-	if (node.label && state.shouldGenerateLabelAssignment(node.label.text)) {
+	if (node.label && state.shouldGenerateLabelAssignment(node)) {
 		const labelData = state.getLoopLabelDataByName(node.label.text);
 		assert(labelData);
 

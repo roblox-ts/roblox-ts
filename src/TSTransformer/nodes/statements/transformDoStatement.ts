@@ -6,7 +6,10 @@ import { createTruthinessChecks } from "TSTransformer/util/createTruthinessCheck
 import { getStatements } from "TSTransformer/util/getStatements";
 import ts from "typescript";
 
-export function transformDoStatement(state: TransformState, { expression, statement }: ts.DoStatement) {
+export function transformDoStatement(state: TransformState, node: ts.DoStatement) {
+	let expression = node.expression;
+	const statement = node.statement;
+
 	state.increaseLoopDepth();
 	const statements = transformStatementList(state, statement, getStatements(statement));
 
@@ -21,7 +24,7 @@ export function transformDoStatement(state: TransformState, { expression, statem
 	);
 
 	const repeatStatements = luau.list.make<luau.Statement>();
-	luau.list.pushList(repeatStatements, state.processLoopLabel(statement));
+	luau.list.pushList(repeatStatements, state.processLoopLabel(node));
 
 	luau.list.push(
 		repeatStatements,
