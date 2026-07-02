@@ -6,7 +6,11 @@ import { createTruthinessChecks } from "TSTransformer/util/createTruthinessCheck
 import { getStatements } from "TSTransformer/util/getStatements";
 import ts from "typescript";
 
-export function transformDoStatement(state: TransformState, { expression, statement }: ts.DoStatement) {
+export function transformDoStatement(state: TransformState, node: ts.DoStatement) {
+	let expression = node.expression;
+	const statement = node.statement;
+
+	state.increaseLoopDepth();
 	const statements = transformStatementList(state, statement, getStatements(statement));
 
 	let conditionIsInvertedInLuau = true;
@@ -20,6 +24,8 @@ export function transformDoStatement(state: TransformState, { expression, statem
 	);
 
 	const repeatStatements = luau.list.make<luau.Statement>();
+	luau.list.pushList(repeatStatements, state.processLoopLabel(node));
+
 	luau.list.push(
 		repeatStatements,
 		luau.create(luau.SyntaxKind.DoStatement, {
@@ -28,10 +34,14 @@ export function transformDoStatement(state: TransformState, { expression, statem
 	);
 	luau.list.pushList(repeatStatements, conditionPrereqs);
 
-	return luau.list.make(
+	const endStatements = luau.list.make(
 		luau.create(luau.SyntaxKind.RepeatStatement, {
 			statements: repeatStatements,
 			condition: conditionIsInvertedInLuau ? luau.unary("not", condition) : condition,
 		}),
 	);
+	luau.list.pushList(endStatements, state.generateLabelChecks());
+
+	state.decreaseLoopDepth();
+	return endStatements;
 }
