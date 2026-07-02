@@ -10,6 +10,7 @@ import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/tran
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { arrayBindingPatternContainsHoists } from "TSTransformer/util/arrayBindingPatternContainsHoists";
 import { arrayLikeExpressionContainsSpread } from "TSTransformer/util/arrayLikeExpressionContainsSpread";
+import { getTargetIdForBindingPattern } from "TSTransformer/util/binding/getTargetIdForBindingPattern";
 import { checkVariableHoist } from "TSTransformer/util/checkVariableHoist";
 import { isSymbolMutable } from "TSTransformer/util/isSymbolMutable";
 import { isLuaTupleType } from "TSTransformer/util/types";
@@ -148,7 +149,7 @@ export function transformVariableDeclaration(
 				luau.list.pushList(
 					statements,
 					state.capturePrereqs(() =>
-						transformArrayBindingPattern(state, name, state.pushToVar(value, "binding")),
+						transformArrayBindingPattern(state, name, getTargetIdForBindingPattern(state, name, value!)),
 					),
 				);
 			}
@@ -156,7 +157,7 @@ export function transformVariableDeclaration(
 			luau.list.pushList(
 				statements,
 				state.capturePrereqs(() =>
-					transformObjectBindingPattern(state, name, state.pushToVar(value, "binding")),
+					transformObjectBindingPattern(state, name, getTargetIdForBindingPattern(state, name, value!)),
 				),
 			);
 		}
