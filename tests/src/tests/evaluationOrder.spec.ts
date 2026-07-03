@@ -231,6 +231,36 @@ export = () => {
 		expect(arr[4]).to.equal(7);
 	});
 
+	it("should not mutate the array before a later throwing push argument is evaluated", () => {
+		const arr = new Array<string>();
+		const fmt = "%d";
+		// string.format("%d", <table>) errors; TS evaluates all arguments before push
+		// mutates anything, so the array must be untouched
+		expect(() => arr.push("a", fmt.format([] as never))).to.throw();
+		expect(arr.size()).to.equal(0);
+	});
+
+	it("should evaluate interpolated objects before later arguments' prereqs", () => {
+		class Weird {
+			public map = new Map<string, number>();
+			public toString() {
+				this.map.set("x", 1);
+				return "weird";
+			}
+		}
+		const w = new Weird();
+		const seen = new Array<defined>();
+		function observe(text: string, size: number) {
+			seen.push(text);
+			seen.push(size);
+		}
+		// `${w}` calls toString() (mapped to __tostring) which mutates the map, so the
+		// map size read afterwards must observe the mutation
+		observe(`${w}`, w.map.size());
+		expect(seen[0]).to.equal("weird");
+		expect(seen[1]).to.equal(1);
+	});
+
 	it("should evaluate operands of includes/indexOf inline in order", () => {
 		const order = new Array<string>();
 		const arr = [5, 6, 7];

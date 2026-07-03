@@ -195,6 +195,17 @@ function readsLocal(name: string): EffectSummary {
 	return { ...PURE_SUMMARY, readsLocals: new Set([name]) };
 }
 
+/**
+ * Interpolated strings whose interpolated values are all known to be primitives
+ * (string/number/boolean/nil), so that formatting them cannot invoke a `__tostring`
+ * metamethod (and therefore cannot run user code or error).
+ */
+const PRIMITIVE_INTERPOLATED_STRINGS = new WeakSet<luau.InterpolatedString>();
+
+export function markInterpolatedStringPrimitive(expression: luau.InterpolatedString) {
+	PRIMITIVE_INTERPOLATED_STRINGS.add(expression);
+}
+
 function summarizeList(state: TransformState, list: luau.List<luau.Expression>): EffectSummary {
 	let result = PURE_SUMMARY;
 	luau.list.forEach(list, expression => (result = unionSummaries(result, summarizeExpression(state, expression))));
@@ -297,12 +308,21 @@ export function summarizeExpression(
 		});
 		return result;
 	} else if (luau.isInterpolatedString(expression)) {
-		let result = READS_HEAP_THROWS_SUMMARY; // interpolation may invoke __tostring-adjacent errors
+		// interpolating a table invokes its `__tostring` metamethod, which roblox-ts maps
+		// user-defined `toString()` methods onto — so unless every interpolated value is
+		// known to be a primitive (marked at creation via markInterpolatedStringPrimitive),
+		// interpolation may run arbitrary user code
+		let result = PURE_SUMMARY;
+		let hasExpressionParts = false;
 		luau.list.forEach(expression.parts, part => {
 			if (!luau.isInterpolatedStringPart(part)) {
+				hasExpressionParts = true;
 				result = unionSummaries(result, summarizeExpression(state, part));
 			}
 		});
+		if (hasExpressionParts && !PRIMITIVE_INTERPOLATED_STRINGS.has(expression)) {
+			return CALLS_UNKNOWN_SUMMARY;
+		}
 		return result;
 	} else if (luau.isCallExpression(expression)) {
 		return summarizeCall(state, expression);
@@ -488,8 +508,11 @@ export function isStableAcross(
 	if (across === "userCode") {
 		return !summary.readsHeap && !summary.throws && summary.readsLocals !== "all" && summary.readsLocals.size === 0;
 	}
-	// "heapWrites": local reads are fine, heap reads are not
-	return !summary.readsHeap;
+	// "heapWrites": local reads are fine, heap reads are not. Potential errors are also
+	// unstable: TypeScript evaluates every operand before the consumer mutates anything,
+	// so an error may not be observed after a heap write (e.g. `arr.push(a, s.format(x))`
+	// must not run the first insertion before a throwing format call)
+	return !summary.readsHeap && !summary.throws;
 }
 
 export interface OperandStabilization {
