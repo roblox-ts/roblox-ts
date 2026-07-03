@@ -9,8 +9,15 @@ import { transformImportExpression } from "TSTransformer/nodes/expressions/trans
 import { transformOptionalChain } from "TSTransformer/nodes/transformOptionalChain";
 import { addOneIfArrayType } from "TSTransformer/util/addOneIfArrayType";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
+import {
+	commutes,
+	EffectSummary,
+	PURE_SUMMARY,
+	summarizeExpression,
+	summarizeStatements,
+	unionSummaries,
+} from "TSTransformer/util/effects";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
-import { expressionMightMutate } from "TSTransformer/util/expressionMightMutate";
 import { isMethod } from "TSTransformer/util/isMethod";
 import { getFirstDefinedSymbol, isPossiblyType, isRobloxType, isUndefinedType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
@@ -25,59 +32,98 @@ function runCallMacro(
 	expression: luau.Expression,
 	nodeArguments: ReadonlyArray<ts.Expression>,
 ): luau.Expression {
-	let args!: Array<luau.Expression>;
-	const prereqs = state.capturePrereqs(() => {
-		args = ensureTransformOrder(state, nodeArguments);
-		const lastArg = nodeArguments[nodeArguments.length - 1];
-		if (lastArg && ts.isSpreadElement(lastArg)) {
-			const signature = state.typeChecker.getSignaturesOfType(
-				state.getType(node.expression),
-				ts.SignatureKind.Call,
-			)[0];
+	// Each operand is transformed into prerequisite statements plus result expressions
+	// (a spread contributes multiple results). TS evaluates operands left-to-right, but in
+	// the emitted Luau all prereqs run before any result expression is consumed, so each
+	// result is implicitly deferred past every later operand's prereqs — capture it into a
+	// temporary at its original position when that deferral is observable. The macro's own
+	// effects all happen after every operand, so they impose no further ordering
+	// constraints here; each macro is responsible for stabilizing (via `ensureReusable`)
+	// any operand it re-evaluates across its own effects.
+	interface OperandInfo {
+		expressions: Array<luau.Expression>;
+		prereqs: luau.List<luau.Statement>;
+		node?: ts.Expression;
+	}
 
-			const lastParameter = signature.parameters[signature.parameters.length - 1].valueDeclaration;
-			if (lastParameter && ts.isParameter(lastParameter) && lastParameter.dotDotDotToken) {
-				DiagnosticService.addDiagnostic(errors.noVarArgsMacroSpread(lastArg));
-				return;
-			}
+	const operands = new Array<OperandInfo>();
+	for (const nodeArg of nodeArguments) {
+		const [argExp, prereqs] = state.capture(() => transformExpression(state, nodeArg));
+		operands.push({ expressions: [argExp], prereqs, node: nodeArg });
+	}
 
-			// use .expression for the tuple type, simply `lastArg` would give the tuple's element type
-			const tupleArgType = state.getType(lastArg.expression);
-			// Since we've excluded vararg macros, TS will have ensured that the spread is from a tuple type
-			assert(state.typeChecker.isTupleType(tupleArgType));
-			const argumentCount = (tupleArgType as ts.TupleTypeReference).target.elementFlags.length;
+	const lastArg = nodeArguments[nodeArguments.length - 1];
+	if (lastArg && ts.isSpreadElement(lastArg)) {
+		const signature = state.typeChecker.getSignaturesOfType(
+			state.getType(node.expression),
+			ts.SignatureKind.Call,
+		)[0];
 
-			const spread = args.pop();
-			const tempIds = luau.list.make<luau.TemporaryIdentifier>();
-			for (let i = args.length; i < argumentCount; i++) {
-				const tempId = luau.tempId(`spread${i}`);
-				args.push(tempId);
-				luau.list.push(tempIds, tempId);
-			}
-			state.prereq(
-				luau.create(luau.SyntaxKind.VariableDeclaration, {
-					left: tempIds,
-					right: spread,
-				}),
-			);
+		const lastParameter = signature.parameters[signature.parameters.length - 1].valueDeclaration;
+		if (lastParameter && ts.isParameter(lastParameter) && lastParameter.dotDotDotToken) {
+			DiagnosticService.addDiagnostic(errors.noVarArgsMacroSpread(lastArg));
+			return luau.none();
 		}
 
-		for (let i = 0; i < args.length; i++) {
-			if (expressionMightMutate(state, args[i], nodeArguments[i])) {
-				args[i] = state.pushToVar(args[i], valueToIdStr(args[i]) || `arg${i}`);
-			}
-		}
-	});
+		// use .expression for the tuple type, simply `lastArg` would give the tuple's element type
+		const tupleArgType = state.getType(lastArg.expression);
+		// Since we've excluded vararg macros, TS will have ensured that the spread is from a tuple type
+		assert(state.typeChecker.isTupleType(tupleArgType));
+		const argumentCount = (tupleArgType as ts.TupleTypeReference).target.elementFlags.length;
 
+		// unpack the spread into temporaries as part of the spread operand's prereqs;
+		// evaluating the spread expression happens inside this declaration, so earlier
+		// operands are ordered against it like any other prerequisite statement
+		const spreadOperand = operands[operands.length - 1];
+		const spreadExp = spreadOperand.expressions.pop();
+		const tempIds = luau.list.make<luau.TemporaryIdentifier>();
+		for (let i = nodeArguments.length - 1; i < argumentCount; i++) {
+			const tempId = luau.tempId(`spread${i}`);
+			spreadOperand.expressions.push(tempId);
+			luau.list.push(tempIds, tempId);
+		}
+		luau.list.push(
+			spreadOperand.prereqs,
+			luau.create(luau.SyntaxKind.VariableDeclaration, {
+				left: tempIds,
+				right: spreadExp,
+			}),
+		);
+		spreadOperand.node = undefined;
+	}
+
+	// the object expression is evaluated before the arguments; its prereqs have already
+	// been emitted by the caller, so it participates only as a deferred result expression
 	let nodeExpression = node.expression;
 	if (ts.isPropertyAccessExpression(nodeExpression) || ts.isElementAccessExpression(nodeExpression)) {
 		nodeExpression = nodeExpression.expression;
 	}
+	operands.unshift({ expressions: [expression], prereqs: luau.list.make(), node: nodeExpression });
 
-	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, expression, nodeExpression)) {
-		expression = state.pushToVar(expression, valueToIdStr(expression) || "exp");
+	// suffixSummaries[i] = combined effects of all prereq statements after operand i
+	const suffixSummaries = new Array<EffectSummary>(operands.length);
+	let suffix = PURE_SUMMARY;
+	for (let i = operands.length - 1; i >= 0; i--) {
+		suffixSummaries[i] = suffix;
+		suffix = unionSummaries(summarizeStatements(state, operands[i].prereqs), suffix);
 	}
-	state.prereqList(prereqs);
+
+	const args = new Array<luau.Expression>();
+	for (let i = 0; i < operands.length; i++) {
+		const operand = operands[i];
+		state.prereqList(operand.prereqs);
+		for (let j = 0; j < operand.expressions.length; j++) {
+			let value = operand.expressions[j];
+			if (!commutes(summarizeExpression(state, value, operand.node), suffixSummaries[i])) {
+				value = state.pushToVar(value, valueToIdStr(value) || (i === 0 ? "exp" : `arg${i - 1}`));
+			}
+			operand.expressions[j] = value;
+			if (i > 0) {
+				args.push(value);
+			}
+		}
+	}
+	expression = operands[0].expressions[0];
 
 	return wrapReturnIfLuaTuple(state, node, macro(state, node as never, expression, args));
 }
@@ -144,7 +190,7 @@ export function transformCallExpressionInner(
 	const [args, prereqs] = state.capture(() => ensureTransformOrder(state, nodeArguments));
 	fixVoidArgumentsForRobloxFunctions(state, expType, args, nodeArguments);
 
-	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, expression, node.expression)) {
+	if (!commutes(summarizeExpression(state, expression, node.expression), summarizeStatements(state, prereqs))) {
 		expression = state.pushToVar(expression, "fn");
 	}
 	state.prereqList(prereqs);
@@ -186,7 +232,12 @@ export function transformPropertyCallExpressionInner(
 	const [args, prereqs] = state.capture(() => ensureTransformOrder(state, nodeArguments));
 	fixVoidArgumentsForRobloxFunctions(state, expType, args, nodeArguments);
 
-	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, baseExpression, expression.expression)) {
+	if (
+		!commutes(
+			summarizeExpression(state, baseExpression, expression.expression),
+			summarizeStatements(state, prereqs),
+		)
+	) {
 		baseExpression = state.pushToVar(baseExpression);
 	}
 	state.prereqList(prereqs);
@@ -254,7 +305,12 @@ export function transformElementCallExpressionInner(
 
 	fixVoidArgumentsForRobloxFunctions(state, expType, args, nodeArguments);
 
-	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, baseExpression, expression.expression)) {
+	if (
+		!commutes(
+			summarizeExpression(state, baseExpression, expression.expression),
+			summarizeStatements(state, prereqs),
+		)
+	) {
 		baseExpression = state.pushToVar(baseExpression);
 	}
 	state.prereqList(prereqs);

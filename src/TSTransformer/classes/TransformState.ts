@@ -386,6 +386,19 @@ export class TransformState {
 
 	public symbolToIdMap = new Map<ts.Symbol, luau.TemporaryIdentifier>();
 
+	// identifiers known to reference bindings that can never be reassigned (const, function
+	// declarations, imports, etc.), recorded at creation time so that effect analysis can
+	// see const-ness even for identifiers nested deep inside composite expressions
+	private readonly constIdentifiers = new WeakSet<luau.Identifier>();
+
+	public markConstIdentifier(identifier: luau.Identifier) {
+		this.constIdentifiers.add(identifier);
+	}
+
+	public isConstIdentifier(identifier: luau.Identifier) {
+		return this.constIdentifiers.has(identifier);
+	}
+
 	// stores a mapping of `key` in `obj[key] = value` for classes so that the `key` can be referred to later
 	private classElementToObjectKeyMap = new Map<ts.ClassElement, luau.SimpleTypes>();
 

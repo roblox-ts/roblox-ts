@@ -4,7 +4,7 @@ import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
-import { expressionMightMutate } from "TSTransformer/util/expressionMightMutate";
+import { isInvariantExpression } from "TSTransformer/util/effects";
 import { findConstructor } from "TSTransformer/util/findConstructor";
 import ts from "typescript";
 
@@ -21,7 +21,7 @@ function shouldInline(
 	expression: luau.Expression,
 ): boolean {
 	// immutable expressions can be inlined
-	if (!expressionMightMutate(state, expression, decorator.expression)) return true;
+	if (isInvariantExpression(state, expression, decorator.expression)) return true;
 
 	// if it's not the last decorator, we can't inline
 	// this is because we need to initialize all decorators before running them

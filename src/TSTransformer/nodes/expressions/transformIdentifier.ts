@@ -22,9 +22,13 @@ export function transformIdentifierDefined(state: TransformState, node: ts.Ident
 		return replacementId;
 	}
 
-	return luau.create(luau.SyntaxKind.Identifier, {
+	const identifier = luau.create(luau.SyntaxKind.Identifier, {
 		name: node.text,
 	});
+	if (!isSymbolMutable(state, symbol)) {
+		state.markConstIdentifier(identifier);
+	}
+	return identifier;
 }
 
 function getAncestorWhichIsChildOf(parent: ts.Node, node: ts.Node) {

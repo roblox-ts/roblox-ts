@@ -1,13 +1,29 @@
 import luau from "@roblox-ts/luau-ast";
-import { findLastIndex } from "Shared/util/findLastIndex";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
-import { isSymbolMutable } from "TSTransformer/util/isSymbolMutable";
+import {
+	commutes,
+	EffectSummary,
+	PURE_SUMMARY,
+	summarizeExpression,
+	summarizeStatements,
+	unionSummaries,
+} from "TSTransformer/util/effects";
+import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
 import ts from "typescript";
 
 /**
  * Takes an array of `ts.Expression` and transforms each, capturing prereqs. Returns the transformed nodes.
  * Ensures the `luau.Expression` nodes execute in the same order as the `ts.Expression` nodes.
+ *
+ * TypeScript evaluates operands strictly left-to-right, interleaving each operand's
+ * side effects with its evaluation. In the emitted Luau, every operand's prerequisite
+ * statements run first and all result expressions are evaluated afterwards at the point
+ * of consumption — so each result expression is implicitly deferred past every *later*
+ * operand's prerequisite statements. An operand only needs to be captured into a
+ * temporary at its original position when that deferral is observable, i.e. when the
+ * operand's effect summary does not commute with the combined summary of the later
+ * prerequisite statements.
  */
 export function ensureTransformOrder(
 	state: TransformState,
@@ -25,30 +41,30 @@ export function ensureTransformOrder(
 	transformer: (state: TransformState, node: ts.Expression) => luau.Expression = transformExpression,
 ) {
 	const expressionInfoList = nodes.map(node => state.capture(() => transformer(state, node)));
-	const lastArgWithPrereqsIndex = findLastIndex(expressionInfoList, ([, prereqs]) => !luau.list.isEmpty(prereqs));
+
+	// suffixSummaries[i] = combined effects of all prereq statements after operand i
+	const suffixSummaries = new Array<EffectSummary>(expressionInfoList.length);
+	let suffix = PURE_SUMMARY;
+	for (let i = expressionInfoList.length - 1; i >= 0; i--) {
+		suffixSummaries[i] = suffix;
+		suffix = unionSummaries(summarizeStatements(state, expressionInfoList[i][1]), suffix);
+	}
+
 	const result = new Array<luau.Expression>();
 	for (let i = 0; i < expressionInfoList.length; i++) {
 		const [expression, prereqs] = expressionInfoList[i];
 		state.prereqList(prereqs);
 
-		let isConstVar = false;
-		const exp = nodes[i];
-		if (ts.isIdentifier(exp)) {
-			const symbol = state.typeChecker.getSymbolAtLocation(exp);
-			if (symbol && !isSymbolMutable(state, symbol)) {
-				isConstVar = true;
-			}
-		}
-
+		const node = nodes[i];
 		if (
-			i < lastArgWithPrereqsIndex &&
-			!luau.isSimplePrimitive(expression) &&
-			!luau.isTemporaryIdentifier(expression) &&
-			!isConstVar
+			commutes(
+				summarizeExpression(state, expression, ts.isExpression(node) ? node : undefined),
+				suffixSummaries[i],
+			)
 		) {
-			result.push(state.pushToVar(expression, "exp"));
-		} else {
 			result.push(expression);
+		} else {
+			result.push(state.pushToVar(expression, valueToIdStr(expression) || "exp"));
 		}
 	}
 	return result;
