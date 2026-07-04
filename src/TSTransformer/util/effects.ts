@@ -573,20 +573,3 @@ export function stabilizeOperands(
 		return state.pushToVar(expression, operand.name || valueToIdStr(expression) || "exp");
 	});
 }
-
-/**
- * Returns an expression that a macro may safely evaluate multiple times while performing
- * effects of class `across` in between — either `expression` itself when re-evaluation is
- * provably unobservable, or a freshly-declared temporary capturing its value now.
- *
- * Single-operand form of `stabilizeOperands`; use that instead when the macro consumes
- * multiple operands, so that ordering between them is accounted for.
- */
-export function ensureReusable(
-	state: TransformState,
-	expression: luau.Expression,
-	across: ReuseEffects,
-	name?: string,
-): luau.Expression {
-	return stabilizeOperands(state, [{ expression, across, multiUse: true, name }])[0];
-}

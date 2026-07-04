@@ -4,6 +4,7 @@ import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { CallMacro, PropertyCallMacro } from "TSTransformer/macros/types";
+import { validateInlineMacro } from "TSTransformer/macros/validateInlineMacro";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformImportExpression } from "TSTransformer/nodes/expressions/transformImportExpression";
 import { transformOptionalChain } from "TSTransformer/nodes/transformOptionalChain";
@@ -13,6 +14,8 @@ import {
 	commutes,
 	EffectSummary,
 	PURE_SUMMARY,
+	ReuseEffects,
+	stabilizeOperands,
 	summarizeExpression,
 	summarizeStatements,
 	unionSummaries,
@@ -36,10 +39,9 @@ function runCallMacro(
 	// (a spread contributes multiple results). TS evaluates operands left-to-right, but in
 	// the emitted Luau all prereqs run before any result expression is consumed, so each
 	// result is implicitly deferred past every later operand's prereqs — capture it into a
-	// temporary at its original position when that deferral is observable. The macro's own
-	// effects all happen after every operand, so they impose no further ordering
-	// constraints here; each macro is responsible for stabilizing (via `ensureReusable`)
-	// any operand it re-evaluates across its own effects.
+	// temporary at its original position when that deferral is observable. Afterwards, the
+	// operands are stabilized against the macro's own declared effect class (see
+	// `MacroEffects`), so the macro's transform never reasons about evaluation order.
 	interface OperandInfo {
 		expressions: Array<luau.Expression>;
 		prereqs: luau.List<luau.Statement>;
@@ -125,7 +127,29 @@ function runCallMacro(
 	}
 	expression = operands[0].expressions[0];
 
-	return wrapReturnIfLuaTuple(state, node, macro(state, node as never, expression, args));
+	// stabilize the operands against the macro's own effects, so its transform may use
+	// them freely: after this, every operand is either provably safe to re-evaluate across
+	// the declared effect class or a temporary that nothing can change
+	const effects = typeof macro.effects === "function" ? macro.effects(state, node) : macro.effects;
+	if (effects !== "none") {
+		const across: ReuseEffects = effects === "user" ? "userCode" : "heapWrites";
+		const stabilized = stabilizeOperands(state, [
+			{ expression, across, name: "exp" },
+			...args.map(arg => ({ expression: arg, across })),
+		]);
+		expression = stabilized[0];
+		for (let i = 0; i < args.length; i++) {
+			args[i] = stabilized[i + 1];
+		}
+	} else if (process.env.NODE_ENV === "test") {
+		// enforce the `effects: "none"` contract while running tests
+		const [result, prereqs] = state.capture(() => macro.transform(state, node as never, expression, args));
+		validateInlineMacro(node.expression.getText(), [expression, ...args], result, prereqs);
+		state.prereqList(prereqs);
+		return wrapReturnIfLuaTuple(state, node, result);
+	}
+
+	return wrapReturnIfLuaTuple(state, node, macro.transform(state, node as never, expression, args));
 }
 
 /**

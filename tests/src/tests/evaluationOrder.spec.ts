@@ -147,10 +147,19 @@ export = () => {
 		expect(result).to.equal(map);
 		expect(order[0]).to.equal("key");
 		expect(order[1]).to.equal("value");
+	});
 
-		const set = new Set<string>();
-		expect(set.add("a")).to.equal(set);
-		expect(set.has("a")).to.equal(true);
+	it("should return the original set from add even if the argument reassigns the binding", () => {
+		let set = new Set<number>();
+		const original = set;
+		function evil() {
+			set = new Set<number>();
+			return 1;
+		}
+		const result = set.add(evil());
+		expect(result).to.equal(original);
+		expect(original.has(1)).to.equal(true);
+		expect(set.has(1)).to.equal(false);
 	});
 
 	it("should read the delete key before removing it", () => {
@@ -259,6 +268,121 @@ export = () => {
 		observe(`${w}`, w.map.size());
 		expect(seen[0]).to.equal("weird");
 		expect(seen[1]).to.equal(1);
+	});
+
+	it("should map the original array even if the callback expression reassigns the binding", () => {
+		let arr = [1, 2, 3];
+		function getCallback() {
+			arr = [100];
+			return (v: number) => v * 2;
+		}
+		const mapped = arr.map(getCallback());
+		expect(mapped.size()).to.equal(3);
+		expect(mapped[2]).to.equal(6);
+	});
+
+	it("should pass the original array as the third argument of filter even if the callback reassigns the binding", () => {
+		let arr = [1, 2, 3, 4];
+		const original = arr;
+		const thirdArgs = new Array<ReadonlyArray<number>>();
+		const evens = arr.filter((v, i, source) => {
+			thirdArgs.push(source);
+			arr = [9];
+			return v % 2 === 0;
+		});
+		expect(evens.size()).to.equal(2);
+		expect(thirdArgs.size()).to.equal(4);
+		expect(thirdArgs[3]).to.equal(original);
+	});
+
+	it("should evaluate every's callback argument before iterating", () => {
+		const arr = [1, 2, 3];
+		function getPredicate() {
+			// TS evaluates the argument before `every` runs, so the added element is seen
+			arr.push(4);
+			return (v: number) => v <= 4;
+		}
+		expect(arr.every(getPredicate())).to.equal(true);
+		expect(arr.size()).to.equal(4);
+	});
+
+	it("should search the original array in find even if the callback reassigns the binding", () => {
+		let arr = [1, 2, 3];
+		const found = arr.find(v => {
+			arr = [42];
+			return v === 3;
+		});
+		expect(found).to.equal(3);
+	});
+
+	it("should evaluate insert operands in order", () => {
+		const arr = [10, 30];
+		let i = 0;
+		const seen = new Array<number>();
+		function value() {
+			seen.push(i);
+			return 20;
+		}
+		// TS: `arr`, then `(i += 1)`, then `value()` — so value() observes i === 1
+		arr.insert((i += 1), value());
+		expect(seen[0]).to.equal(1);
+		expect(arr[1]).to.equal(20);
+		expect(arr.size()).to.equal(3);
+	});
+
+	it("should evaluate remove's index argument before removing", () => {
+		const arr = [10, 20, 30];
+		function index() {
+			arr.push(40);
+			return 3;
+		}
+		// the argument is evaluated first, so index 3 refers to the array after the push
+		expect(arr.remove(index())).to.equal(40);
+		expect(arr.size()).to.equal(3);
+	});
+
+	it("should evaluate math macro operands left-to-right", () => {
+		let v1 = new Vector2(1, 2);
+		function swap() {
+			const other = new Vector2(10, 20);
+			v1 = new Vector2(0, 0);
+			return other;
+		}
+		// TS reads `v1` before `swap()` reassigns it
+		const sum = v1.add(swap());
+		expect(sum.X).to.equal(11);
+		expect(sum.Y).to.equal(22);
+	});
+
+	it("should join the original array even if the separator argument reassigns the binding", () => {
+		let arr = ["a", "b"];
+		function separator() {
+			arr = ["z"];
+			return "-";
+		}
+		expect(arr.join(separator())).to.equal("a-b");
+	});
+
+	it("should delete from the original map even if the key argument reassigns the binding", () => {
+		let map = new Map<string, number>([["k", 1]]);
+		const original = map;
+		function key() {
+			map = new Map<string, number>([["k", 2]]);
+			return "k";
+		}
+		expect(map.delete(key())).to.equal(true);
+		expect(original.has("k")).to.equal(false);
+		expect(map.has("k")).to.equal(true);
+	});
+
+	it("should evaluate includes' argument before searching", () => {
+		const arr = [1, 2];
+		function value() {
+			arr.push(99);
+			return 99;
+		}
+		// the argument is evaluated before the search runs, so 99 is present
+		expect(arr.includes(value())).to.equal(true);
 	});
 
 	it("should evaluate operands of includes/indexOf inline in order", () => {

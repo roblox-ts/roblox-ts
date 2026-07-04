@@ -222,69 +222,65 @@ defensively captured, using predicates (`isSimple`, `isAnyIdentifier`) that
 ignore both const-ness and what the macro itself does between uses — too
 strong and too weak at once.
 
-### 4.2 The new contract
+### 4.2 The new contract: declared effect classes, driver-owned safety
 
-`runCallMacro` now only solves **Q1**: it transforms `[self, arg₁ … argₙ]`
-as an ordered operand sequence with the commutation rule of §3 (the macro's
-own effects all happen at the consumption point, after every operand, so they
-impose no additional Q1 constraints). Arguments arrive at the macro
-*unmaterialized* whenever ordering allows.
+Macro transform bodies never reason about evaluation order. Each macro
+declares an **effect class** (`MacroEffects` in `macros/types.ts`), and
+`runCallMacro` does all the work:
 
-**Macro authors' obligations** (documented on the `PropertyCallMacro` type):
-every received expression (`expression`, `args[i]`) must be either
-
-1. **embedded exactly once**, positioned so it evaluates at the macro's
-   consumption point *before* any effectful statement the macro emits — i.e.
-   used inside the first effectful prereq or in a pure result expression; or
-2. **stabilized first** via the new Q2 helpers:
+1. **Q1 (ordering):** it transforms `[self, arg₁ … argₙ]` as an ordered
+   operand sequence with the commutation rule of §3 (the macro's own effects
+   all happen at the consumption point, after every operand, so they impose
+   no additional Q1 constraints here).
+2. **Q2 (stabilization):** it then runs the operands through
+   `stabilizeOperands` according to the macro's declared class, *before* the
+   transform is invoked. Every expression a transform receives is either
+   provably safe to re-evaluate across the declared effect class, or a
+   compiler temporary that nothing can change.
 
 ```ts
-stabilizeOperands(state, [
-	{ expression, across, multiUse?, capture?, name? },
-	…
-]) // operands listed in TS evaluation order; returns the expressions to use
-ensureReusable(state, expr, across, name?) // single-operand shorthand
-// across: "none"       — ordering/multiplicity constraints only
-//         "heapWrites" — macro re-evaluates expr across its own table writes
-//         "userCode"   — macro re-evaluates expr across calls into user code
-//                        (loop bodies invoking callbacks) or returns it after them
+effects: "none"   // lowers to one expression; embeds each operand ≤ once, in
+                  // operand order; emits no statements — operands stay raw
+effects: "heap"   // may emit statements that mutate tables, never runs user
+                  // code — operands survive raw only if re-evaluation across
+                  // heap writes is unobservable (identifiers, literals, temps,
+                  // arithmetic on them); heap reads, calls, and allocations
+                  // are captured
+effects: "user"   // may run user callbacks — only dependency-free operands
+                  // survive raw (literals, temps, const identifiers); this is
+                  // what fixes the forEach third-argument hole described in §1
 ```
 
-`stabilizeOperands` emits `local temp = <operand>` declarations in operand
-order exactly where required. An operand is captured when re-evaluation
-across its declared effect class would be observable, when it is `multiUse`
-and non-trivial to recompute, or when leaving it raw would defer its
-evaluation past a *later listed operand* it does not commute with (raw
-operands evaluate wherever the macro embeds them, after all capture
-declarations). Even operands the macro uses only once must be *listed* if an
-earlier operand is stabilized, so ordering between them is accounted for.
+The class may be computed per call site (`sort` is `"user"` only when a
+comparator is present; `join` is `"user"` only when elements need
+`tostring`).
 
-Stability, per effect class:
+Why heap reads are not `"heap"`-stable: writing `m[k] = nil` can change what
+a second evaluation of an aliasing `a.b` yields (or even make it `nil` and
+turn the second use into an error). Why allocations never survive:
+re-evaluating a function/table literal creates fresh objects.
 
-* `across: "heapWrites"` — allowed to read locals but not the heap
-  (identifiers, literals, temps, arithmetic thereon). Heap reads must be
-  captured: writing `m[k] = nil` can change what a second evaluation of an
-  aliasing `a.b` yields (or even make it `nil` and turn the second use into
-  an error).
-* `across: "userCode"` — only ∅-summary expressions survive (literals, temps,
-  **const** identifiers). A mutable identifier must be captured because the
-  callback can reassign it — this fixes the `forEach` third-argument hole
-  described in §1. Allocation expressions (function/table literals) are also
-  captured: re-evaluating them would create fresh objects.
+**The `"none"` contract is machine-enforced.** While tests run
+(`NODE_ENV === "test"`), `validateInlineMacro` walks every inline macro's
+output and asserts it emitted no prerequisite statements and embeds each raw
+operand at most once, in operand order (operand AST nodes are unique objects,
+so occurrences are checked by identity). A mis-declared macro fails the test
+suite loudly instead of miscompiling silently. For `"heap"`/`"user"` macros
+there is nothing to validate: stabilized operands are safe under *any* usage
+pattern, so the only reviewable trust point is the one-word class itself.
 
-This is the same *shape* as the old `pushToVarIfComplex`/`pushToVarIfNonId`
-calls (a one-line prelude in each macro), so macro bodies stay familiar —
-but the decision is now semantic rather than syntactic, and the driver no
-longer duplicates it pessimistically.
+Within a transform, `pushToVarIfComplex`/`pushToVar` may still appear — but
+only to avoid *recomputing* a non-trivial operand-derived expression used
+several times (e.g. `unorderedRemove`'s `index + 1`). That is a code-size
+choice, never a correctness requirement.
 
 **Luau assignment-statement caveat:** in an emitted `base[k] = v` where
 `base` is a plain local, Luau reads the base *binding* at store time — after
 `k` and `v` have evaluated (verified empirically; the reference manual calls
-the order unspecified). TypeScript evaluates the object first, so a macro
-statement path that lowers to an assignment must still run its operands
-through `stabilizeOperands` (with `across: "none"`) even when each operand is
-used exactly once: the base gets captured into a temporary — which nothing
-can reassign — exactly when a later operand's effects could rebind it
+the order unspecified). TypeScript evaluates the object first. The driver's
+class stabilization handles this centrally: the suffix-commutation check in
+`stabilizeOperands` captures the base into a temporary — which nothing can
+reassign — exactly when a later operand's effects could rebind it
 (`Map.set`/`Set.add`/`delete`). Plain TypeScript assignments (`obj.a = f()`
 via `transformWritableAssignment`) carry the same latent hazard; that
 behavior predates this redesign and is unchanged here.
@@ -294,11 +290,17 @@ behavior predates this redesign and is unchanged here.
 | Source | Before | After |
 | --- | --- | --- |
 | `vec.add(other)` (`let other`) | `local _other = other` ↵ `vec + _other` | `vec + other` |
-| `m.set("a", g())` | `local _arg1 = g()` ↵ `m.a = _arg1` | `m.a = g()` |
-| `arr.push(g())` (statement) | `local _arg0 = g()` ↵ `table.insert(arr, _arg0)` | `table.insert(arr, g())` |
+| `s.sub(1, x)` (`let x`) | `local _x = x` ↵ `string.sub(s, 1, _x)` | `string.sub(s, 1, x)` |
+| `arr.push(x)` (`let x`) | `local _arg0 = x` ↵ `table.insert(arr, _arg0)` | `table.insert(arr, x)` |
 | `f(x, arr.pop())` | `local _exp = x` before the pop block | `x` inline |
 | `a2.unorderedRemove((i *= 2))` | `i *= 2` ↵ `local _i = i` ↵ `local _index = _i + 1` … | `i *= 2` ↵ `local _index = i + 1` … |
 | `arr.forEach(cb)` (`let arr`) | loop reads `arr` per-iteration (wrong if `cb` reassigns `arr`) | `local _exp = arr` — correct |
+
+Effectful arguments to statement-emitting (`"heap"`/`"user"`) macros are
+still captured, exactly as before the redesign — e.g. `m.set("a", g())`
+keeps its `local _arg = g()` — because only the macro body knows where such
+an argument would be embedded relative to its statements, and macro bodies
+are deliberately not trusted with that reasoning.
 
 The `▼/▲` banner-comment wrapping is unchanged (it operates on whatever
 prereqs a macro produces).
@@ -317,9 +319,9 @@ Its callers asked subtly different questions and now use the precise tool:
 
 * The prereq mechanism itself (`state.capture`, the statement stack) — it is
   the right substrate; only the *decisions* layered on it were replaced.
-* Macro signature `(state, node, expression, args) => luau.Expression` — the
-  redesign moves knowledge, not plumbing; `ensureReusable` is the only new
-  vocabulary a macro author needs.
+* Macro transform signature `(state, node, expression, args) =>
+  luau.Expression` — the redesign moves knowledge, not plumbing; the one-word
+  effect class is the only new vocabulary a macro author needs.
 * `transformOptionalChain`'s temp management (its temps are required for
   control flow, not ordering).
 * Aliasing granularity: the heap is a single region. Distinguishing disjoint
