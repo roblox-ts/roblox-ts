@@ -277,6 +277,18 @@ calls (a one-line prelude in each macro), so macro bodies stay familiar —
 but the decision is now semantic rather than syntactic, and the driver no
 longer duplicates it pessimistically.
 
+**Luau assignment-statement caveat:** in an emitted `base[k] = v` where
+`base` is a plain local, Luau reads the base *binding* at store time — after
+`k` and `v` have evaluated (verified empirically; the reference manual calls
+the order unspecified). TypeScript evaluates the object first, so a macro
+statement path that lowers to an assignment must still run its operands
+through `stabilizeOperands` (with `across: "none"`) even when each operand is
+used exactly once: the base gets captured into a temporary — which nothing
+can reassign — exactly when a later operand's effects could rebind it
+(`Map.set`/`Set.add`/`delete`). Plain TypeScript assignments (`obj.a = f()`
+via `transformWritableAssignment`) carry the same latent hazard; that
+behavior predates this redesign and is unchanged here.
+
 ### 4.3 Effect on emitted code
 
 | Source | Before | After |

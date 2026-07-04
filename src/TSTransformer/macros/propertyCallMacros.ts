@@ -830,12 +830,19 @@ const SET_MAP_SHARED_METHODS: MacroList<PropertyCallMacro> = {
 	delete: (state, node, expression, args) => {
 		const valueIsUsed = !isUsedAsStatement(node);
 		if (!valueIsUsed) {
-			// single use of each operand, in order
+			// single use of each operand, but Luau assignment statements read a plain-local
+			// base binding at store time (after the key/value have evaluated), so ordering
+			// against the key's effects must still be enforced
+			let key: luau.Expression;
+			[expression, key] = stabilizeOperands(state, [
+				{ expression, across: "none", name: "exp" },
+				{ expression: args[0], across: "none" },
+			]);
 			state.prereq(
 				luau.create(luau.SyntaxKind.Assignment, {
 					left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 						expression: convertToIndexableExpression(expression),
-						index: args[0],
+						index: key,
 					}),
 					operator: "=",
 					right: luau.nil(),
@@ -913,14 +920,14 @@ const SET_METHODS: MacroList<PropertyCallMacro> = {
 
 	add: (state, node, expression, args) => {
 		const valueIsUsed = !isUsedAsStatement(node);
-		if (valueIsUsed) {
-			// the set is returned after the assignment mutates the heap; ordering against
-			// the argument's evaluation is handled by listing it
-			[expression, args[0]] = stabilizeOperands(state, [
-				{ expression, across: "heapWrites", multiUse: true, name: "exp" },
-				{ expression: args[0], across: "none" },
-			]);
-		}
+		// when the value is used, the set is returned after the assignment mutates the
+		// heap; even when it is not, Luau assignment statements read a plain-local base
+		// binding at store time (after the key has evaluated), so ordering against the
+		// key's effects must always be enforced
+		[expression, args[0]] = stabilizeOperands(state, [
+			{ expression, across: valueIsUsed ? "heapWrites" : "none", multiUse: valueIsUsed, name: "exp" },
+			{ expression: args[0], across: "none" },
+		]);
 		state.prereq(
 			luau.create(luau.SyntaxKind.Assignment, {
 				left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
@@ -971,15 +978,15 @@ const MAP_METHODS: MacroList<PropertyCallMacro> = {
 	set: (state, node, expression, args) => {
 		let [keyExp, valueExp] = args;
 		const valueIsUsed = !isUsedAsStatement(node);
-		if (valueIsUsed) {
-			// the map is returned after the assignment mutates the heap; ordering against
-			// the key/value evaluations is handled by listing them
-			[expression, keyExp, valueExp] = stabilizeOperands(state, [
-				{ expression, across: "heapWrites", multiUse: true, name: "exp" },
-				{ expression: keyExp, across: "none" },
-				{ expression: valueExp, across: "none" },
-			]);
-		}
+		// when the value is used, the map is returned after the assignment mutates the
+		// heap; even when it is not, Luau assignment statements read a plain-local base
+		// binding at store time (after the key/value have evaluated), so ordering against
+		// the key/value effects must always be enforced
+		[expression, keyExp, valueExp] = stabilizeOperands(state, [
+			{ expression, across: valueIsUsed ? "heapWrites" : "none", multiUse: valueIsUsed, name: "exp" },
+			{ expression: keyExp, across: "none" },
+			{ expression: valueExp, across: "none" },
+		]);
 		state.prereq(
 			luau.create(luau.SyntaxKind.Assignment, {
 				left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
