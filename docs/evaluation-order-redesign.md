@@ -222,68 +222,69 @@ defensively captured, using predicates (`isSimple`, `isAnyIdentifier`) that
 ignore both const-ness and what the macro itself does between uses — too
 strong and too weak at once.
 
-### 4.2 The new contract: declared effect classes, driver-owned safety
+### 4.2 The new contract: driver observes what the macro actually does
 
-Macro transform bodies never reason about evaluation order. Each macro
-declares an **effect class** (`MacroEffects` in `macros/types.ts`), and
-`runCallMacro` does all the work:
+Macros are plain functions again — no effect-class annotation, no ordering
+helpers in their bodies. They embed the object expression and each argument
+wherever the emitted Luau needs them. `runCallMacro` (in
+`transformCallExpression.ts`) discovers the required captures by **running the
+macro and inspecting its output**:
 
-1. **Q1 (ordering):** it transforms `[self, arg₁ … argₙ]` as an ordered
-   operand sequence with the commutation rule of §3 (the macro's own effects
-   all happen at the consumption point, after every operand, so they impose
-   no additional Q1 constraints here).
-2. **Q2 (stabilization):** it then runs the operands through
-   `stabilizeOperands` according to the macro's declared class, *before* the
-   transform is invoked. Every expression a transform receives is either
-   provably safe to re-evaluate across the declared effect class, or a
-   compiler temporary that nothing can change.
+1. **Q1 (ordering):** transform `[self, arg₁ … argₙ]` as an ordered operand
+   sequence with the commutation rule of §3, capturing an operand's result
+   expression when it does not commute with the later operands' prereq
+   statements.
+2. **Q2 (usage analysis):** *trial-run* the macro with the (raw) operands, in
+   a captured + diagnostic-suppressed context that is then discarded, and hand
+   the trial's `prereqs` + `result` to `computeMacroCaptures`. It decides,
+   per operand, whether leaving it raw is observably identical to evaluating
+   it once at its canonical up-front position. Operands that need it are
+   captured into temporaries; then the macro is run **for real** with the
+   final operand list.
 
-```ts
-effects: "none"   // lowers to one expression; embeds each operand ≤ once, in
-                  // operand order; emits no statements — operands stay raw
-effects: "heap"   // may emit statements that mutate tables, never runs user
-                  // code — operands survive raw only if re-evaluation across
-                  // heap writes is unobservable (identifiers, literals, temps,
-                  // arithmetic on them); heap reads, calls, and allocations
-                  // are captured
-effects: "user"   // may run user callbacks — only dependency-free operands
-                  // survive raw (literals, temps, const identifiers); this is
-                  // what fixes the forEach third-argument hole described in §1
-```
+`computeMacroCaptures` (in `util/effects.ts`) captures operand `i` when any of:
 
-The class may be computed per call site (`sort` is `"user"` only when a
-comparator is present; `join` is `"user"` only when elements need
-`tostring`).
+* **it is unused and impure** — a dropped operand still has to run for its
+  effects, so it is hoisted; a dropped *pure* operand is simply omitted;
+* **it is evaluated more than once, or inside a loop/closure body**, and is
+  not freely *repeatable* — only a pure read of a local/global binding is
+  repeatable (a heap read may be aliased by a write; a table/closure literal
+  allocates a fresh object each time; anything throwing/writing/calling is
+  out), and even then only if its value commutes with everything the macro
+  does around the uses;
+* **it is used exactly once**, but its evaluation does not commute with
+  everything the macro evaluates *before* that occurrence — which is exactly
+  what must be unobservable for its single in-place evaluation to equal the
+  canonical up-front one. Effects that run *after* the operand (the macro's
+  own trailing call/store) never force a capture, so e.g. the receiver of
+  `s.find(pat)` stays inline ahead of the throwing `string.find` call.
 
-Why heap reads are not `"heap"`-stable: writing `m[k] = nil` can change what
-a second evaluation of an aliasing `a.b` yields (or even make it `nil` and
-turn the second use into an error). Why allocations never survive:
-re-evaluating a function/table literal creates fresh objects.
+Conflicts between a canonically-earlier operand `j` and a later one `i` are
+caught when analyzing `j` (whose "before" can include `i`), so `i` need not
+re-examine earlier operands. Const-ness flows through for free: a `const`
+binding summarizes as pure, so it survives even re-evaluation across user
+callbacks — better than the hand-tuned macros, which captured it defensively.
 
-**The `"none"` contract is machine-enforced.** While tests run
-(`NODE_ENV === "test"`), `validateInlineMacro` walks every inline macro's
-output and asserts it emitted no prerequisite statements and embeds each raw
-operand at most once, in operand order (operand AST nodes are unique objects,
-so occurrences are checked by identity). A mis-declared macro fails the test
-suite loudly instead of miscompiling silently. For `"heap"`/`"user"` macros
-there is nothing to validate: stabilized operands are safe under *any* usage
-pattern, so the only reviewable trust point is the one-word class itself.
+**Two implementation hazards, both handled centrally:**
+
+* *Node cloning.* `luau.create` shallow-clones any node that is reused within
+  a tree, so identity is not stable for a reused operand or a shared global
+  singleton. The analysis tags operands and the builtin `luau.globals` with
+  `Symbol` properties, which survive the shallow clone; occurrences and
+  builtin calls are matched by tag, not identity. Operands are tagged *before*
+  the trial run so the macro's clones inherit the tag.
+* *Assignment store order.* In an emitted `base[k] = v` where `base` is a
+  plain local, Luau reads the base binding at store time — after `k` and `v`
+  (verified empirically). The "before" analysis treats an assignment's parts
+  conservatively (any part may precede the target), so `Map.set`/`Set.add`/
+  `delete` capture the base exactly when a later operand could rebind it.
+  Plain TypeScript assignments (`obj.a = f()`) carry the same latent hazard
+  and are unchanged here.
 
 Within a transform, `pushToVarIfComplex`/`pushToVar` may still appear — but
 only to avoid *recomputing* a non-trivial operand-derived expression used
 several times (e.g. `unorderedRemove`'s `index + 1`). That is a code-size
 choice, never a correctness requirement.
-
-**Luau assignment-statement caveat:** in an emitted `base[k] = v` where
-`base` is a plain local, Luau reads the base *binding* at store time — after
-`k` and `v` have evaluated (verified empirically; the reference manual calls
-the order unspecified). TypeScript evaluates the object first. The driver's
-class stabilization handles this centrally: the suffix-commutation check in
-`stabilizeOperands` captures the base into a temporary — which nothing can
-reassign — exactly when a later operand's effects could rebind it
-(`Map.set`/`Set.add`/`delete`). Plain TypeScript assignments (`obj.a = f()`
-via `transformWritableAssignment`) carry the same latent hazard; that
-behavior predates this redesign and is unchanged here.
 
 ### 4.3 Effect on emitted code
 
@@ -291,19 +292,19 @@ behavior predates this redesign and is unchanged here.
 | --- | --- | --- |
 | `vec.add(other)` (`let other`) | `local _other = other` ↵ `vec + _other` | `vec + other` |
 | `s.sub(1, x)` (`let x`) | `local _x = x` ↵ `string.sub(s, 1, _x)` | `string.sub(s, 1, x)` |
-| `arr.push(x)` (`let x`) | `local _arg0 = x` ↵ `table.insert(arr, _arg0)` | `table.insert(arr, x)` |
-| `f(x, arr.pop())` | `local _exp = x` before the pop block | `x` inline |
-| `a2.unorderedRemove((i *= 2))` | `i *= 2` ↵ `local _i = i` ↵ `local _index = _i + 1` … | `i *= 2` ↵ `local _index = i + 1` … |
+| `arr.push(g())` (statement) | `local _arg0 = g()` ↵ `table.insert(arr, _arg0)` | `table.insert(arr, g())` |
+| `arr.pop()` (`arr` local) | `local _exp = arr` ↵ … | `arr` inline (re-reading a local is free) |
+| `const arr; arr.reduce(cb, 0)` | `local _exp = arr` ↵ loop | `arr` inline (const can't be rebound) |
 | `arr.forEach(cb)` (`let arr`) | loop reads `arr` per-iteration (wrong if `cb` reassigns `arr`) | `local _exp = arr` — correct |
+| `map.set("k", evil())` (`evil` rebinds `map`) | wrote to the *new* map | base captured — writes to the original |
 
-Effectful arguments to statement-emitting (`"heap"`/`"user"`) macros are
-still captured, exactly as before the redesign — e.g. `m.set("a", g())`
-keeps its `local _arg = g()` — because only the macro body knows where such
-an argument would be embedded relative to its statements, and macro bodies
-are deliberately not trusted with that reasoning.
+The last three rows are the correctness fixes; the rest are temp reductions
+that, in aggregate over the test corpus, land slightly *below* the previous
+hand-tuned macros while depending on none of their per-macro knowledge.
 
 The `▼/▲` banner-comment wrapping is unchanged (it operates on whatever
-prereqs a macro produces).
+prereqs a macro produces); operand captures are emitted by the driver outside
+that wrapper.
 
 ## 5. `expressionMightMutate` retired
 
@@ -319,9 +320,11 @@ Its callers asked subtly different questions and now use the precise tool:
 
 * The prereq mechanism itself (`state.capture`, the statement stack) — it is
   the right substrate; only the *decisions* layered on it were replaced.
-* Macro transform signature `(state, node, expression, args) =>
-  luau.Expression` — the redesign moves knowledge, not plumbing; the one-word
-  effect class is the only new vocabulary a macro author needs.
+* Macro signature `(state, node, expression, args) => luau.Expression` — the
+  redesign moves knowledge, not plumbing. Macros carry no annotations at all;
+  the driver derives everything from their output. The one cost is that each
+  macro runs twice per call site (a discarded trial plus the real run), which
+  is negligible against type-checking.
 * `transformOptionalChain`'s temp management (its temps are required for
   control flow, not ordering).
 * Aliasing granularity: the heap is a single region. Distinguishing disjoint
@@ -339,12 +342,15 @@ in §2.3 implies the interleaved TS schedule and the hoisted Luau schedule are
 observably equivalent — including which error fires first, via the `throws`
 clauses.
 
-For Q2: a macro either uses an operand once at the consumption point (which
-Q1 already validated) or declares the effect class it re-evaluates across;
-`ensureReusable` only leaves expressions inline when re-evaluation across
-that class is unobservable (∅-summary for user code; local-only reads across
-pure heap writes).
+For Q2: `computeMacroCaptures` leaves an operand inline only when its actual
+usage in the emitted output is provably equivalent to a single canonical
+evaluation — used once and commuting with everything before it, or repeated
+but freely repeatable and stable across the macro's effects, or unused and
+pure. Summaries are conservative upper bounds, occurrence tracking survives
+node cloning via tags, and any doubt resolves to a capture. The result is
+never an unsafe inline; the worst case is a redundant temporary.
 
 The runtime test suite (`tests/src/tests/*.spec.ts`, executed under Lune)
-exercises the observable semantics; new specs were added for the argument/
-self mutation orderings that motivated the redesign.
+exercises the observable semantics; `evaluationOrder.spec.ts` pins the
+argument/receiver mutation orderings — including callbacks that reassign the
+receiver binding — that this analysis must get right.

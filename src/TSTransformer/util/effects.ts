@@ -2,14 +2,13 @@ import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer";
 import { isSymbolMutable } from "TSTransformer/util/isSymbolMutable";
 import { skipDownwards } from "TSTransformer/util/traversal";
-import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
 import ts from "typescript";
 
 /**
  * A conservative summary of the observable behavior of a piece of generated Luau.
  *
  * Used to decide whether evaluation of an expression can be deferred past a block of
- * statements (see `commutes`) or repeated (see `isStableAcross`) without changing
+ * statements or repeated (see `commutes` and `computeMacroCaptures`) without changing
  * the program's observable behavior relative to TypeScript's evaluation order.
  *
  * Compiler-generated temporaries are invisible to user code: reads of them are free and
@@ -32,6 +31,26 @@ export interface EffectSummary {
 }
 
 const EMPTY_SET: ReadonlySet<string> = new Set();
+
+// `luau.create` clones any node that already has a parent (shallow spread), so identity is
+// not stable for nodes reused across an emitted tree — but Symbol-keyed properties survive
+// the spread. We tag nodes we need to recognize after they have been placed and possibly
+// cloned: operands (per capture-analysis) and the compiler's own builtin globals.
+type TaggedNode = luau.Expression & {
+	[OPERAND_TAG]?: number;
+	[BUILTIN_CALL_TAG]?: EffectSummary;
+	[BUILTIN_GLOBAL_TAG]?: true;
+};
+const OPERAND_TAG = Symbol("operandTag");
+const BUILTIN_CALL_TAG = Symbol("builtinCallSummary");
+const BUILTIN_GLOBAL_TAG = Symbol("builtinGlobal");
+
+/**
+ * While set, `summarizeExpression` returns `PURE_SUMMARY` for any operand whose tag is in
+ * this set. Used by `computeMacroCaptures` to summarize a macro's output while excluding
+ * the operands (and their clones) whose effects are accounted for separately.
+ */
+let maskedOperandTags: ReadonlySet<number> | undefined;
 
 export const PURE_SUMMARY: EffectSummary = {
 	readsLocals: EMPTY_SET,
@@ -109,16 +128,24 @@ export function commutes(a: EffectSummary, b: EffectSummary): boolean {
 }
 
 /**
- * Effect summaries for calls to builtins the compiler itself emits, recognized by node
- * identity against the `luau.globals` singletons (immune to user-code name shadowing).
- * Argument summaries are unioned in by the caller. Anything not listed here is treated
- * as a call into unknown code.
+ * Effect summaries for calls to builtins the compiler itself emits, recognized against the
+ * `luau.globals` singletons (immune to user-code name shadowing). Recognition is by a tag
+ * on the callee node (which survives cloning) with a Map fallback for the pristine
+ * singletons. Argument summaries are unioned in by the caller. Anything not listed here is
+ * treated as a call into unknown code.
  */
 const BUILTIN_CALL_SUMMARIES = new Map<luau.Expression, EffectSummary>();
 const READS_HEAP_SUMMARY: EffectSummary = { ...PURE_SUMMARY, readsHeap: true };
 const READS_HEAP_THROWS_SUMMARY: EffectSummary = { ...PURE_SUMMARY, readsHeap: true, throws: true };
 const MUTATES_HEAP_SUMMARY: EffectSummary = { ...PURE_SUMMARY, readsHeap: true, writesHeap: true };
 const THROWS_SUMMARY: EffectSummary = { ...PURE_SUMMARY, throws: true };
+// sentinel: table.sort invokes a user comparator only when one is passed (see summarizeCall)
+const SORT_BUILTIN: EffectSummary = { ...PURE_SUMMARY };
+
+function setBuiltinCall(callee: luau.Expression, summary: EffectSummary) {
+	BUILTIN_CALL_SUMMARIES.set(callee, summary);
+	(callee as TaggedNode)[BUILTIN_CALL_TAG] = summary;
+}
 {
 	for (const name of [
 		"byte",
@@ -135,35 +162,35 @@ const THROWS_SUMMARY: EffectSummary = { ...PURE_SUMMARY, throws: true };
 		"upper",
 	] as const) {
 		// string.format/gsub can error on bad input; strings are immutable so no heap access
-		BUILTIN_CALL_SUMMARIES.set(luau.globals.string[name], THROWS_SUMMARY);
+		setBuiltinCall(luau.globals.string[name], THROWS_SUMMARY);
 	}
-	BUILTIN_CALL_SUMMARIES.set(luau.globals.table.create, PURE_SUMMARY);
-	BUILTIN_CALL_SUMMARIES.set(luau.globals.table.find, READS_HEAP_SUMMARY);
-	BUILTIN_CALL_SUMMARIES.set(luau.globals.table.concat, READS_HEAP_THROWS_SUMMARY);
-	BUILTIN_CALL_SUMMARIES.set(luau.globals.table.isfrozen, READS_HEAP_SUMMARY);
-	BUILTIN_CALL_SUMMARIES.set(luau.globals.table.maxn, READS_HEAP_SUMMARY);
-	BUILTIN_CALL_SUMMARIES.set(luau.globals.table.clone, READS_HEAP_THROWS_SUMMARY);
-	BUILTIN_CALL_SUMMARIES.set(luau.globals.table.pack, READS_HEAP_SUMMARY);
-	BUILTIN_CALL_SUMMARIES.set(luau.globals.table.unpack, READS_HEAP_SUMMARY);
-	BUILTIN_CALL_SUMMARIES.set(luau.globals.table.insert, MUTATES_HEAP_SUMMARY);
-	BUILTIN_CALL_SUMMARIES.set(luau.globals.table.remove, MUTATES_HEAP_SUMMARY);
-	BUILTIN_CALL_SUMMARIES.set(luau.globals.table.move, MUTATES_HEAP_SUMMARY);
-	BUILTIN_CALL_SUMMARIES.set(luau.globals.table.clear, MUTATES_HEAP_SUMMARY);
-	BUILTIN_CALL_SUMMARIES.set(luau.globals.table.freeze, MUTATES_HEAP_SUMMARY);
-	// table.sort may invoke a user comparator; handled specially in summarizeCall
-	BUILTIN_CALL_SUMMARIES.set(luau.globals.math.min, PURE_SUMMARY);
-	BUILTIN_CALL_SUMMARIES.set(luau.globals.next, READS_HEAP_SUMMARY);
-	BUILTIN_CALL_SUMMARIES.set(luau.globals.select, READS_HEAP_SUMMARY);
-	BUILTIN_CALL_SUMMARIES.set(luau.globals.type, PURE_SUMMARY);
-	BUILTIN_CALL_SUMMARIES.set(luau.globals.typeof, PURE_SUMMARY);
-	BUILTIN_CALL_SUMMARIES.set(luau.globals.getmetatable, READS_HEAP_SUMMARY);
-	BUILTIN_CALL_SUMMARIES.set(luau.globals.setmetatable, MUTATES_HEAP_SUMMARY);
-	BUILTIN_CALL_SUMMARIES.set(luau.globals.error, THROWS_SUMMARY);
-	BUILTIN_CALL_SUMMARIES.set(luau.globals.assert, THROWS_SUMMARY);
-	BUILTIN_CALL_SUMMARIES.set(luau.globals.unpack, READS_HEAP_SUMMARY);
-	BUILTIN_CALL_SUMMARIES.set(luau.globals.ipairs, READS_HEAP_SUMMARY);
-	BUILTIN_CALL_SUMMARIES.set(luau.globals.pairs, READS_HEAP_SUMMARY);
-	BUILTIN_CALL_SUMMARIES.set(luau.globals.utf8.codes, READS_HEAP_SUMMARY);
+	setBuiltinCall(luau.globals.table.create, PURE_SUMMARY);
+	setBuiltinCall(luau.globals.table.find, READS_HEAP_SUMMARY);
+	setBuiltinCall(luau.globals.table.concat, READS_HEAP_THROWS_SUMMARY);
+	setBuiltinCall(luau.globals.table.isfrozen, READS_HEAP_SUMMARY);
+	setBuiltinCall(luau.globals.table.maxn, READS_HEAP_SUMMARY);
+	setBuiltinCall(luau.globals.table.clone, READS_HEAP_THROWS_SUMMARY);
+	setBuiltinCall(luau.globals.table.pack, READS_HEAP_SUMMARY);
+	setBuiltinCall(luau.globals.table.unpack, READS_HEAP_SUMMARY);
+	setBuiltinCall(luau.globals.table.insert, MUTATES_HEAP_SUMMARY);
+	setBuiltinCall(luau.globals.table.remove, MUTATES_HEAP_SUMMARY);
+	setBuiltinCall(luau.globals.table.move, MUTATES_HEAP_SUMMARY);
+	setBuiltinCall(luau.globals.table.clear, MUTATES_HEAP_SUMMARY);
+	setBuiltinCall(luau.globals.table.freeze, MUTATES_HEAP_SUMMARY);
+	setBuiltinCall(luau.globals.table.sort, SORT_BUILTIN);
+	setBuiltinCall(luau.globals.math.min, PURE_SUMMARY);
+	setBuiltinCall(luau.globals.next, READS_HEAP_SUMMARY);
+	setBuiltinCall(luau.globals.select, READS_HEAP_SUMMARY);
+	setBuiltinCall(luau.globals.type, PURE_SUMMARY);
+	setBuiltinCall(luau.globals.typeof, PURE_SUMMARY);
+	setBuiltinCall(luau.globals.getmetatable, READS_HEAP_SUMMARY);
+	setBuiltinCall(luau.globals.setmetatable, MUTATES_HEAP_SUMMARY);
+	setBuiltinCall(luau.globals.error, THROWS_SUMMARY);
+	setBuiltinCall(luau.globals.assert, THROWS_SUMMARY);
+	setBuiltinCall(luau.globals.unpack, READS_HEAP_SUMMARY);
+	setBuiltinCall(luau.globals.ipairs, READS_HEAP_SUMMARY);
+	setBuiltinCall(luau.globals.pairs, READS_HEAP_SUMMARY);
+	setBuiltinCall(luau.globals.utf8.codes, READS_HEAP_SUMMARY);
 	// NOT listed (treated as unknown code): tostring (__tostring metamethods), pcall,
 	// require, coroutine.yield, TS.* runtime library functions
 }
@@ -172,7 +199,7 @@ const THROWS_SUMMARY: EffectSummary = { ...PURE_SUMMARY, throws: true };
  * Identifier singletons from `luau.globals` (including the bases of its property accesses,
  * e.g. the `table` in `table.insert`). The compiler only emits these nodes to reference
  * true Luau/Roblox globals, which user code compiled by roblox-ts can never reassign, so
- * reads of them are free.
+ * reads of them are free. Tagged as well as collected, so clones are still recognized.
  */
 const BUILTIN_GLOBAL_IDS = new Set<luau.Identifier>();
 {
@@ -181,8 +208,10 @@ const BUILTIN_GLOBAL_IDS = new Set<luau.Identifier>();
 			const node = value as luau.Node;
 			if (luau.isIdentifier(node)) {
 				BUILTIN_GLOBAL_IDS.add(node);
+				(node as TaggedNode)[BUILTIN_GLOBAL_TAG] = true;
 			} else if (luau.isPropertyAccessExpression(node) && luau.isIdentifier(node.expression)) {
 				BUILTIN_GLOBAL_IDS.add(node.expression);
+				(node.expression as TaggedNode)[BUILTIN_GLOBAL_TAG] = true;
 			}
 		} else if (typeof value === "object" && value !== null) {
 			for (const inner of Object.values(value)) visit(inner);
@@ -213,10 +242,11 @@ function summarizeList(state: TransformState, list: luau.List<luau.Expression>):
 }
 
 function summarizeCall(state: TransformState, node: luau.CallExpression): EffectSummary {
-	let builtin = BUILTIN_CALL_SUMMARIES.get(node.expression);
-	if (node.expression === luau.globals.table.sort && luau.list.size(node.args) <= 1) {
-		// without a comparator, table.sort cannot invoke user code
-		builtin = MUTATES_HEAP_SUMMARY;
+	// recognized by tag (which survives node cloning) with a Map fallback for the originals
+	let builtin = (node.expression as TaggedNode)[BUILTIN_CALL_TAG] ?? BUILTIN_CALL_SUMMARIES.get(node.expression);
+	if (builtin === SORT_BUILTIN) {
+		// table.sort runs a user comparator only when one is passed (array + comparator)
+		builtin = luau.list.size(node.args) <= 1 ? MUTATES_HEAP_SUMMARY : undefined;
 	}
 	if (builtin === undefined) {
 		return CALLS_UNKNOWN_SUMMARY;
@@ -236,12 +266,29 @@ export function summarizeExpression(
 	expression: luau.Expression,
 	node?: ts.Expression,
 ): EffectSummary {
+	// during macro-capture analysis, certain operand subtrees are accounted for separately
+	// and must not contribute their own effects to the surrounding summary
+	if (maskedOperandTags !== undefined) {
+		const tag = (expression as TaggedNode)[OPERAND_TAG];
+		if (tag !== undefined && maskedOperandTags.has(tag)) {
+			return PURE_SUMMARY;
+		}
+	}
+	// a bare reference to one of the compiler's builtin globals (`typeof`, `table.insert`,
+	// `string.find`, …) is a pure read; the *call's* effect is applied in `summarizeCall`
+	if ((expression as TaggedNode)[BUILTIN_CALL_TAG] !== undefined || (expression as TaggedNode)[BUILTIN_GLOBAL_TAG]) {
+		return PURE_SUMMARY;
+	}
 	if (luau.isSimplePrimitive(expression) || luau.isNone(expression)) {
 		return PURE_SUMMARY;
 	} else if (luau.isTemporaryIdentifier(expression)) {
 		return PURE_SUMMARY;
 	} else if (luau.isIdentifier(expression)) {
-		if (BUILTIN_GLOBAL_IDS.has(expression) || state.isConstIdentifier(expression)) {
+		if (
+			BUILTIN_GLOBAL_IDS.has(expression) ||
+			(expression as TaggedNode)[BUILTIN_GLOBAL_TAG] ||
+			state.isConstIdentifier(expression)
+		) {
 			return PURE_SUMMARY;
 		}
 		if (node) {
@@ -470,106 +517,408 @@ export function isInvariantExpression(
 }
 
 /**
- * The classes of effect a macro may perform between (or before) re-evaluations of an
- * operand it received. See `ensureReusable`.
+ * Walks a macro's emitted expression in Luau evaluation order, calling `onOperand` for
+ * each occurrence of a tagged operand node (and any clone of one — the tag survives
+ * `luau.create`'s shallow clone). `repeated` is true when the occurrence sits inside a
+ * loop body or a function body — a context that may evaluate it more than once or defer it
+ * past later mutations. Operand subtrees are treated as opaque units (we do not recurse).
  */
-export type ReuseEffects = "heapWrites" | "userCode";
+function walkOperandsInExpression(
+	expression: luau.Expression,
+	repeated: boolean,
+	onOperand: (tag: number, repeated: boolean) => void,
+) {
+	const tag = (expression as TaggedNode)[OPERAND_TAG];
+	if (tag !== undefined) {
+		onOperand(tag, repeated);
+		return;
+	}
+	const walk = (e: luau.Expression) => walkOperandsInExpression(e, repeated, onOperand);
+	if (luau.isParenthesizedExpression(expression) || luau.isUnaryExpression(expression)) {
+		walk(expression.expression);
+	} else if (luau.isPropertyAccessExpression(expression)) {
+		walk(expression.expression);
+	} else if (luau.isComputedIndexExpression(expression)) {
+		walk(expression.expression);
+		walk(expression.index);
+	} else if (luau.isBinaryExpression(expression)) {
+		walk(expression.left);
+		walk(expression.right);
+	} else if (luau.isIfExpression(expression)) {
+		walk(expression.condition);
+		walk(expression.expression);
+		walk(expression.alternative);
+	} else if (luau.isCallExpression(expression) || luau.isMethodCallExpression(expression)) {
+		walk(expression.expression);
+		luau.list.forEach(expression.args, walk);
+	} else if (luau.isArray(expression) || luau.isSet(expression)) {
+		luau.list.forEach(expression.members, walk);
+	} else if (luau.isMap(expression)) {
+		luau.list.forEach(expression.fields, field => {
+			walk(field.index);
+			walk(field.value);
+		});
+	} else if (luau.isMixedTable(expression)) {
+		luau.list.forEach(expression.fields, field => {
+			if (luau.isMapField(field)) {
+				walk(field.index);
+				walk(field.value);
+			} else {
+				walk(field);
+			}
+		});
+	} else if (luau.isInterpolatedString(expression)) {
+		luau.list.forEach(expression.parts, part => {
+			if (!luau.isInterpolatedStringPart(part)) {
+				walk(part);
+			}
+		});
+	} else if (luau.isFunctionExpression(expression)) {
+		// the body runs when the closure is called — treat every operand inside as repeated
+		walkOperandsInStatements(expression.statements, true, onOperand);
+	}
+	// identifiers, temporaries, literals, varargs: no operand-bearing subexpressions
+}
 
-function isAllocationExpression(expression: luau.Expression): boolean {
-	return luau.isFunctionExpression(expression) || luau.isTable(expression);
+function walkOperandsInStatements(
+	statements: luau.List<luau.Statement>,
+	repeated: boolean,
+	onOperand: (tag: number, repeated: boolean) => void,
+) {
+	luau.list.forEach(statements, statement => walkOperandsInStatement(statement, repeated, onOperand));
+}
+
+function walkOperandsInStatement(
+	statement: luau.Statement,
+	repeated: boolean,
+	onOperand: (tag: number, repeated: boolean) => void,
+) {
+	const expr = (e: luau.Expression) => walkOperandsInExpression(e, repeated, onOperand);
+	// a loop's body may run many times; a function body runs on each (deferred) call
+	const loopBody = (s: luau.List<luau.Statement>) => walkOperandsInStatements(s, true, onOperand);
+	const body = (s: luau.List<luau.Statement>) => walkOperandsInStatements(s, repeated, onOperand);
+
+	if (luau.isVariableDeclaration(statement) || luau.isAssignment(statement)) {
+		const left = statement.left;
+		if (luau.list.isList(left)) {
+			luau.list.forEach(left, expr);
+		} else {
+			expr(left);
+		}
+		const right = statement.right;
+		if (right !== undefined) {
+			if (luau.list.isList(right)) {
+				luau.list.forEach(right, expr);
+			} else {
+				expr(right);
+			}
+		}
+	} else if (luau.isCallStatement(statement)) {
+		expr(statement.expression);
+	} else if (luau.isReturnStatement(statement)) {
+		if (luau.list.isList(statement.expression)) {
+			luau.list.forEach(statement.expression, expr);
+		} else {
+			expr(statement.expression);
+		}
+	} else if (luau.isIfStatement(statement)) {
+		expr(statement.condition);
+		body(statement.statements);
+		if (luau.list.isList(statement.elseBody)) {
+			body(statement.elseBody);
+		} else {
+			walkOperandsInStatement(statement.elseBody, repeated, onOperand);
+		}
+	} else if (luau.isForStatement(statement)) {
+		expr(statement.expression);
+		loopBody(statement.statements);
+	} else if (luau.isNumericForStatement(statement)) {
+		expr(statement.start);
+		expr(statement.end);
+		if (statement.step) expr(statement.step);
+		loopBody(statement.statements);
+	} else if (luau.isWhileStatement(statement) || luau.isRepeatStatement(statement)) {
+		expr(statement.condition);
+		loopBody(statement.statements);
+	} else if (luau.isDoStatement(statement)) {
+		body(statement.statements);
+	} else if (luau.isFunctionDeclaration(statement) || luau.isMethodDeclaration(statement)) {
+		loopBody(statement.statements);
+	}
+	// break / continue / comment: no operands
+}
+
+/** Ordered child expressions of `expression`, in Luau evaluation order. */
+function orderedChildExpressions(expression: luau.Expression): Array<luau.Expression> {
+	if (luau.isParenthesizedExpression(expression) || luau.isUnaryExpression(expression)) {
+		return [expression.expression];
+	} else if (luau.isPropertyAccessExpression(expression)) {
+		return [expression.expression];
+	} else if (luau.isComputedIndexExpression(expression)) {
+		return [expression.expression, expression.index];
+	} else if (luau.isBinaryExpression(expression)) {
+		return [expression.left, expression.right];
+	} else if (luau.isIfExpression(expression)) {
+		// only one branch runs, but including both over-approximates "before" safely
+		return [expression.condition, expression.expression, expression.alternative];
+	} else if (luau.isCallExpression(expression) || luau.isMethodCallExpression(expression)) {
+		return [expression.expression, ...luau.list.toArray(expression.args)];
+	} else if (luau.isArray(expression) || luau.isSet(expression)) {
+		return luau.list.toArray(expression.members);
+	} else if (luau.isMap(expression)) {
+		return luau.list.toArray(expression.fields).flatMap(field => [field.index, field.value]);
+	} else if (luau.isMixedTable(expression)) {
+		return luau.list
+			.toArray(expression.fields)
+			.flatMap(field => (luau.isMapField(field) ? [field.index, field.value] : [field]));
+	} else if (luau.isInterpolatedString(expression)) {
+		return luau.list
+			.toArray(expression.parts)
+			.filter((p): p is luau.Expression => !luau.isInterpolatedStringPart(p));
+	}
+	// function-expression bodies are deferred; leaves have no children
+	return [];
 }
 
 /**
- * True if re-evaluating `expression` multiple times, with effects of class `across`
- * occurring between evaluations, is observably identical to evaluating it once up front.
- *
- * - "heapWrites": the consumer only writes through tables between uses. Reads of local
- *   bindings survive this (heap writes cannot change what a binding denotes), but heap
- *   reads do not (the write may alias).
- * - "userCode": the consumer may run arbitrary user code between uses. Only expressions
- *   with no dependencies at all survive (literals, temps, const bindings).
- *
- * Allocating expressions (closures, table literals) never survive: re-evaluation would
- * create fresh objects.
+ * Summary of everything evaluated strictly *before* the single occurrence of `target`
+ * within `expression`, or `undefined` if `target` is not inside it. Because a parent
+ * operation always runs after all its children, only the target's left-siblings (and their
+ * descendants) at each level of the path contribute. `maskedOperandTags` must be set to the
+ * earlier-canonical operands so they are excluded.
  */
-export function isStableAcross(
+function beforeSummaryInExpression(
 	state: TransformState,
 	expression: luau.Expression,
-	across: ReuseEffects,
-	node?: ts.Expression,
-): boolean {
-	if (isAllocationExpression(expression)) {
-		return false;
+	target: number,
+): EffectSummary | undefined {
+	const tag = (expression as TaggedNode)[OPERAND_TAG];
+	if (tag !== undefined) {
+		return tag === target ? PURE_SUMMARY : undefined;
 	}
-	const summary = summarizeExpression(state, expression, node);
-	if (summary.calls || writesAnything(summary)) {
-		return false;
+	let left = PURE_SUMMARY;
+	for (const child of orderedChildExpressions(expression)) {
+		const before = beforeSummaryInExpression(state, child, target);
+		if (before !== undefined) {
+			return unionSummaries(left, before);
+		}
+		left = unionSummaries(left, summarizeExpression(state, child));
 	}
-	if (across === "userCode") {
-		return !summary.readsHeap && !summary.throws && summary.readsLocals !== "all" && summary.readsLocals.size === 0;
-	}
-	// "heapWrites": local reads are fine, heap reads are not. Potential errors are also
-	// unstable: TypeScript evaluates every operand before the consumer mutates anything,
-	// so an error may not be observed after a heap write (e.g. `arr.push(a, s.format(x))`
-	// must not run the first insertion before a throwing format call)
-	return !summary.readsHeap && !summary.throws;
+	return undefined;
 }
 
-export interface OperandStabilization {
-	expression: luau.Expression;
-	/**
-	 * Effect class the consumer performs between this operand's evaluation position and
-	 * its last use. "none" imposes no reuse constraint (ordering and `multiUse` still apply).
-	 */
-	across: ReuseEffects | "none";
-	/**
-	 * The operand may be evaluated more than once (or out of source order relative to its
-	 * siblings); non-simple expressions are captured so they are computed exactly once.
-	 */
-	multiUse?: boolean;
-	/** Always capture into a fresh temporary (e.g. because it will be reassigned). */
-	capture?: boolean;
-	name?: string;
+function statementContainsOperand(statement: luau.Statement, target: number): boolean {
+	let found = false;
+	walkOperandsInStatement(statement, false, tag => {
+		if (tag === target) found = true;
+	});
+	return found;
 }
 
 /**
- * Prepares a macro's operands for use inside the code it is about to emit, emitting
- * `local temp = <operand>` declarations (in operand order — which must be TypeScript
- * evaluation order) exactly where required.
- *
- * An operand is captured when:
- * - re-evaluating it across the declared effect class is observable (`isStableAcross`), or
- * - it is `multiUse` and not trivially cheap to re-evaluate, or
- * - leaving it raw would defer its evaluation past a *later* operand whose own evaluation
- *   it does not commute with (raw operands are evaluated wherever the macro embeds them,
- *   which is after all capture declarations emitted here).
- *
- * This is the semantic replacement for the syntactic `pushToVarIfComplex` /
- * `pushToVarIfNonId` guards previously used by macros. It must be called before the
- * macro emits any prerequisite statements of its own.
+ * Summary of everything the macro evaluates strictly before the single occurrence of
+ * operand `target`. Earlier-canonical operands (tag < target) are excluded; later operands
+ * and the macro's own effects that precede `target` are included.
  */
-export function stabilizeOperands(
+function computeBeforeSummary(
 	state: TransformState,
-	operands: Array<OperandStabilization>,
-): Array<luau.Expression> {
-	// suffixSummaries[i] = combined summary of evaluating all operands after i
-	const suffixSummaries = new Array<EffectSummary>(operands.length);
-	let suffix = PURE_SUMMARY;
-	for (let i = operands.length - 1; i >= 0; i--) {
-		suffixSummaries[i] = suffix;
-		suffix = unionSummaries(summarizeExpression(state, operands[i].expression), suffix);
+	prereqs: luau.List<luau.Statement>,
+	result: luau.Expression,
+	target: number,
+): EffectSummary {
+	const earlier = new Set<number>();
+	for (let j = 0; j < target; j++) earlier.add(j);
+
+	maskedOperandTags = earlier;
+	let acc = PURE_SUMMARY;
+	let handled = false;
+	luau.list.forEach(prereqs, statement => {
+		if (handled) return;
+		const before = beforeSummaryInStatement(state, statement, target, earlier);
+		if (before !== undefined) {
+			acc = unionSummaries(acc, before);
+			handled = true;
+		} else {
+			// this statement fully precedes the one holding the target
+			acc = unionSummaries(acc, summarizeStatement(state, statement));
+		}
+	});
+	if (!handled) {
+		acc = unionSummaries(acc, beforeSummaryInExpression(state, result, target) ?? PURE_SUMMARY);
+	}
+	maskedOperandTags = undefined;
+	return acc;
+}
+
+/** Before-summary of `target` within a single statement, or `undefined` if not inside it. */
+function beforeSummaryInStatement(
+	state: TransformState,
+	statement: luau.Statement,
+	target: number,
+	earlier: ReadonlySet<number>,
+): EffectSummary | undefined {
+	// for these, the statement's own effect (the call, the binding) happens after the
+	// expression that may hold the target, so precise left-sibling ordering is exact
+	if (luau.isCallStatement(statement)) {
+		return beforeSummaryInExpression(state, statement.expression, target);
+	} else if (luau.isVariableDeclaration(statement)) {
+		return statement.right !== undefined
+			? beforeSummaryInExpressionOrList(state, statement.right, target)
+			: undefined;
+	} else if (luau.isReturnStatement(statement)) {
+		return beforeSummaryInExpressionOrList(state, statement.expression, target);
+	}
+	// assignments (base/index/rhs order not fully defined) and control-flow: if the target is
+	// inside, conservatively treat every other effect of the statement as preceding it
+	if (!statementContainsOperand(statement, target)) {
+		return undefined;
+	}
+	const withTarget = new Set(earlier);
+	withTarget.add(target);
+	maskedOperandTags = withTarget;
+	const summary = summarizeStatement(state, statement);
+	maskedOperandTags = earlier;
+	return summary;
+}
+
+function beforeSummaryInExpressionOrList(
+	state: TransformState,
+	value: luau.Expression | luau.List<luau.Expression>,
+	target: number,
+): EffectSummary | undefined {
+	if (!luau.list.isList(value)) {
+		return beforeSummaryInExpression(state, value, target);
+	}
+	let left = PURE_SUMMARY;
+	let found: EffectSummary | undefined;
+	luau.list.forEach(value, expression => {
+		if (found !== undefined) return;
+		const before = beforeSummaryInExpression(state, expression, target);
+		if (before !== undefined) {
+			found = unionSummaries(left, before);
+		} else {
+			left = unionSummaries(left, summarizeExpression(state, expression));
+		}
+	});
+	return found;
+}
+
+/**
+ * True if re-evaluating `expression` yields the same value and no added effect — provided
+ * nothing that reassigns its reads runs in between (checked separately by commutation). Only
+ * pure reads of local/global bindings qualify: heap reads may be aliased by a write; table
+ * and closure literals allocate a fresh (distinct) object each time; and anything that
+ * throws, writes, or calls is not freely repeatable.
+ */
+function isRepeatable(expression: luau.Expression, summary: EffectSummary): boolean {
+	if (luau.isTable(expression) || luau.isFunctionExpression(expression)) {
+		return false;
+	}
+	return !summary.calls && !summary.throws && !summary.readsHeap && !writesAnything(summary);
+}
+
+/** Summary of the macro's entire output, with operand `target` and all earlier ones masked. */
+function summarizeWholeOutput(
+	state: TransformState,
+	prereqs: luau.List<luau.Statement>,
+	result: luau.Expression,
+	target: number,
+): EffectSummary {
+	const masked = new Set<number>();
+	for (let j = 0; j <= target; j++) masked.add(j);
+	maskedOperandTags = masked;
+	let summary = summarizeStatements(state, prereqs);
+	summary = unionSummaries(summary, summarizeExpression(state, result));
+	maskedOperandTags = undefined;
+	return summary;
+}
+
+/**
+ * Decides which of a macro's `operands` must be captured into temporaries so that the
+ * emitted code preserves TypeScript's evaluation-order semantics (each operand evaluated
+ * once, in order, before the macro's own effects).
+ *
+ * The macro is run via `runTrial` *after* the operands are tagged, so that the analysis
+ * sees how each operand is actually used; the trial output is discarded. Operands are
+ * located by a Symbol tag rather than identity, because `luau.create` clones nodes that are
+ * reused within the emitted tree — the tag survives the clone, identity does not, so the
+ * tags must be applied before the macro builds (and clones) its output.
+ *
+ * An operand is left raw (inlined) only when all of the following hold:
+ * - it is embedded exactly once, and never inside a loop or closure body (so it evaluates
+ *   exactly once at runtime); and
+ * - its evaluation commutes with everything the macro evaluates *before* its occurrence —
+ *   the macro's own preceding effects and any later operand that precedes it — which is
+ *   what makes sliding it to its canonical up-front position unobservable. Unused pure
+ *   operands may simply be dropped.
+ *
+ * Conflicts between an earlier operand `j` and a later operand `i` (j < i) are caught when
+ * analyzing `j` (whose "before" can include `i`), so `i` need not re-check earlier
+ * operands. The decision is conservative: any doubt results in a capture (an extra
+ * temporary), never an unsafe inline.
+ */
+export function computeMacroCaptures(
+	state: TransformState,
+	operands: ReadonlyArray<luau.Expression>,
+	runTrial: () => readonly [result: luau.Expression, prereqs: luau.List<luau.Statement>],
+): Array<boolean> {
+	const n = operands.length;
+	const captures = new Array<boolean>(n).fill(false);
+
+	// tag operands by their canonical index so occurrences (and clones) can be found; bail
+	// to a safe all-capture if two slots share a node object (occurrences unattributable)
+	for (let i = 0; i < n; i++) {
+		if ((operands[i] as TaggedNode)[OPERAND_TAG] !== undefined) {
+			for (let j = 0; j < i; j++) delete (operands[j] as TaggedNode)[OPERAND_TAG];
+			return captures.fill(true);
+		}
+		(operands[i] as TaggedNode)[OPERAND_TAG] = i;
 	}
 
-	return operands.map((operand, i) => {
-		const expression = operand.expression;
-		const needsCapture =
-			operand.capture === true ||
-			(operand.multiUse === true && !luau.isSimple(expression)) ||
-			(operand.across !== "none" && !isStableAcross(state, expression, operand.across)) ||
-			!commutes(summarizeExpression(state, expression), suffixSummaries[i]);
-		if (!needsCapture) {
-			return expression;
+	try {
+		const [result, prereqs] = runTrial();
+
+		const count = new Array<number>(n).fill(0);
+		const repeated = new Array<boolean>(n).fill(false);
+		const onOperand = (tag: number, rep: boolean) => {
+			count[tag]++;
+			if (rep) repeated[tag] = true;
+		};
+		walkOperandsInStatements(prereqs, false, onOperand);
+		walkOperandsInExpression(result, false, onOperand);
+
+		for (let i = 0; i < n; i++) {
+			const opSummary = summarizeExpression(state, operands[i]);
+
+			if (count[i] === 0) {
+				// unused by the macro: only needs evaluating (once, up front) for its effects
+				captures[i] = opSummary.calls || opSummary.throws || writesAnything(opSummary);
+				continue;
+			}
+
+			if (count[i] > 1 || repeated[i]) {
+				// evaluated more than once (or inside a loop/closure): safe to leave raw only
+				// if re-evaluation is free — no effects of its own, and a value that nothing
+				// the macro does can change. A pure local read qualifies (re-reading a binding
+				// is free) as long as nothing between the uses reassigns it.
+				if (!isRepeatable(operands[i], opSummary)) {
+					captures[i] = true;
+					continue;
+				}
+				const context = summarizeWholeOutput(state, prereqs, result, i);
+				captures[i] = !commutes(opSummary, context);
+				continue;
+			}
+
+			// used exactly once: safe to inline iff its evaluation commutes with everything
+			// that runs before its occurrence (which is where sliding it to the canonical
+			// up-front position must be unobservable)
+			const before = computeBeforeSummary(state, prereqs, result, i);
+			captures[i] = !commutes(opSummary, before);
 		}
-		return state.pushToVar(expression, operand.name || valueToIdStr(expression) || "exp");
-	});
+
+		return captures;
+	} finally {
+		for (let i = 0; i < n; i++) delete (operands[i] as TaggedNode)[OPERAND_TAG];
+	}
 }

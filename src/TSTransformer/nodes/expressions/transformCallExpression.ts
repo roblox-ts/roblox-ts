@@ -4,7 +4,6 @@ import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { CallMacro, PropertyCallMacro } from "TSTransformer/macros/types";
-import { validateInlineMacro } from "TSTransformer/macros/validateInlineMacro";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformImportExpression } from "TSTransformer/nodes/expressions/transformImportExpression";
 import { transformOptionalChain } from "TSTransformer/nodes/transformOptionalChain";
@@ -12,10 +11,9 @@ import { addOneIfArrayType } from "TSTransformer/util/addOneIfArrayType";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import {
 	commutes,
+	computeMacroCaptures,
 	EffectSummary,
 	PURE_SUMMARY,
-	ReuseEffects,
-	stabilizeOperands,
 	summarizeExpression,
 	summarizeStatements,
 	unionSummaries,
@@ -39,9 +37,9 @@ function runCallMacro(
 	// (a spread contributes multiple results). TS evaluates operands left-to-right, but in
 	// the emitted Luau all prereqs run before any result expression is consumed, so each
 	// result is implicitly deferred past every later operand's prereqs — capture it into a
-	// temporary at its original position when that deferral is observable. Afterwards, the
-	// operands are stabilized against the macro's own declared effect class (see
-	// `MacroEffects`), so the macro's transform never reasons about evaluation order.
+	// temporary at its original position when that deferral is observable. The operands are
+	// then handed to the macro, whose usage of them determines any further captures (see
+	// the trial-run analysis below).
 	interface OperandInfo {
 		expressions: Array<luau.Expression>;
 		prereqs: luau.List<luau.Statement>;
@@ -127,29 +125,29 @@ function runCallMacro(
 	}
 	expression = operands[0].expressions[0];
 
-	// stabilize the operands against the macro's own effects, so its transform may use
-	// them freely: after this, every operand is either provably safe to re-evaluate across
-	// the declared effect class or a temporary that nothing can change
-	const effects = typeof macro.effects === "function" ? macro.effects(state, node) : macro.effects;
-	if (effects !== "none") {
-		const across: ReuseEffects = effects === "user" ? "userCode" : "heapWrites";
-		const stabilized = stabilizeOperands(state, [
-			{ expression, across, name: "exp" },
-			...args.map(arg => ({ expression: arg, across })),
-		]);
-		expression = stabilized[0];
-		for (let i = 0; i < args.length; i++) {
-			args[i] = stabilized[i + 1];
+	// The macro decides how to embed the operands, but the driver decides evaluation order:
+	// trial-run the macro to observe how each operand is actually used, capture the ones
+	// that would otherwise be re-evaluated or evaluated out of order, then run the macro for
+	// real with those operands replaced by temporaries. The macro's transform never has to
+	// reason about ordering, and only the operands that genuinely need a temporary get one.
+	const operandExpressions = [expression, ...args];
+	// operands must be tagged (inside computeMacroCaptures) before the trial run so that any
+	// clones the macro makes of a reused operand carry the tag; the trial output is discarded
+	const captures = computeMacroCaptures(state, operandExpressions, () =>
+		DiagnosticService.suppressed(() => state.capture(() => macro(state, node as never, expression, args.slice()))),
+	);
+	for (let i = 0; i < operandExpressions.length; i++) {
+		if (captures[i]) {
+			operandExpressions[i] = state.pushToVar(
+				operandExpressions[i],
+				valueToIdStr(operandExpressions[i]) || (i === 0 ? "exp" : `arg${i - 1}`),
+			);
 		}
-	} else if (process.env.NODE_ENV === "test") {
-		// enforce the `effects: "none"` contract while running tests
-		const [result, prereqs] = state.capture(() => macro.transform(state, node as never, expression, args));
-		validateInlineMacro(node.expression.getText(), [expression, ...args], result, prereqs);
-		state.prereqList(prereqs);
-		return wrapReturnIfLuaTuple(state, node, result);
 	}
+	expression = operandExpressions[0];
+	const finalArgs = operandExpressions.slice(1);
 
-	return wrapReturnIfLuaTuple(state, node, macro.transform(state, node as never, expression, args));
+	return wrapReturnIfLuaTuple(state, node, macro(state, node as never, expression, finalArgs));
 }
 
 /**

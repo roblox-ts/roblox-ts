@@ -1,7 +1,7 @@
 import luau from "@roblox-ts/luau-ast";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer/classes/TransformState";
-import { MacroList, PropertyCallMacro, PropertyCallMacroTransform } from "TSTransformer/macros/types";
+import { MacroList, PropertyCallMacro } from "TSTransformer/macros/types";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { offset } from "TSTransformer/util/offset";
@@ -10,35 +10,25 @@ import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
 import ts from "typescript";
 
 /*
- * Macros never reason about evaluation order themselves. Each macro declares an effect
- * class (see `MacroEffects` in macros/types.ts) and the driver (`runCallMacro`)
- * stabilizes the object expression and arguments accordingly *before* the transform
- * runs:
+ * Macros never reason about evaluation order. Each embeds the object expression and its
+ * arguments wherever the emitted Luau needs them; the driver (`runCallMacro`) trial-runs
+ * the macro, observes how each operand is actually used, and captures into a temporary
+ * any operand that would otherwise be re-evaluated or evaluated out of TypeScript's order.
  *
- * - "none": the transform must lower to a single expression that embeds each operand at
- *   most once, in operand order, with no prerequisite statements. Operands arrive raw.
- *   This contract is enforced by a validator while running tests.
- * - "heap": the transform may emit statements that mutate tables but never runs user
- *   code. Operands arrive safe to re-evaluate across heap writes.
- * - "user": the transform may run user callbacks. Operands arrive safe to re-evaluate
- *   across arbitrary user code.
+ * The wrappers below (`inline` / `mutatesHeap` / `runsUserCode`) are documentation only:
+ * they label, for a human reader, what a macro does with the operands it receives. They
+ * carry no behavior — the driver's analysis is what makes the decisions.
  *
  * Within a transform, `pushToVarIfComplex`/`pushToVar` may still be used to avoid
  * *recomputing* a non-trivial operand-derived expression that is used several times —
  * that is a code-size choice, never a correctness requirement.
  */
 
-function inline(transform: PropertyCallMacroTransform): PropertyCallMacro {
-	return { effects: "none", transform };
+function inline(transform: PropertyCallMacro): PropertyCallMacro {
+	return transform;
 }
-
-function mutatesHeap(transform: PropertyCallMacroTransform): PropertyCallMacro {
-	return { effects: "heap", transform };
-}
-
-function runsUserCode(transform: PropertyCallMacroTransform): PropertyCallMacro {
-	return { effects: "user", transform };
-}
+const mutatesHeap = inline;
+const runsUserCode = inline;
 
 function makeMathMethod(operator: luau.BinaryOperator): PropertyCallMacro {
 	return inline((state, node, expression, args) => {
@@ -200,41 +190,35 @@ const ARRAY_LIKE_METHODS: MacroList<PropertyCallMacro> = {
 const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	isEmpty: inline((state, node, expression) => luau.binary(luau.unary("#", expression), "==", luau.number(0))),
 
-	join: {
-		effects: (state, node) => (joinNeedsToString(state, node) ? "user" : "heap"),
-		transform: (state, node, expression, args) => {
-			args = argumentsWithDefaults(state, args, [luau.strings[", "]]);
+	join: runsUserCode((state, node, expression, args) => {
+		args = argumentsWithDefaults(state, args, [luau.strings[", "]]);
 
-			if (joinNeedsToString(state, node)) {
-				const id = state.pushToVar(
-					luau.call(luau.globals.table.create, [luau.unary("#", expression)]),
-					"result",
-				);
-				const keyId = luau.tempId("k");
-				const valueId = luau.tempId("v");
-				state.prereq(
-					luau.create(luau.SyntaxKind.ForStatement, {
-						ids: luau.list.make(keyId, valueId),
-						expression,
-						statements: luau.list.make(
-							luau.create(luau.SyntaxKind.Assignment, {
-								left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-									expression: id,
-									index: keyId,
-								}),
-								operator: "=",
-								right: luau.call(luau.globals.tostring, [valueId]),
+		if (joinNeedsToString(state, node)) {
+			const id = state.pushToVar(luau.call(luau.globals.table.create, [luau.unary("#", expression)]), "result");
+			const keyId = luau.tempId("k");
+			const valueId = luau.tempId("v");
+			state.prereq(
+				luau.create(luau.SyntaxKind.ForStatement, {
+					ids: luau.list.make(keyId, valueId),
+					expression,
+					statements: luau.list.make(
+						luau.create(luau.SyntaxKind.Assignment, {
+							left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+								expression: id,
+								index: keyId,
 							}),
-						),
-					}),
-				);
+							operator: "=",
+							right: luau.call(luau.globals.tostring, [valueId]),
+						}),
+					),
+				}),
+			);
 
-				expression = id;
-			}
+			expression = id;
+		}
 
-			return luau.call(luau.globals.table.concat, [expression, args[0]]);
-		},
-	},
+		return luau.call(luau.globals.table.concat, [expression, args[0]]);
+	}),
 
 	move: inline((state, node, expression, args) => {
 		const moveArgs = [expression, offset(args[0], 1), offset(args[1], 1), offset(args[2], 1)];
@@ -727,21 +711,17 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		return valueIsUsed ? valueId : luau.none();
 	}),
 
-	sort: {
-		// the comparator, when present, is user code
-		effects: (state, node) => (node.arguments.length > 0 ? "user" : "heap"),
-		transform: (state, node, expression, args) => {
-			args.unshift(expression);
+	sort: runsUserCode((state, node, expression, args) => {
+		args.unshift(expression);
 
-			state.prereq(
-				luau.create(luau.SyntaxKind.CallStatement, {
-					expression: luau.call(luau.globals.table.sort, args),
-				}),
-			);
+		state.prereq(
+			luau.create(luau.SyntaxKind.CallStatement, {
+				expression: luau.call(luau.globals.table.sort, args),
+			}),
+		);
 
-			return !isUsedAsStatement(node) ? expression : luau.none();
-		},
-	},
+		return !isUsedAsStatement(node) ? expression : luau.none();
+	}),
 
 	clear: mutatesHeap((state, node, expression) => {
 		state.prereq(
@@ -960,44 +940,15 @@ function footer(text: string) {
 	return luau.comment(` ▲ ${text} ▲`);
 }
 
-function wasExpressionPushed(statements: luau.List<luau.Statement>, expression: luau.Expression) {
-	if (luau.list.isNonEmpty(statements)) {
-		const firstStatement = statements.head.value;
-		if (luau.isVariableDeclaration(firstStatement)) {
-			if (!luau.list.isList(firstStatement.left) && luau.isTemporaryIdentifier(firstStatement.left)) {
-				if (firstStatement.right === expression) {
-					return true;
-				}
-			}
-		}
-	}
-	return false;
-}
-
-function wrapComments(methodName: string, transform: PropertyCallMacroTransform): PropertyCallMacroTransform {
+function wrapComments(methodName: string, transform: PropertyCallMacro): PropertyCallMacro {
 	return (state, callNode, callExp, args) => {
 		const [expression, prereqs] = state.capture(() => transform(state, callNode, callExp, args));
 
-		let size = luau.list.size(prereqs);
-		if (size > 0) {
-			// detect the case of the driver stabilizing `callExp` into a temporary and put the header after
-			const wasPushed = wasExpressionPushed(prereqs, callExp);
-			let pushStatement: luau.Statement | undefined;
-			if (wasPushed) {
-				pushStatement = luau.list.shift(prereqs);
-				size--;
-			}
-			if (size > 1) {
-				luau.list.unshift(prereqs, header(methodName));
-				if (wasPushed && pushStatement) {
-					luau.list.unshift(prereqs, pushStatement);
-				}
-				luau.list.push(prereqs, footer(methodName));
-			} else {
-				if (wasPushed && pushStatement) {
-					luau.list.unshift(prereqs, pushStatement);
-				}
-			}
+		// operand captures are emitted by the driver outside this context, so `prereqs`
+		// holds only the macro's own statements; wrap them when there's more than one
+		if (luau.list.size(prereqs) > 1) {
+			luau.list.unshift(prereqs, header(methodName));
+			luau.list.push(prereqs, footer(methodName));
 		}
 
 		state.prereqList(prereqs);
@@ -1008,9 +959,6 @@ function wrapComments(methodName: string, transform: PropertyCallMacroTransform)
 // apply comment wrapping
 for (const [className, macroList] of Object.entries(PROPERTY_CALL_MACROS)) {
 	for (const [methodName, macro] of Object.entries(macroList)) {
-		macroList[methodName] = {
-			effects: macro.effects,
-			transform: wrapComments(`${className}.${methodName}`, macro.transform),
-		};
+		macroList[methodName] = wrapComments(`${className}.${methodName}`, macro);
 	}
 }

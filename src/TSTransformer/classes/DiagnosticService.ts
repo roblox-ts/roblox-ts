@@ -34,6 +34,22 @@ export class DiagnosticService {
 		return current;
 	}
 
+	/**
+	 * Runs `callback` while discarding any diagnostics it reports. Used for speculative
+	 * "trial" transforms whose output is analyzed and thrown away; the real transform that
+	 * follows reports diagnostics normally.
+	 */
+	public static suppressed<T>(callback: () => T): T {
+		const diagnosticsMark = this.diagnostics.length;
+		const singleSnapshot = new Set(this.singleDiagnostics);
+		try {
+			return callback();
+		} finally {
+			this.diagnostics.length = diagnosticsMark;
+			this.singleDiagnostics = singleSnapshot;
+		}
+	}
+
 	public static hasErrors() {
 		return hasErrors(this.diagnostics);
 	}
