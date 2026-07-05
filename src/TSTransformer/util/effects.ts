@@ -519,9 +519,11 @@ export function isInvariantExpression(
 /**
  * Walks a macro's emitted expression in Luau evaluation order, calling `onOperand` for
  * each occurrence of a tagged operand node (and any clone of one — the tag survives
- * `luau.create`'s shallow clone). `repeated` is true when the occurrence sits inside a
- * loop body or a function body — a context that may evaluate it more than once or defer it
- * past later mutations. Operand subtrees are treated as opaque units (we do not recurse).
+ * `luau.create`'s shallow clone). `repeated` is true when the occurrence sits in a context
+ * that is not guaranteed to evaluate exactly once: loop and function bodies (many times,
+ * possibly deferred past later mutations), conditional bodies, `if`-expression branches,
+ * and short-circuited `and`/`or` right sides (possibly zero times), and loop conditions.
+ * Operand subtrees are treated as opaque units (we do not recurse).
  */
 function walkOperandsInExpression(
 	expression: luau.Expression,
@@ -543,11 +545,17 @@ function walkOperandsInExpression(
 		walk(expression.index);
 	} else if (luau.isBinaryExpression(expression)) {
 		walk(expression.left);
-		walk(expression.right);
+		if (expression.operator === "and" || expression.operator === "or") {
+			// the right side is short-circuited — not guaranteed to evaluate
+			walkOperandsInExpression(expression.right, true, onOperand);
+		} else {
+			walk(expression.right);
+		}
 	} else if (luau.isIfExpression(expression)) {
 		walk(expression.condition);
-		walk(expression.expression);
-		walk(expression.alternative);
+		// only one branch evaluates — neither is guaranteed to run
+		walkOperandsInExpression(expression.expression, true, onOperand);
+		walkOperandsInExpression(expression.alternative, true, onOperand);
 	} else if (luau.isCallExpression(expression) || luau.isMethodCallExpression(expression)) {
 		walk(expression.expression);
 		luau.list.forEach(expression.args, walk);
@@ -594,8 +602,10 @@ function walkOperandsInStatement(
 	onOperand: (tag: number, repeated: boolean) => void,
 ) {
 	const expr = (e: luau.Expression) => walkOperandsInExpression(e, repeated, onOperand);
-	// a loop's body may run many times; a function body runs on each (deferred) call
-	const loopBody = (s: luau.List<luau.Statement>) => walkOperandsInStatements(s, true, onOperand);
+	// contexts that may evaluate other than exactly once: loop/function bodies run many
+	// times, conditional bodies possibly zero times, loop conditions once per iteration
+	const unsafeExpr = (e: luau.Expression) => walkOperandsInExpression(e, true, onOperand);
+	const unsafeBody = (s: luau.List<luau.Statement>) => walkOperandsInStatements(s, true, onOperand);
 	const body = (s: luau.List<luau.Statement>) => walkOperandsInStatements(s, repeated, onOperand);
 
 	if (luau.isVariableDeclaration(statement) || luau.isAssignment(statement)) {
@@ -623,27 +633,28 @@ function walkOperandsInStatement(
 		}
 	} else if (luau.isIfStatement(statement)) {
 		expr(statement.condition);
-		body(statement.statements);
+		unsafeBody(statement.statements);
 		if (luau.list.isList(statement.elseBody)) {
-			body(statement.elseBody);
+			unsafeBody(statement.elseBody);
 		} else {
-			walkOperandsInStatement(statement.elseBody, repeated, onOperand);
+			// elseif chain: its condition and bodies are all conditionally reached
+			walkOperandsInStatement(statement.elseBody, true, onOperand);
 		}
 	} else if (luau.isForStatement(statement)) {
 		expr(statement.expression);
-		loopBody(statement.statements);
+		unsafeBody(statement.statements);
 	} else if (luau.isNumericForStatement(statement)) {
 		expr(statement.start);
 		expr(statement.end);
 		if (statement.step) expr(statement.step);
-		loopBody(statement.statements);
+		unsafeBody(statement.statements);
 	} else if (luau.isWhileStatement(statement) || luau.isRepeatStatement(statement)) {
-		expr(statement.condition);
-		loopBody(statement.statements);
+		unsafeExpr(statement.condition);
+		unsafeBody(statement.statements);
 	} else if (luau.isDoStatement(statement)) {
 		body(statement.statements);
 	} else if (luau.isFunctionDeclaration(statement) || luau.isMethodDeclaration(statement)) {
-		loopBody(statement.statements);
+		unsafeBody(statement.statements);
 	}
 	// break / continue / comment: no operands
 }
@@ -804,14 +815,26 @@ function beforeSummaryInExpressionOrList(
 }
 
 /**
+ * True if `expression` contains a table or closure constructor anywhere — re-evaluating
+ * such an expression can produce a fresh (distinct) object each time, even when its effect
+ * summary is pure (e.g. `if cond then {1} else {2}`).
+ */
+function containsAllocation(expression: luau.Expression): boolean {
+	if (luau.isTable(expression) || luau.isFunctionExpression(expression)) {
+		return true;
+	}
+	return orderedChildExpressions(expression).some(containsAllocation);
+}
+
+/**
  * True if re-evaluating `expression` yields the same value and no added effect — provided
  * nothing that reassigns its reads runs in between (checked separately by commutation). Only
- * pure reads of local/global bindings qualify: heap reads may be aliased by a write; table
- * and closure literals allocate a fresh (distinct) object each time; and anything that
- * throws, writes, or calls is not freely repeatable.
+ * pure reads of local/global bindings qualify: heap reads may be aliased by a write;
+ * expressions containing table/closure constructors allocate a fresh (distinct) object each
+ * time; and anything that throws, writes, or calls is not freely repeatable.
  */
 function isRepeatable(expression: luau.Expression, summary: EffectSummary): boolean {
-	if (luau.isTable(expression) || luau.isFunctionExpression(expression)) {
+	if (containsAllocation(expression)) {
 		return false;
 	}
 	return !summary.calls && !summary.throws && !summary.readsHeap && !writesAnything(summary);
@@ -845,12 +868,16 @@ function summarizeWholeOutput(
  * tags must be applied before the macro builds (and clones) its output.
  *
  * An operand is left raw (inlined) only when all of the following hold:
- * - it is embedded exactly once, and never inside a loop or closure body (so it evaluates
- *   exactly once at runtime); and
+ * - it is embedded exactly once, in a context guaranteed to evaluate exactly once (not a
+ *   loop/closure body, not a conditional branch or short-circuited operand); and
  * - its evaluation commutes with everything the macro evaluates *before* its occurrence —
  *   the macro's own preceding effects and any later operand that precedes it — which is
  *   what makes sliding it to its canonical up-front position unobservable. Unused pure
  *   operands may simply be dropped.
+ *
+ * Operands in not-exactly-once contexts (or used several times) may still stay raw when
+ * they are freely repeatable — pure, allocation-free reads whose value the macro's own
+ * effects cannot change — since evaluating such a read zero or many times is unobservable.
  *
  * Conflicts between an earlier operand `j` and a later operand `i` (j < i) are caught when
  * analyzing `j` (whose "before" can include `i`), so `i` need not re-check earlier

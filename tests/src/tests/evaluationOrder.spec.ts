@@ -385,6 +385,17 @@ export = () => {
 		expect(arr.includes(value())).to.equal(true);
 	});
 
+	it("should evaluate a conditional receiver expression exactly once", () => {
+		const cond = math.floor(1.5) === 1;
+		// the receiver must be evaluated to a single map — if the conditional were
+		// re-evaluated for each internal use of the macro, the write would land on a
+		// different allocation than the returned map
+		const m = (cond ? new Map<number, number>([[1, 1]]) : new Map<number, number>([[2, 2]])).set(3, 3);
+		expect(m.get(3)).to.equal(3);
+		expect(m.get(1)).to.equal(1);
+		expect(m.size()).to.equal(2);
+	});
+
 	it("should evaluate operands of includes/indexOf inline in order", () => {
 		const order = new Array<string>();
 		const arr = [5, 6, 7];
