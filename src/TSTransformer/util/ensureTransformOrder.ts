@@ -3,7 +3,6 @@ import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import {
 	commutes,
-	EffectSummary,
 	PURE_SUMMARY,
 	summarizeExpression,
 	summarizeStatements,
@@ -42,12 +41,23 @@ export function ensureTransformOrder(
 ) {
 	const expressionInfoList = nodes.map(node => state.capture(() => transformer(state, node)));
 
-	// suffixSummaries[i] = combined effects of all prereq statements after operand i
-	const suffixSummaries = new Array<EffectSummary>(expressionInfoList.length);
+	// Decide captures right-to-left. `suffix` accumulates everything after operand i that
+	// will run before a raw operand i's deferred consumption: later operands' prerequisite
+	// statements, plus the evaluation of any later operand that is itself captured (its
+	// pushToVar assignment executes at its original position, i.e. before operand i's raw
+	// expression is finally consumed). A raw later operand contributes nothing — it stays at
+	// the consumption point, after operand i's raw expression, matching TS order.
+	const captures = new Array<boolean>(expressionInfoList.length);
 	let suffix = PURE_SUMMARY;
 	for (let i = expressionInfoList.length - 1; i >= 0; i--) {
-		suffixSummaries[i] = suffix;
-		suffix = unionSummaries(summarizeStatements(state, expressionInfoList[i][1]), suffix);
+		const [expression, prereqs] = expressionInfoList[i];
+		const node = nodes[i];
+		const operandSummary = summarizeExpression(state, expression, ts.isExpression(node) ? node : undefined);
+		captures[i] = !commutes(operandSummary, suffix);
+		if (captures[i]) {
+			suffix = unionSummaries(operandSummary, suffix);
+		}
+		suffix = unionSummaries(summarizeStatements(state, prereqs), suffix);
 	}
 
 	const result = new Array<luau.Expression>();
@@ -55,16 +65,10 @@ export function ensureTransformOrder(
 		const [expression, prereqs] = expressionInfoList[i];
 		state.prereqList(prereqs);
 
-		const node = nodes[i];
-		if (
-			commutes(
-				summarizeExpression(state, expression, ts.isExpression(node) ? node : undefined),
-				suffixSummaries[i],
-			)
-		) {
-			result.push(expression);
-		} else {
+		if (captures[i]) {
 			result.push(state.pushToVar(expression, valueToIdStr(expression) || "exp"));
+		} else {
+			result.push(expression);
 		}
 	}
 	return result;

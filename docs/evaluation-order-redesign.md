@@ -186,17 +186,72 @@ even for identifiers nested deep inside composite expressions (where the old
 code had no `ts.Node` to inspect and gave up). Callers that do have the
 original `ts.Node` may still pass it as a refinement fallback.
 
+### 2.5 Callee-aware summaries: analyzing known function bodies
+
+A call is `calls` = ⊤ only when the callee is genuinely unknown. When an
+identifier is an **immutable binding to a statically-known body** — a function
+declaration, or a `const`-declared arrow/function expression —
+`getFunctionSymbolSummary` (`util/summarizeFunctionSymbol.ts`) walks the
+*TypeScript* body and produces the same kind of summary the Luau-side
+analysis uses:
+
+* parameters and locals declared inside the function compile to locals that
+  are invisible at any call site — reads/writes of them are free;
+* reads/writes of outer **mutable** bindings are recorded by name; when the
+  binding is exported (emitted as an exports-table access,
+  `isExportsTableBinding`) they are heap accesses instead;
+* property/element accesses are heap reads/writes that may throw; calls
+  recurse into the callee's own summary (recursion resolves as a least
+  fixpoint, with results cached per `ts.Symbol` on `MultiTransformState`);
+* anything not explicitly understood (`this`, `new`, `await`, iteration of a
+  possibly-custom iterable, …) makes the whole body ⊤, as does exceeding a
+  node budget. Async and generator functions are never analyzed.
+
+`transformIdentifierDefined` tags the emitted identifier with the summary
+(`tagCalleeSummary`, again a clone-surviving `Symbol` property), and
+`summarizeCall` uses the tag where it previously gave up. The effect is that
+calls to provably-tame helpers stop forcing temporaries: `f(fib(n), arr.pop())`
+keeps `fib(n)` inline, `m.set("k", pureFn())` no longer captures a `let`
+receiver, and `arr.map(double)` with a known-pure `double` leaves the
+receiver raw. Helpers that *do* write a binding or the heap still order
+exactly as before — their summaries say so precisely instead of via ⊤.
+
+Value stability is deliberately *not* inferred: an effect-free call may still
+return a fresh table per evaluation, so `isRepeatable` treats any expression
+containing a call (like any containing a table/closure constructor) as
+non-repeatable — effect purity licenses dropping or deferring a single
+evaluation, never re-evaluation.
+
+Like `markConstIdentifier`, the analysis leans on roblox-ts's existing
+const-ness model (`isSymbolMutable`), which treats function-declaration
+bindings as never reassigned.
+
 ## 3. Q1 rewritten: `ensureTransformOrder`
 
 The signature is unchanged. The implementation becomes:
 
 ```
-infos     = operands.map(capture(transform))
-suffix[i] = Σ summary(Sⱼ) for j > i          (computed right-to-left)
-for each i:
+infos = operands.map(capture(transform))
+suffix = ∅                                    (computed right-to-left)
+for i from n-1 down to 0:
+	capture[i] = !commutes(summary(Rᵢ), suffix)
+	if capture[i]: suffix ∪= summary(Rᵢ)
+	suffix ∪= summary(Sᵢ)
+for each i (left-to-right):
 	emit Sᵢ
-	Rᵢ' = commutes(summary(Rᵢ), suffix[i]) ? Rᵢ : pushToVar(Rᵢ)
+	Rᵢ' = capture[i] ? pushToVar(Rᵢ) : Rᵢ
 ```
+
+`suffix` is everything after operand `i` that will run before a *raw* operand
+`i`'s deferred consumption: later operands' prereq statements, **plus the
+evaluation of any later operand that is itself captured** — its `pushToVar`
+assignment executes at its original position. (A raw later operand contributes
+nothing: it stays at the consumption point, after operand `i`, matching TS
+order.) The second term is what forces the right-to-left pass — whether `j`
+is captured must be known before `i < j` can be decided, and each new capture
+can cascade further left. Omitting it is unsound: in `[n, bumpN(), arr.pop()]`
+where `bumpN` writes `n`, `bumpN()` is captured (it must precede pop's
+prereqs), which hoists the write above the raw read of `n`.
 
 Notable behavioral deltas (all verified against runtime semantics):
 
@@ -264,6 +319,13 @@ caught when analyzing `j` (whose "before" can include `i`), so `i` need not
 re-examine earlier operands. Const-ness flows through for free: a `const`
 binding summarizes as pure, so it survives even re-evaluation across user
 callbacks — better than the hand-tuned macros, which captured it defensively.
+
+A final right-to-left pass mirrors §3's rule at this layer: a capture
+evaluates its operand at the shared up-front position — before every raw
+operand's embedded occurrence, *including raw operands to its left*, which TS
+says must evaluate first. Any raw operand that does not commute with the
+captured operands after it is force-captured (each new capture can cascade
+further left).
 
 **Two implementation hazards, both handled centrally:**
 

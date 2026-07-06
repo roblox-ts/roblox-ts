@@ -5,8 +5,10 @@ import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { SYMBOL_NAMES, TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { isBlockLike, isNamespace } from "TSTransformer/typeGuards";
+import { tagCalleeSummary } from "TSTransformer/util/effects";
 import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
 import { isSymbolMutable } from "TSTransformer/util/isSymbolMutable";
+import { getFunctionSymbolSummary } from "TSTransformer/util/summarizeFunctionSymbol";
 import { getAncestor, isAncestorOf, skipDownwards, skipUpwards } from "TSTransformer/util/traversal";
 import { getFirstConstructSymbol } from "TSTransformer/util/types";
 import ts from "typescript";
@@ -27,6 +29,12 @@ export function transformIdentifierDefined(state: TransformState, node: ts.Ident
 	});
 	if (!isSymbolMutable(state, symbol)) {
 		state.markConstIdentifier(identifier);
+		// if this identifier is an immutable binding to a known function body, record the
+		// body's effect summary so calls through it are not treated as unknown code
+		const calleeSummary = getFunctionSymbolSummary(state, symbol);
+		if (calleeSummary !== undefined && !calleeSummary.calls) {
+			tagCalleeSummary(identifier, calleeSummary);
+		}
 	}
 	return identifier;
 }

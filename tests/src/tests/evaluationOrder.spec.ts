@@ -411,4 +411,112 @@ export = () => {
 		expect(order[0]).to.equal("value");
 		expect(order[1]).to.equal("from");
 	});
+
+	// callee-aware summaries: calls to functions with statically-known bodies are analyzed
+	// instead of being treated as unknown code — these pin that the analysis never loosens
+	// observable ordering
+
+	it("should order a pure recursive helper before a mutating macro argument", () => {
+		function fib(n: number): number {
+			return n < 2 ? n : fib(n - 1) + fib(n - 2);
+		}
+		const arr = [1, 2, 3];
+		const values = [fib(4), arr.pop()!];
+		expect(values[0]).to.equal(3);
+		expect(values[1]).to.equal(3);
+		expect(arr.size()).to.equal(2);
+	});
+
+	it("should read an outer binding before a helper that writes it", () => {
+		let n = 0;
+		function bumpN() {
+			n += 5;
+			return 1;
+		}
+		const arr = [10, 20];
+		// TS reads `n` (0) before bumpN() writes it, and both before pop's mutation
+		const values = [n, bumpN(), arr.pop()!];
+		expect(values[0]).to.equal(0);
+		expect(values[1]).to.equal(1);
+		expect(values[2]).to.equal(20);
+		expect(n).to.equal(5);
+	});
+
+	it("should read an outer binding before a helper that writes it (macro arguments)", () => {
+		let n = 0;
+		function bumpN() {
+			n += 5;
+			return 1;
+		}
+		const arr = [10, 20];
+		const values = new Array<number>();
+		// same ordering constraint, but through a macro's argument list
+		values.push(n, bumpN(), arr.pop()!);
+		expect(values[0]).to.equal(0);
+		expect(values[1]).to.equal(1);
+		expect(values[2]).to.equal(20);
+		expect(n).to.equal(5);
+	});
+
+	it("should order a heap-writing helper between a heap read and a macro", () => {
+		const state = { n: 1 };
+		function bump() {
+			state.n += 1;
+			return state.n;
+		}
+		const arr = [10, 20];
+		// TS reads state.n (1) before bump() makes it 2, before pop mutates arr
+		const values = [state.n, bump(), arr.pop()!];
+		expect(values[0]).to.equal(1);
+		expect(values[1]).to.equal(2);
+		expect(values[2]).to.equal(20);
+	});
+
+	it("should push to the original array when the argument helper rebinds it", () => {
+		let target = [1, 2, 3];
+		const original = target;
+		function rebind() {
+			target = [9];
+			return 99;
+		}
+		// TS evaluates the receiver (the original array) before rebind() reassigns the binding
+		target.push(rebind());
+		expect(original.size()).to.equal(4);
+		expect(original[3]).to.equal(99);
+		expect(target.size()).to.equal(1);
+		expect(target[0]).to.equal(9);
+	});
+
+	it("should evaluate a helper returning a fresh array exactly once for a macro receiver", () => {
+		let calls = 0;
+		function make() {
+			calls += 1;
+			return [1, 2, 3];
+		}
+		expect(make().pop()).to.equal(3);
+		expect(calls).to.equal(1);
+	});
+
+	it("should evaluate an effect-free helper receiver exactly once when the macro uses it twice", () => {
+		function makeUnsorted() {
+			return [3, 1, 2];
+		}
+		// sort mutates the receiver and returns it — if the effect-free call were re-evaluated
+		// per use, the returned array would be a fresh, unsorted allocation
+		const sorted = makeUnsorted().sort();
+		expect(sorted[0]).to.equal(1);
+		expect(sorted[1]).to.equal(2);
+		expect(sorted[2]).to.equal(3);
+	});
+
+	it("should call a known-pure callback per element without capturing the receiver", () => {
+		const double = (x: number) => x * 2;
+		let arr = [1, 2, 3];
+		const results = arr.map(double);
+		expect(results[0]).to.equal(2);
+		expect(results[2]).to.equal(6);
+		// keep `arr` a live let-binding so the compiler cannot const-fold the receiver
+		arr = [];
+		expect(arr.size()).to.equal(0);
+	});
 };

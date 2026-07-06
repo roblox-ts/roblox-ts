@@ -1,3 +1,4 @@
+import { EffectSummary } from "TSTransformer/util/effects";
 import ts from "typescript";
 
 /**
@@ -5,6 +6,8 @@ import ts from "typescript";
  */
 export class MultiTransformState {
 	public readonly isMethodCache = new Map<ts.Symbol, boolean>();
+	/** `false` = analyzed and found unanalyzable (distinct from "not yet analyzed") */
+	public readonly functionSymbolSummaryCache = new Map<ts.Symbol, EffectSummary | false>();
 	public readonly isDefinedAsLetCache = new Map<ts.Symbol, boolean>();
 	public readonly isReportedByNoAnyCache = new Set<ts.Symbol>();
 	public readonly isReportedByMultipleDefinitionsCache = new Set<ts.Symbol>();

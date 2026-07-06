@@ -12,7 +12,6 @@ import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexa
 import {
 	commutes,
 	computeMacroCaptures,
-	EffectSummary,
 	PURE_SUMMARY,
 	summarizeExpression,
 	summarizeStatements,
@@ -100,12 +99,23 @@ function runCallMacro(
 	}
 	operands.unshift({ expressions: [expression], prereqs: luau.list.make(), node: nodeExpression });
 
-	// suffixSummaries[i] = combined effects of all prereq statements after operand i
-	const suffixSummaries = new Array<EffectSummary>(operands.length);
+	// Decide captures right-to-left. `suffix` accumulates everything after an operand that
+	// will run before its deferred consumption: later operands' prereq statements, plus the
+	// evaluation of any later operand that is itself captured (its pushToVar assignment
+	// executes at its original position). A raw later operand contributes nothing — it is
+	// consumed after this operand, matching TS order.
+	const operandCaptures = operands.map(operand => new Array<boolean>(operand.expressions.length).fill(false));
 	let suffix = PURE_SUMMARY;
 	for (let i = operands.length - 1; i >= 0; i--) {
-		suffixSummaries[i] = suffix;
-		suffix = unionSummaries(summarizeStatements(state, operands[i].prereqs), suffix);
+		const operand = operands[i];
+		for (let j = operand.expressions.length - 1; j >= 0; j--) {
+			const operandSummary = summarizeExpression(state, operand.expressions[j], operand.node);
+			operandCaptures[i][j] = !commutes(operandSummary, suffix);
+			if (operandCaptures[i][j]) {
+				suffix = unionSummaries(operandSummary, suffix);
+			}
+		}
+		suffix = unionSummaries(summarizeStatements(state, operand.prereqs), suffix);
 	}
 
 	const args = new Array<luau.Expression>();
@@ -114,7 +124,7 @@ function runCallMacro(
 		state.prereqList(operand.prereqs);
 		for (let j = 0; j < operand.expressions.length; j++) {
 			let value = operand.expressions[j];
-			if (!commutes(summarizeExpression(state, value, operand.node), suffixSummaries[i])) {
+			if (operandCaptures[i][j]) {
 				value = state.pushToVar(value, valueToIdStr(value) || (i === 0 ? "exp" : `arg${i - 1}`));
 			}
 			operand.expressions[j] = value;

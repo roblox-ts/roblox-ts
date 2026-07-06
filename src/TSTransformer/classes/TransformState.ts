@@ -363,6 +363,28 @@ export class TransformState {
 		}
 	}
 
+	/**
+	 * Whether references to this binding are emitted as exports-table accesses (see
+	 * `getModuleIdPropertyAccess`) rather than plain local reads/writes. Unlike
+	 * `getModuleIdPropertyAccess` this constructs no nodes, so it is safe for pure analysis,
+	 * including of symbols declared in other files.
+	 */
+	public isExportsTableBinding(idSymbol: ts.Symbol): boolean {
+		if (!idSymbol.valueDeclaration) {
+			return false;
+		}
+		// like getModuleSymbolFromNode, but without asserting the file is a module (ambient
+		// declarations in global .d.ts files can reach here through analysis)
+		const moduleAncestor = getModuleAncestor(idSymbol.valueDeclaration);
+		const moduleSymbol = this.typeChecker.getSymbolAtLocation(
+			ts.isSourceFile(moduleAncestor) ? moduleAncestor : moduleAncestor.name,
+		);
+		if (!moduleSymbol) {
+			return false;
+		}
+		return this.getModuleExportsAliasMap(moduleSymbol).has(idSymbol);
+	}
+
 	/** attempts to reverse symlink lookup */
 	public guessVirtualPath(fsPath: string) {
 		const reverseSymlinkMap = this.program.getSymlinkCache?.().getSymlinkedDirectoriesByRealpath();

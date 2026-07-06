@@ -40,10 +40,22 @@ type TaggedNode = luau.Expression & {
 	[OPERAND_TAG]?: number;
 	[BUILTIN_CALL_TAG]?: EffectSummary;
 	[BUILTIN_GLOBAL_TAG]?: true;
+	[CALLEE_SUMMARY_TAG]?: EffectSummary;
 };
 const OPERAND_TAG = Symbol("operandTag");
 const BUILTIN_CALL_TAG = Symbol("builtinCallSummary");
 const BUILTIN_GLOBAL_TAG = Symbol("builtinGlobal");
+const CALLEE_SUMMARY_TAG = Symbol("calleeSummary");
+
+/**
+ * Records on an emitted callee expression the effect summary of the function body it is
+ * statically known to refer to (an immutable binding whose body was analyzed — see
+ * `getFunctionSymbolSummary`). `summarizeCall` then uses the body's summary instead of
+ * treating the call as unknown code. The tag survives `luau.create`'s clones.
+ */
+export function tagCalleeSummary(expression: luau.Expression, summary: EffectSummary) {
+	(expression as TaggedNode)[CALLEE_SUMMARY_TAG] = summary;
+}
 
 /**
  * While set, `summarizeExpression` returns `PURE_SUMMARY` for any operand whose tag is in
@@ -61,7 +73,7 @@ export const PURE_SUMMARY: EffectSummary = {
 	calls: false,
 };
 
-const CALLS_UNKNOWN_SUMMARY: EffectSummary = {
+export const CALLS_UNKNOWN_SUMMARY: EffectSummary = {
 	readsLocals: "all",
 	writesLocals: "all",
 	readsHeap: true,
@@ -249,6 +261,15 @@ function summarizeCall(state: TransformState, node: luau.CallExpression): Effect
 		builtin = luau.list.size(node.args) <= 1 ? MUTATES_HEAP_SUMMARY : undefined;
 	}
 	if (builtin === undefined) {
+		// a callee statically bound to an analyzed function body: the call's effects are the
+		// body's summary, plus evaluating the callee reference and arguments
+		const calleeSummary = (node.expression as TaggedNode)[CALLEE_SUMMARY_TAG];
+		if (calleeSummary !== undefined) {
+			return unionSummaries(
+				unionSummaries(calleeSummary, summarizeExpression(state, node.expression)),
+				summarizeList(state, node.args),
+			);
+		}
 		return CALLS_UNKNOWN_SUMMARY;
 	}
 	return unionSummaries(builtin, summarizeList(state, node.args));
@@ -815,12 +836,19 @@ function beforeSummaryInExpressionOrList(
 }
 
 /**
- * True if `expression` contains a table or closure constructor anywhere — re-evaluating
- * such an expression can produce a fresh (distinct) object each time, even when its effect
- * summary is pure (e.g. `if cond then {1} else {2}`).
+ * True if `expression` contains a table or closure constructor — or any call — anywhere.
+ * Re-evaluating such an expression can produce a fresh (distinct) object each time, even
+ * when its effect summary is pure: `if cond then {1} else {2}` allocates per evaluation,
+ * and a call to an effect-free function may still return a new table per call (effect
+ * purity says nothing about value stability).
  */
 function containsAllocation(expression: luau.Expression): boolean {
-	if (luau.isTable(expression) || luau.isFunctionExpression(expression)) {
+	if (
+		luau.isTable(expression) ||
+		luau.isFunctionExpression(expression) ||
+		luau.isCallExpression(expression) ||
+		luau.isMethodCallExpression(expression)
+	) {
 		return true;
 	}
 	return orderedChildExpressions(expression).some(containsAllocation);
@@ -942,6 +970,22 @@ export function computeMacroCaptures(
 			// up-front position must be unobservable)
 			const before = computeBeforeSummary(state, prereqs, result, i);
 			captures[i] = !commutes(opSummary, before);
+		}
+
+		// A capture evaluates its operand at the shared up-front position — before every raw
+		// operand's embedded occurrence, including raw operands to its LEFT, which TS says
+		// must evaluate first. Right-to-left, force-capture any raw operand that does not
+		// commute with the captured operands after it (each new capture may cascade further
+		// left).
+		let capturedSuffix = PURE_SUMMARY;
+		for (let i = n - 1; i >= 0; i--) {
+			const opSummary = summarizeExpression(state, operands[i]);
+			if (!captures[i] && !commutes(opSummary, capturedSuffix)) {
+				captures[i] = true;
+			}
+			if (captures[i]) {
+				capturedSuffix = unionSummaries(opSummary, capturedSuffix);
+			}
 		}
 
 		return captures;
