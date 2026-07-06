@@ -15,6 +15,7 @@ import {
 	PURE_SUMMARY,
 	summarizeExpression,
 	summarizeStatements,
+	tagValueRegion,
 	unionSummaries,
 } from "TSTransformer/util/effects";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
@@ -98,6 +99,16 @@ function runCallMacro(
 		nodeExpression = nodeExpression.expression;
 	}
 	operands.unshift({ expressions: [expression], prereqs: luau.list.make(), node: nodeExpression });
+
+	// record each operand value's heap region so the macro's member accesses through it
+	// (which have no source nodes) classify by base; tags survive the macro's clones
+	for (const operand of operands) {
+		if (operand.node !== undefined) {
+			for (const operandExpression of operand.expressions) {
+				tagValueRegion(state, operandExpression, operand.node);
+			}
+		}
+	}
 
 	// Decide captures right-to-left. `suffix` accumulates everything after an operand that
 	// will run before its deferred consumption: later operands' prereq statements, plus the

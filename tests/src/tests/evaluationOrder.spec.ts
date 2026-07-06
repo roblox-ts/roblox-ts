@@ -540,6 +540,25 @@ export = () => {
 		expect(arr.size()).to.equal(3);
 	});
 
+	it("should evaluate a table read before an effect-free reduce", () => {
+		const obj = { x: 5 };
+		const arr = [1, 2, 3];
+		// a definitely-non-nil table read cannot throw, and reduce's loop only reads —
+		// the read may stay raw, and the observable values must be unchanged
+		const values = [obj.x, arr.reduce((a, b) => a + b, 0)];
+		expect(values[0]).to.equal(5);
+		expect(values[1]).to.equal(6);
+	});
+
+	it("should order immutable datatype construction with mutating macros", () => {
+		const arr = [1, 2, 3];
+		// constructing a Vector3 and reading its field is a pure value computation
+		const values = [new Vector3(4, 5, 6).X, arr.pop()!];
+		expect(values[0]).to.equal(4);
+		expect(values[1]).to.equal(3);
+		expect(arr.size()).to.equal(2);
+	});
+
 	it("should call a known-pure callback per element without capturing the receiver", () => {
 		const double = (x: number) => x * 2;
 		let arr = [1, 2, 3];

@@ -6,6 +6,7 @@ import {
 	PURE_SUMMARY,
 	summarizeExpression,
 	summarizeStatements,
+	tagValueRegion,
 	unionSummaries,
 } from "TSTransformer/util/effects";
 import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
@@ -40,6 +41,15 @@ export function ensureTransformOrder(
 	transformer: (state: TransformState, node: ts.Expression) => luau.Expression = transformExpression,
 ) {
 	const expressionInfoList = nodes.map(node => state.capture(() => transformer(state, node)));
+
+	// record each operand value's heap region so member accesses through it (in emitted
+	// code with no source node of its own) classify by base
+	for (let i = 0; i < expressionInfoList.length; i++) {
+		const node = nodes[i];
+		if (ts.isExpression(node)) {
+			tagValueRegion(state, expressionInfoList[i][0], node);
+		}
+	}
 
 	// Decide captures right-to-left. `suffix` accumulates everything after operand i that
 	// will run before a raw operand i's deferred consumption: later operands' prerequisite

@@ -7,6 +7,7 @@ import { transformParameters } from "TSTransformer/nodes/transformParameters";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { tagCalleeSummary } from "TSTransformer/util/effects";
 import { getFunctionExpressionSummary } from "TSTransformer/util/summarizeFunctionSymbol";
+import { isFunctionReturningPrimitive } from "TSTransformer/util/types";
 import { wrapStatementsAsGenerator } from "TSTransformer/util/wrapStatementsAsGenerator";
 import ts from "typescript";
 
@@ -45,7 +46,7 @@ export function transformFunctionExpression(state: TransformState, node: ts.Func
 	// callback captured into a temporary) are not treated as unknown code
 	const summary = getFunctionExpressionSummary(state, node);
 	if (summary !== undefined && !summary.calls) {
-		tagCalleeSummary(expression, summary);
+		tagCalleeSummary(expression, summary, isFunctionReturningPrimitive(state.getType(node)));
 	}
 
 	if (isAsync) {

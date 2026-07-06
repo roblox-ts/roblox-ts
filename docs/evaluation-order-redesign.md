@@ -256,6 +256,50 @@ The compiler never emits `setmetatable` onto such temps (verified: the only
 temp-directed `setmetatable` calls pass `nil`, which removes metatables), so
 reads/writes cannot invoke user `__index`/`__newindex`.
 
+### 2.7 Heap regions, type-refined errors, and tame engine calls
+
+The heap is split into two disjoint regions tracked as a bitmask: **Lua
+tables** and **Roblox engine state** (Instances and mutable userdata). Every
+mutation the compiler itself emits is a table mutation, and engine APIs never
+mutate Lua tables reachable from their arguments (the reflection layer
+marshals tables into C++ containers by copy), so the regions cannot alias:
+`commutes` intersects region masks instead of a single boolean.
+
+Region and error classification come from TS types:
+
+* **Member reads** (`t.x`, `t[i]`): with an aligned source node, the base's
+  type decides. An immutable Roblox data type (`Vector3`, `CFrame`, … — a
+  fixed allowlist that excludes mutable ones like `Random`/`RaycastParams`)
+  → pure. An Instance → engine-state read that may throw (typed child
+  accesses are real lookups). A definitely-non-nil, non-Roblox, non-callable
+  object → a table read that **cannot throw** — plain table indexing never
+  errors, and roblox-ts class metatables resolve `__index` through table
+  chains. (A hand-installed erroring `__index` function is the same class of
+  type-system lie as the existing "member reads never run user code"
+  assumption.) Anything else stays "any region, may throw".
+* **Operand value tags**: macro-emitted accesses (`arr[_length] = nil`,
+  `#arr`) have no source nodes, so the drivers tag each operand node with the
+  heap region of the *value it holds*, from its TS type. The tag survives
+  clones and is propagated to capture temporaries by `pushToVar`; member
+  accesses fall back to the base's tag. This is what makes `pop`'s prereqs
+  table-region (and its reads non-throwing), so
+  `use(part.GetMass(), arr.pop())` keeps the engine read inline.
+* **Tame engine calls**: methods (and statics/constructors) of immutable
+  data types are pure value computations; a fixed allowlist of read-only,
+  non-yielding Instance methods (`GetChildren`, `FindFirstChild`, `IsA`,
+  `GetAttribute`, …) summarize as engine-state reads. Everything else —
+  anything that can mutate engine state, dispatch user handlers
+  (`BindableFunction:Invoke`), or *yield* (`WaitForChild`), during which
+  other user threads may mutate anything — remains unknown code.
+* **Value stability**: a callee whose TS signature definitely returns a
+  primitive is tagged; a *pure* call to it is repeatable (primitives have no
+  allocation identity), so such calls survive not-exactly-once contexts
+  without a temporary. Table-returning calls still always capture.
+
+Error interleaving still rules: `use(part.Position, arr.pop())` keeps its
+temp, because both the Instance read and the (possibly frozen-table) write
+can throw and a `pcall`ing caller must observe the right error.
+
 ## 3. Q1 rewritten: `ensureTransformOrder`
 
 The signature is unchanged. The implementation becomes:

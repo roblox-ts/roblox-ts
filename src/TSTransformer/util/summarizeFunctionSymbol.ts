@@ -1,5 +1,16 @@
 import { TransformState } from "TSTransformer";
-import { CALLS_UNKNOWN_SUMMARY, EffectSummary, PURE_SUMMARY, unionSummaries } from "TSTransformer/util/effects";
+import {
+	CALLS_UNKNOWN_SUMMARY,
+	EffectSummary,
+	HEAP_ALL,
+	HEAP_TABLES,
+	PURE_SUMMARY,
+	summarizeKnownConstruction,
+	summarizeKnownEngineCall,
+	summarizeMemberRead,
+	summarizeMemberWrite,
+	unionSummaries,
+} from "TSTransformer/util/effects";
 import { isSymbolMutable } from "TSTransformer/util/isSymbolMutable";
 import { isAncestorOf, skipDownwards } from "TSTransformer/util/traversal";
 import {
@@ -140,9 +151,9 @@ function getAnalyzableFunction(state: TransformState, symbol: ts.Symbol): Analyz
 // analysis gives up on very large bodies rather than walking them in full
 const ANALYSIS_NODE_BUDGET = 2000;
 
-const READS_HEAP_SUMMARY: EffectSummary = { ...PURE_SUMMARY, readsHeap: true };
-const READS_HEAP_THROWS_SUMMARY: EffectSummary = { ...PURE_SUMMARY, readsHeap: true, throws: true };
-const WRITES_HEAP_THROWS_SUMMARY: EffectSummary = { ...PURE_SUMMARY, writesHeap: true, throws: true };
+// the exports table, iterated containers, spread sources, and metatable walks are all Lua tables
+const READS_TABLES_SUMMARY: EffectSummary = { ...PURE_SUMMARY, readsHeap: HEAP_TABLES };
+const READS_ALL_THROWS_SUMMARY: EffectSummary = { ...PURE_SUMMARY, readsHeap: HEAP_ALL, throws: true };
 const THROWS_SUMMARY: EffectSummary = { ...PURE_SUMMARY, throws: true };
 
 // call macros that only evaluate their arguments (no other observable behavior)
@@ -167,7 +178,7 @@ function summarizeFunctionBody(state: TransformState, func: AnalyzableFunction):
 		}
 		// outer mutable binding: an exports-table read if exported, else a plain local read
 		if (state.isExportsTableBinding(symbol)) {
-			return READS_HEAP_SUMMARY;
+			return READS_TABLES_SUMMARY;
 		}
 		return { ...PURE_SUMMARY, readsLocals: new Set([node.text]) };
 	};
@@ -182,7 +193,7 @@ function summarizeFunctionBody(state: TransformState, func: AnalyzableFunction):
 		}
 		// outer binding write: an exports-table write if exported, else a plain local write
 		if (state.isExportsTableBinding(symbol)) {
-			return { ...PURE_SUMMARY, writesHeap: true };
+			return { ...PURE_SUMMARY, writesHeap: HEAP_TABLES };
 		}
 		return { ...PURE_SUMMARY, writesLocals: new Set([node.text]) };
 	};
@@ -194,12 +205,12 @@ function summarizeFunctionBody(state: TransformState, func: AnalyzableFunction):
 			return writeIdentifier(target);
 		}
 		if (ts.isPropertyAccessExpression(target)) {
-			return unionSummaries(visit(target.expression), WRITES_HEAP_THROWS_SUMMARY);
+			return unionSummaries(visit(target.expression), summarizeMemberWrite(state, target.expression));
 		}
 		if (ts.isElementAccessExpression(target)) {
 			return unionSummaries(
 				unionSummaries(visit(target.expression), visit(target.argumentExpression)),
-				WRITES_HEAP_THROWS_SUMMARY,
+				summarizeMemberWrite(state, target.expression),
 			);
 		}
 		// destructuring assignment targets, etc.
@@ -212,7 +223,7 @@ function summarizeFunctionBody(state: TransformState, func: AnalyzableFunction):
 		}
 		// destructuring: reads through the bound value, may throw on nil; default-value
 		// initializers evaluate as part of it
-		let result = READS_HEAP_THROWS_SUMMARY;
+		let result = READS_ALL_THROWS_SUMMARY;
 		for (const element of name.elements) {
 			if (ts.isOmittedExpression(element)) {
 				continue;
@@ -278,6 +289,13 @@ function summarizeFunctionBody(state: TransformState, func: AnalyzableFunction):
 				}
 			}
 		}
+		if (ts.isPropertyAccessExpression(callee)) {
+			// tame engine calls: immutable data type methods/statics, read-only Instance methods
+			const known = summarizeKnownEngineCall(state, callee);
+			if (known !== undefined) {
+				return unionSummaries(unionSummaries(result, visit(callee.expression)), known);
+			}
+		}
 		return CALLS_UNKNOWN_SUMMARY;
 	};
 
@@ -305,7 +323,7 @@ function summarizeFunctionBody(state: TransformState, func: AnalyzableFunction):
 				isStringType,
 			)
 		) {
-			return unionSummaries(result, READS_HEAP_SUMMARY);
+			return unionSummaries(result, READS_TABLES_SUMMARY);
 		}
 		return CALLS_UNKNOWN_SUMMARY;
 	};
@@ -356,7 +374,7 @@ function summarizeFunctionBody(state: TransformState, func: AnalyzableFunction):
 					return unionSummaries(readIdentifier(operand), writeIdentifier(operand));
 				}
 				if (ts.isPropertyAccessExpression(operand) || ts.isElementAccessExpression(operand)) {
-					return unionSummaries(visit(operand), WRITES_HEAP_THROWS_SUMMARY);
+					return unionSummaries(visit(operand), summarizeMemberWrite(state, operand.expression));
 				}
 				return CALLS_UNKNOWN_SUMMARY;
 			}
@@ -372,15 +390,17 @@ function summarizeFunctionBody(state: TransformState, func: AnalyzableFunction):
 					const target = skipDownwards(node.left);
 					if (ts.isIdentifier(target)) {
 						result = unionSummaries(result, readIdentifier(target));
+					} else if (ts.isPropertyAccessExpression(target) || ts.isElementAccessExpression(target)) {
+						result = unionSummaries(result, summarizeMemberRead(state, target.expression));
 					} else {
-						result = unionSummaries(result, READS_HEAP_THROWS_SUMMARY);
+						result = unionSummaries(result, READS_ALL_THROWS_SUMMARY);
 					}
 				}
 				return result;
 			}
 			const operands = unionSummaries(visit(node.left), visit(node.right));
 			if (operator === ts.SyntaxKind.InstanceOfKeyword || operator === ts.SyntaxKind.InKeyword) {
-				return unionSummaries(operands, READS_HEAP_SUMMARY);
+				return unionSummaries(operands, READS_TABLES_SUMMARY);
 			}
 			// TS restricts remaining operators so they never invoke user metamethods
 			return operands;
@@ -389,17 +409,28 @@ function summarizeFunctionBody(state: TransformState, func: AnalyzableFunction):
 			return unionSummaries(visit(node.condition), unionSummaries(visit(node.whenTrue), visit(node.whenFalse)));
 		}
 		if (ts.isPropertyAccessExpression(node)) {
-			// getters do not exist in roblox-ts; member reads may throw (nil base, Instance access)
-			return unionSummaries(visit(node.expression), READS_HEAP_THROWS_SUMMARY);
+			// getters do not exist in roblox-ts, so member reads never run user code
+			return unionSummaries(visit(node.expression), summarizeMemberRead(state, node.expression));
 		}
 		if (ts.isElementAccessExpression(node)) {
 			return unionSummaries(
 				unionSummaries(visit(node.expression), visit(node.argumentExpression)),
-				READS_HEAP_THROWS_SUMMARY,
+				summarizeMemberRead(state, node.expression),
 			);
 		}
 		if (ts.isCallExpression(node)) {
 			return visitCall(node);
+		}
+		if (ts.isNewExpression(node)) {
+			const known = summarizeKnownConstruction(state, node);
+			if (known !== undefined) {
+				let result = known;
+				for (const arg of node.arguments ?? []) {
+					result = unionSummaries(result, visit(arg));
+				}
+				return result;
+			}
+			return CALLS_UNKNOWN_SUMMARY;
 		}
 		if (ts.isArrowFunction(node) || ts.isFunctionExpression(node) || ts.isFunctionDeclaration(node)) {
 			// allocating a closure (or declaring an internal function) is unobservable here;
@@ -413,7 +444,7 @@ function summarizeFunctionBody(state: TransformState, func: AnalyzableFunction):
 					result = unionSummaries(result, visit(element.expression));
 					// spreading anything but a plain array may invoke a user iterator
 					result = isDefinitelyType(state.getType(element.expression), isArrayType(state))
-						? unionSummaries(result, READS_HEAP_SUMMARY)
+						? unionSummaries(result, READS_TABLES_SUMMARY)
 						: CALLS_UNKNOWN_SUMMARY;
 				} else {
 					result = unionSummaries(result, visit(element));
@@ -432,7 +463,7 @@ function summarizeFunctionBody(state: TransformState, func: AnalyzableFunction):
 				} else if (ts.isShorthandPropertyAssignment(property)) {
 					result = unionSummaries(result, readIdentifier(property.name));
 				} else if (ts.isSpreadAssignment(property)) {
-					result = unionSummaries(result, unionSummaries(visit(property.expression), READS_HEAP_SUMMARY));
+					result = unionSummaries(result, unionSummaries(visit(property.expression), READS_TABLES_SUMMARY));
 				} else if (ts.isMethodDeclaration(property)) {
 					result = unionSummaries(result, PURE_SUMMARY);
 				} else {

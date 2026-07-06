@@ -2,6 +2,17 @@ import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer";
 import { isSymbolMutable } from "TSTransformer/util/isSymbolMutable";
 import { skipDownwards } from "TSTransformer/util/traversal";
+import {
+	isAnyType,
+	isDefinitelyType,
+	isImmutableRobloxDataType,
+	isImmutableRobloxDataTypeConstructor,
+	isInstanceType,
+	isObjectType,
+	isPossiblyType,
+	isRobloxType,
+	isUndefinedType,
+} from "TSTransformer/util/types";
 import ts from "typescript";
 
 /**
@@ -15,15 +26,28 @@ import ts from "typescript";
  * writes to them are non-effects. This relies on the existing invariant that temporary
  * identifiers are never reassigned after being exposed from a transform.
  */
+/**
+ * The heap is split into two disjoint regions, tracked as a bitmask: Lua tables (which is
+ * where every compiler-emitted mutation lands) and Roblox engine state (Instances and
+ * mutable userdata). Engine APIs never mutate Lua tables reachable from their arguments —
+ * the reflection layer marshals tables into C++ containers by copy — so reads/writes of
+ * the two regions cannot alias each other.
+ */
+export type HeapRegions = number;
+export const HEAP_NONE: HeapRegions = 0;
+export const HEAP_TABLES: HeapRegions = 1 << 0;
+export const HEAP_INSTANCES: HeapRegions = 1 << 1;
+export const HEAP_ALL: HeapRegions = HEAP_TABLES | HEAP_INSTANCES;
+
 export interface EffectSummary {
 	/** Names of user-visible bindings (locals/globals) that may be read. */
 	readonly readsLocals: ReadonlySet<string> | "all";
 	/** Names of user-visible bindings that may be written (or shadowed by a new declaration). */
 	readonly writesLocals: ReadonlySet<string> | "all";
-	/** May read through a table/userdata reference. */
-	readonly readsHeap: boolean;
-	/** May write through a table/userdata reference. */
-	readonly writesHeap: boolean;
+	/** Heap regions that may be read through a reference. */
+	readonly readsHeap: HeapRegions;
+	/** Heap regions that may be written through a reference. */
+	readonly writesHeap: HeapRegions;
 	/** May raise a Luau error. */
 	readonly throws: boolean;
 	/** May invoke unknown (user) code. Normalized: implies every other field. */
@@ -41,12 +65,21 @@ type TaggedNode = luau.Expression & {
 	[BUILTIN_CALL_TAG]?: EffectSummary;
 	[BUILTIN_GLOBAL_TAG]?: true;
 	[CALLEE_SUMMARY_TAG]?: EffectSummary;
+	[RETURNS_PRIMITIVE_TAG]?: true;
 	[BUILTIN_FRESH_TAG]?: true;
+	[VALUE_REGION_TAG]?: HeapRegions;
 };
 const OPERAND_TAG = Symbol("operandTag");
 const BUILTIN_CALL_TAG = Symbol("builtinCallSummary");
 const BUILTIN_GLOBAL_TAG = Symbol("builtinGlobal");
 const CALLEE_SUMMARY_TAG = Symbol("calleeSummary");
+// callee definitely returns a primitive (string/number/boolean/nil) per its TS signature —
+// primitive results have no allocation identity, so pure calls to it are value-stable
+const RETURNS_PRIMITIVE_TAG = Symbol("calleeReturnsPrimitive");
+// the heap region of the value an operand node holds, from its TS type (see tagValueRegion);
+// refines member accesses through the node inside macro-emitted code, where no source node
+// is available
+const VALUE_REGION_TAG = Symbol("valueRegion");
 // marks builtins whose call returns a fresh, metatable-less table (table.create/table.pack;
 // NOT table.clone, which copies the source's metatable)
 const BUILTIN_FRESH_TAG = Symbol("builtinReturnsFreshTable");
@@ -68,14 +101,17 @@ const freshTempIds = new Set<number>();
  * `getFunctionSymbolSummary`). `summarizeCall` then uses the body's summary instead of
  * treating the call as unknown code. The tag survives `luau.create`'s clones.
  */
-export function tagCalleeSummary(expression: luau.Expression, summary: EffectSummary) {
+export function tagCalleeSummary(expression: luau.Expression, summary: EffectSummary, returnsPrimitive = false) {
 	(expression as TaggedNode)[CALLEE_SUMMARY_TAG] = summary;
+	if (returnsPrimitive) {
+		(expression as TaggedNode)[RETURNS_PRIMITIVE_TAG] = true;
+	}
 }
 
 /**
- * Propagates a callee summary from `from` onto `to`. Used when an expression is captured
- * into a temporary (`pushToVar`): the temp holds the same function value, so calls through
- * the temp have the same effects. Reads through parentheses.
+ * Propagates callee tags from `from` onto `to`. Used when an expression is captured into a
+ * temporary (`pushToVar`): the temp holds the same function value, so calls through the
+ * temp have the same effects. Reads through parentheses.
  */
 export function copyCalleeSummary(from: luau.Expression, to: luau.Expression) {
 	while (luau.isParenthesizedExpression(from)) {
@@ -84,6 +120,13 @@ export function copyCalleeSummary(from: luau.Expression, to: luau.Expression) {
 	const summary = (from as TaggedNode)[CALLEE_SUMMARY_TAG];
 	if (summary !== undefined) {
 		(to as TaggedNode)[CALLEE_SUMMARY_TAG] = summary;
+	}
+	if ((from as TaggedNode)[RETURNS_PRIMITIVE_TAG]) {
+		(to as TaggedNode)[RETURNS_PRIMITIVE_TAG] = true;
+	}
+	const region = (from as TaggedNode)[VALUE_REGION_TAG];
+	if (region !== undefined) {
+		(to as TaggedNode)[VALUE_REGION_TAG] = region;
 	}
 }
 
@@ -97,8 +140,8 @@ let maskedOperandTags: ReadonlySet<number> | undefined;
 export const PURE_SUMMARY: EffectSummary = {
 	readsLocals: EMPTY_SET,
 	writesLocals: EMPTY_SET,
-	readsHeap: false,
-	writesHeap: false,
+	readsHeap: HEAP_NONE,
+	writesHeap: HEAP_NONE,
 	throws: false,
 	calls: false,
 };
@@ -106,8 +149,8 @@ export const PURE_SUMMARY: EffectSummary = {
 export const CALLS_UNKNOWN_SUMMARY: EffectSummary = {
 	readsLocals: "all",
 	writesLocals: "all",
-	readsHeap: true,
-	writesHeap: true,
+	readsHeap: HEAP_ALL,
+	writesHeap: HEAP_ALL,
 	throws: true,
 	calls: true,
 };
@@ -139,15 +182,15 @@ export function unionSummaries(a: EffectSummary, b: EffectSummary): EffectSummar
 	return {
 		readsLocals: unionNames(a.readsLocals, b.readsLocals),
 		writesLocals: unionNames(a.writesLocals, b.writesLocals),
-		readsHeap: a.readsHeap || b.readsHeap,
-		writesHeap: a.writesHeap || b.writesHeap,
+		readsHeap: a.readsHeap | b.readsHeap,
+		writesHeap: a.writesHeap | b.writesHeap,
 		throws: a.throws || b.throws,
 		calls: false,
 	};
 }
 
 function writesAnything(summary: EffectSummary): boolean {
-	return summary.writesHeap || summary.writesLocals === "all" || summary.writesLocals.size > 0;
+	return summary.writesHeap !== HEAP_NONE || summary.writesLocals === "all" || summary.writesLocals.size > 0;
 }
 
 /**
@@ -162,8 +205,8 @@ export function commutes(a: EffectSummary, b: EffectSummary): boolean {
 	if (namesIntersect(a.writesLocals, b.readsLocals)) return false;
 	if (namesIntersect(b.writesLocals, a.readsLocals)) return false;
 	if (namesIntersect(a.writesLocals, b.writesLocals)) return false;
-	if (a.writesHeap && (b.readsHeap || b.writesHeap)) return false;
-	if (b.writesHeap && a.readsHeap) return false;
+	if ((a.writesHeap & (b.readsHeap | b.writesHeap)) !== HEAP_NONE) return false;
+	if ((b.writesHeap & a.readsHeap) !== HEAP_NONE) return false;
 	if (a.throws && (b.throws || writesAnything(b))) return false;
 	if (b.throws && writesAnything(a)) return false;
 	return true;
@@ -177,10 +220,16 @@ export function commutes(a: EffectSummary, b: EffectSummary): boolean {
  * treated as a call into unknown code.
  */
 const BUILTIN_CALL_SUMMARIES = new Map<luau.Expression, EffectSummary>();
-const READS_HEAP_SUMMARY: EffectSummary = { ...PURE_SUMMARY, readsHeap: true };
-const READS_HEAP_THROWS_SUMMARY: EffectSummary = { ...PURE_SUMMARY, readsHeap: true, throws: true };
-const MUTATES_HEAP_SUMMARY: EffectSummary = { ...PURE_SUMMARY, readsHeap: true, writesHeap: true };
+// the builtins the compiler emits all operate on Lua tables, never on engine state
+const READS_HEAP_SUMMARY: EffectSummary = { ...PURE_SUMMARY, readsHeap: HEAP_TABLES };
+const READS_HEAP_THROWS_SUMMARY: EffectSummary = { ...PURE_SUMMARY, readsHeap: HEAP_TABLES, throws: true };
+const MUTATES_HEAP_SUMMARY: EffectSummary = { ...PURE_SUMMARY, readsHeap: HEAP_TABLES, writesHeap: HEAP_TABLES };
 const THROWS_SUMMARY: EffectSummary = { ...PURE_SUMMARY, throws: true };
+// unrefined member accesses: without type information the base may be a table or an Instance
+const READS_ALL_THROWS_SUMMARY: EffectSummary = { ...PURE_SUMMARY, readsHeap: HEAP_ALL, throws: true };
+const READS_INSTANCES_THROWS_SUMMARY: EffectSummary = { ...PURE_SUMMARY, readsHeap: HEAP_INSTANCES, throws: true };
+const READS_TABLES_SUMMARY: EffectSummary = { ...PURE_SUMMARY, readsHeap: HEAP_TABLES };
+const READS_INSTANCES_SUMMARY: EffectSummary = { ...PURE_SUMMARY, readsHeap: HEAP_INSTANCES };
 // sentinel: table.sort invokes a user comparator only when one is passed (see summarizeCall)
 const SORT_BUILTIN: EffectSummary = { ...PURE_SUMMARY };
 // sentinels: table.insert/move mutate a specific argument, which may be a fresh temp
@@ -313,7 +362,7 @@ function isCompilerNumeric(expression: luau.Expression): boolean {
 	return false;
 }
 
-function summarizeCall(state: TransformState, node: luau.CallExpression): EffectSummary {
+function summarizeCall(state: TransformState, node: luau.CallExpression, tsNode?: ts.Expression): EffectSummary {
 	// recognized by tag (which survives node cloning) with a Map fallback for the originals
 	let builtin = (node.expression as TaggedNode)[BUILTIN_CALL_TAG] ?? BUILTIN_CALL_SUMMARIES.get(node.expression);
 	if (builtin === SORT_BUILTIN) {
@@ -332,7 +381,7 @@ function summarizeCall(state: TransformState, node: luau.CallExpression): Effect
 			const controlArgs = builtin === MOVE_BUILTIN ? args.slice(1, 4) : args.length > 2 ? [args[1]] : [];
 			builtin = {
 				...PURE_SUMMARY,
-				readsHeap: builtin === MOVE_BUILTIN,
+				readsHeap: builtin === MOVE_BUILTIN ? HEAP_TABLES : HEAP_NONE,
 				throws: !controlArgs.every(isCompilerNumeric),
 			};
 		} else {
@@ -349,9 +398,191 @@ function summarizeCall(state: TransformState, node: luau.CallExpression): Effect
 				summarizeList(state, node.args),
 			);
 		}
+		// engine-value refinement: immutable data type construction/statics classify by the
+		// source node (`new Vector3(…)` and `CFrame.lookAt(…)` both emit plain calls)
+		if (tsNode) {
+			const source = skipDownwards(tsNode);
+			let known: EffectSummary | undefined;
+			if (ts.isNewExpression(source)) {
+				known = summarizeKnownConstruction(state, source);
+			} else if (ts.isCallExpression(source)) {
+				const callee = skipDownwards(source.expression);
+				if (ts.isPropertyAccessExpression(callee)) {
+					known = summarizeKnownEngineCall(state, callee);
+				}
+			}
+			if (known !== undefined) {
+				return unionSummaries(known, summarizeList(state, node.args));
+			}
+		}
 		return CALLS_UNKNOWN_SUMMARY;
 	}
 	return unionSummaries(builtin, summarizeList(state, node.args));
+}
+
+/**
+ * Read-only, non-yielding Instance methods that never invoke user code (no callbacks, no
+ * signal dispatch) — they only inspect engine state. Their arguments are constrained by
+ * `@rbxts/types`, so typed usage does not error. Anything not listed stays unknown code:
+ * engine calls in general may mutate engine state, run user handlers synchronously
+ * (`BindableFunction:Invoke`), or yield (letting other user threads interleave).
+ */
+const READONLY_INSTANCE_METHODS = new Set([
+	"FindFirstAncestor",
+	"FindFirstAncestorOfClass",
+	"FindFirstAncestorWhichIsA",
+	"FindFirstChild",
+	"FindFirstChildOfClass",
+	"FindFirstChildWhichIsA",
+	"GetAttribute",
+	"GetAttributeChangedSignal",
+	"GetAttributes",
+	"GetChildren",
+	"GetDescendants",
+	"GetFullName",
+	"GetMass",
+	"GetPivot",
+	"GetPropertyChangedSignal",
+	"GetTags",
+	"HasTag",
+	"IsA",
+	"IsAncestorOf",
+	"IsDescendantOf",
+]);
+
+/**
+ * The heap region of the value a definitely-non-nil expression of this type holds, or
+ * `undefined` when unknown: Instances live in the engine-state region; non-Roblox,
+ * non-callable object types are plain Lua tables.
+ */
+function classifyValueRegion(state: TransformState, node: ts.Expression): HeapRegions | undefined {
+	const type = state.getType(node);
+	if (isPossiblyType(type, isUndefinedType, isAnyType(state))) {
+		return undefined;
+	}
+	if (isDefinitelyType(type, isInstanceType(state))) {
+		return HEAP_INSTANCES;
+	}
+	if (
+		!isPossiblyType(type, isRobloxType(state)) &&
+		isDefinitelyType(type, t => isObjectType(t) && t.getCallSignatures().length === 0)
+	) {
+		return HEAP_TABLES;
+	}
+	return undefined;
+}
+
+/**
+ * Records the heap region of the value held by an emitted operand expression, derived from
+ * its TS type. Macro-emitted member accesses through the operand (`arr[_length] = nil`,
+ * `#arr`, …) have no source node of their own; the tag (which survives clones, and is
+ * propagated to capture temporaries by `pushToVar`) lets them classify by base instead of
+ * falling back to "any region, may throw".
+ */
+export function tagValueRegion(state: TransformState, expression: luau.Expression, node: ts.Expression) {
+	const region = classifyValueRegion(state, node);
+	if (region !== undefined) {
+		(expression as TaggedNode)[VALUE_REGION_TAG] = region;
+	}
+}
+
+function getValueRegion(expression: luau.Expression): HeapRegions | undefined {
+	while (luau.isParenthesizedExpression(expression)) {
+		expression = expression.expression;
+	}
+	return (expression as TaggedNode)[VALUE_REGION_TAG];
+}
+
+/**
+ * Classification of a member read through a base: reading a field of an immutable Roblox
+ * data type is pure; reading from an Instance touches engine state and may throw (typed
+ * child accesses are real lookups that can fail); reading from a definitely-non-nil,
+ * non-callable user table cannot throw (plain table indexing never errors, and roblox-ts
+ * class metatables resolve `__index` through table chains, never functions) and touches
+ * only the table region. Classified by the base's source node when aligned, else by a
+ * value-region tag on the emitted base expression (see `tagValueRegion`).
+ */
+export function summarizeMemberRead(
+	state: TransformState,
+	baseNode: ts.Expression | undefined,
+	baseExpression?: luau.Expression,
+): EffectSummary {
+	if (baseNode) {
+		const type = state.getType(baseNode);
+		if (
+			!isPossiblyType(type, isUndefinedType, isAnyType(state)) &&
+			(isDefinitelyType(type, isImmutableRobloxDataType(state)) ||
+				isDefinitelyType(type, isImmutableRobloxDataTypeConstructor(state)))
+		) {
+			return PURE_SUMMARY;
+		}
+	}
+	const region = baseNode ? classifyValueRegion(state, baseNode) : undefined;
+	const tagged = region ?? (baseExpression ? getValueRegion(baseExpression) : undefined);
+	if (tagged === HEAP_INSTANCES) {
+		return READS_INSTANCES_THROWS_SUMMARY;
+	}
+	if (tagged === HEAP_TABLES) {
+		return READS_TABLES_SUMMARY;
+	}
+	return READS_ALL_THROWS_SUMMARY;
+}
+
+/**
+ * Classification of a member write through a base with the given source node. Writes can
+ * always throw — a table may be frozen, an Instance property setter may reject the value —
+ * but the *region* narrows by base type.
+ */
+export function summarizeMemberWrite(state: TransformState, baseNode: ts.Expression | undefined): EffectSummary {
+	let regions = HEAP_ALL;
+	if (baseNode) {
+		const type = state.getType(baseNode);
+		if (!isPossiblyType(type, isUndefinedType, isAnyType(state))) {
+			if (isDefinitelyType(type, isInstanceType(state))) {
+				regions = HEAP_INSTANCES;
+			} else if (
+				!isPossiblyType(type, isRobloxType(state)) &&
+				isDefinitelyType(type, t => isObjectType(t) && t.getCallSignatures().length === 0)
+			) {
+				regions = HEAP_TABLES;
+			}
+		}
+	}
+	return { ...PURE_SUMMARY, writesHeap: regions, throws: true };
+}
+
+/**
+ * Summary for a call with a property-access callee that is statically known to be a tame
+ * engine API, or `undefined` when unknown: methods (and statics) of immutable Roblox data
+ * types are pure value computations; allowlisted read-only Instance methods only read
+ * engine state. Argument effects are the caller's responsibility.
+ */
+export function summarizeKnownEngineCall(
+	state: TransformState,
+	callee: ts.PropertyAccessExpression,
+): EffectSummary | undefined {
+	const receiverType = state.getType(callee.expression);
+	if (isPossiblyType(receiverType, isUndefinedType, isAnyType(state))) {
+		return undefined;
+	}
+	if (
+		isDefinitelyType(receiverType, isImmutableRobloxDataType(state)) ||
+		isDefinitelyType(receiverType, isImmutableRobloxDataTypeConstructor(state))
+	) {
+		return PURE_SUMMARY;
+	}
+	if (isDefinitelyType(receiverType, isInstanceType(state)) && READONLY_INSTANCE_METHODS.has(callee.name.text)) {
+		return READS_INSTANCES_SUMMARY;
+	}
+	return undefined;
+}
+
+/** Summary for `new X(…)` when `X` constructs an immutable Roblox data type. */
+export function summarizeKnownConstruction(state: TransformState, node: ts.NewExpression): EffectSummary | undefined {
+	if (isDefinitelyType(state.getType(node.expression), isImmutableRobloxDataTypeConstructor(state))) {
+		return PURE_SUMMARY;
+	}
+	return undefined;
 }
 
 /**
@@ -409,13 +640,27 @@ export function summarizeExpression(
 	} else if (luau.isParenthesizedExpression(expression)) {
 		return summarizeExpression(state, expression.expression, node);
 	} else if (luau.isPropertyAccessExpression(expression) || luau.isComputedIndexExpression(expression)) {
-		let result = summarizeExpression(state, expression.expression);
+		// align the ts node when shapes match so the base's type can refine the read (and
+		// recursively, reads further down the chain)
+		let baseNode: ts.Expression | undefined;
+		if (node) {
+			const tsNode = skipDownwards(node);
+			if (
+				luau.isPropertyAccessExpression(expression) &&
+				ts.isPropertyAccessExpression(tsNode) &&
+				tsNode.name.text === expression.name
+			) {
+				baseNode = tsNode.expression;
+			} else if (luau.isComputedIndexExpression(expression) && ts.isElementAccessExpression(tsNode)) {
+				baseNode = tsNode.expression;
+			}
+		}
+		let result = summarizeExpression(state, expression.expression, baseNode);
 		if (luau.isComputedIndexExpression(expression)) {
 			result = unionSummaries(result, summarizeExpression(state, expression.index));
 		}
-		// getters do not exist in roblox-ts, so member reads never run user code, but they
-		// may error (nil base from a lying type assertion, Roblox Instance child access)
-		return unionSummaries(result, READS_HEAP_THROWS_SUMMARY);
+		// getters do not exist in roblox-ts, so member reads never run user code
+		return unionSummaries(result, summarizeMemberRead(state, baseNode, expression.expression));
 	} else if (luau.isUnaryExpression(expression)) {
 		const inner = summarizeExpression(state, expression.expression);
 		return expression.operator === "#" ? unionSummaries(inner, READS_HEAP_SUMMARY) : inner;
@@ -472,8 +717,29 @@ export function summarizeExpression(
 		}
 		return result;
 	} else if (luau.isCallExpression(expression)) {
-		return summarizeCall(state, expression);
+		return summarizeCall(state, expression, node);
 	} else if (luau.isMethodCallExpression(expression)) {
+		// engine-call refinement: classify by the receiver's type when the source aligns
+		if (node) {
+			const tsNode = skipDownwards(node);
+			if (ts.isCallExpression(tsNode)) {
+				const callee = skipDownwards(tsNode.expression);
+				if (ts.isPropertyAccessExpression(callee) && callee.name.text === expression.name) {
+					const known = summarizeKnownEngineCall(state, callee);
+					if (known !== undefined) {
+						let result = unionSummaries(
+							known,
+							summarizeExpression(state, expression.expression, callee.expression),
+						);
+						luau.list.forEach(
+							expression.args,
+							arg => (result = unionSummaries(result, summarizeExpression(state, arg))),
+						);
+						return result;
+					}
+				}
+			}
+		}
 		return CALLS_UNKNOWN_SUMMARY;
 	}
 	return CALLS_UNKNOWN_SUMMARY;
@@ -508,10 +774,13 @@ function summarizeWritable(state: TransformState, writable: luau.WritableExpress
 		}
 		return PURE_SUMMARY;
 	}
-	// property access / computed index write
+	// property access / computed index write: no source node at statement level, but the
+	// base may carry a value-region tag (writes can always throw — frozen tables, rejected
+	// Instance property values)
+	const region = getValueRegion(base) ?? HEAP_ALL;
 	let result = unionSummaries(summarizeExpression(state, writable.expression), {
 		...PURE_SUMMARY,
-		writesHeap: true,
+		writesHeap: region,
 		throws: true,
 	});
 	if (luau.isComputedIndexExpression(writable)) {
@@ -616,7 +885,10 @@ export function summarizeStatement(state: TransformState, statement: luau.Statem
 		// bodies only run when called; the declaration itself just creates/assigns the binding
 		return summarizeWritable(state, statement.name);
 	} else if (luau.isMethodDeclaration(statement)) {
-		return unionSummaries(summarizeExpression(state, statement.expression), { ...PURE_SUMMARY, writesHeap: true });
+		return unionSummaries(summarizeExpression(state, statement.expression), {
+			...PURE_SUMMARY,
+			writesHeap: HEAP_TABLES,
+		});
 	} else if (luau.isReturnStatement(statement)) {
 		return summarizeExpressionOrList(state, statement.expression);
 	}
@@ -643,7 +915,7 @@ export function isInvariantExpression(
 	const summary = summarizeExpression(state, expression, node);
 	return (
 		!summary.calls &&
-		!summary.readsHeap &&
+		summary.readsHeap === HEAP_NONE &&
 		!summary.throws &&
 		!writesAnything(summary) &&
 		summary.readsLocals !== "all" &&
@@ -954,15 +1226,16 @@ function beforeSummaryInExpressionOrList(
  * Re-evaluating such an expression can produce a fresh (distinct) object each time, even
  * when its effect summary is pure: `if cond then {1} else {2}` allocates per evaluation,
  * and a call to an effect-free function may still return a new table per call (effect
- * purity says nothing about value stability).
+ * purity says nothing about value stability). The exception is a call whose callee is
+ * tagged as definitely returning a primitive (see `tagCalleeSummary`) — primitives have no
+ * identity, so equal evaluations are indistinguishable; its callee/argument subtrees are
+ * still checked.
  */
 function containsAllocation(expression: luau.Expression): boolean {
-	if (
-		luau.isTable(expression) ||
-		luau.isFunctionExpression(expression) ||
-		luau.isCallExpression(expression) ||
-		luau.isMethodCallExpression(expression)
-	) {
+	if (luau.isTable(expression) || luau.isFunctionExpression(expression) || luau.isMethodCallExpression(expression)) {
+		return true;
+	}
+	if (luau.isCallExpression(expression) && !(expression.expression as TaggedNode)[RETURNS_PRIMITIVE_TAG]) {
 		return true;
 	}
 	return orderedChildExpressions(expression).some(containsAllocation);
@@ -970,16 +1243,17 @@ function containsAllocation(expression: luau.Expression): boolean {
 
 /**
  * True if re-evaluating `expression` yields the same value and no added effect — provided
- * nothing that reassigns its reads runs in between (checked separately by commutation). Only
- * pure reads of local/global bindings qualify: heap reads may be aliased by a write;
- * expressions containing table/closure constructors allocate a fresh (distinct) object each
- * time; and anything that throws, writes, or calls is not freely repeatable.
+ * nothing that reassigns its reads runs in between (checked separately by commutation).
+ * Pure reads of local/global bindings qualify (heap reads may be aliased by a write;
+ * anything that throws, writes, or calls unknown code is not freely repeatable), as do
+ * calls to effect-free functions that definitely return primitives — a pure body reads
+ * nothing mutable, so equal inputs give an equal, identity-free result.
  */
 function isRepeatable(expression: luau.Expression, summary: EffectSummary): boolean {
 	if (containsAllocation(expression)) {
 		return false;
 	}
-	return !summary.calls && !summary.throws && !summary.readsHeap && !writesAnything(summary);
+	return !summary.calls && !summary.throws && summary.readsHeap === HEAP_NONE && !writesAnything(summary);
 }
 
 /** Summary of the macro's entire output, with operand `target` and all earlier ones masked. */

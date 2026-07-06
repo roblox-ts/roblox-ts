@@ -10,7 +10,7 @@ import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
 import { isSymbolMutable } from "TSTransformer/util/isSymbolMutable";
 import { getFunctionSymbolSummary } from "TSTransformer/util/summarizeFunctionSymbol";
 import { getAncestor, isAncestorOf, skipDownwards, skipUpwards } from "TSTransformer/util/traversal";
-import { getFirstConstructSymbol } from "TSTransformer/util/types";
+import { getFirstConstructSymbol, isFunctionReturningPrimitive } from "TSTransformer/util/types";
 import ts from "typescript";
 
 export function transformIdentifierDefined(state: TransformState, node: ts.Identifier) {
@@ -33,7 +33,11 @@ export function transformIdentifierDefined(state: TransformState, node: ts.Ident
 		// body's effect summary so calls through it are not treated as unknown code
 		const calleeSummary = getFunctionSymbolSummary(state, symbol);
 		if (calleeSummary !== undefined && !calleeSummary.calls) {
-			tagCalleeSummary(identifier, calleeSummary);
+			tagCalleeSummary(
+				identifier,
+				calleeSummary,
+				isFunctionReturningPrimitive(state.typeChecker.getTypeOfSymbolAtLocation(symbol, node)),
+			);
 		}
 	}
 	return identifier;

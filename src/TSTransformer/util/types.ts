@@ -209,6 +209,83 @@ export function isRobloxType(state: TransformState): TypeCheck {
 		}) ?? false;
 }
 
+/**
+ * Matches the `Instance` interface from `@rbxts/types`. Combined with
+ * `isDefinitelyType`'s recursive base-type walking, this matches every Instance subclass.
+ */
+export function isInstanceType(state: TransformState): TypeCheck {
+	const robloxType = isRobloxType(state);
+	return type => type.symbol?.name === "Instance" && robloxType(type);
+}
+
+/**
+ * Roblox data types that are immutable values: their fields cannot change after
+ * construction, their methods cannot mutate them (or anything else), never yield, and
+ * never invoke user code. Deliberately excludes mutable ones (`Random`, `RaycastParams`,
+ * `OverlapParams`, …) and reference-typed containers (`SharedTable`).
+ */
+const IMMUTABLE_ROBLOX_DATA_TYPES = new Set([
+	"Axes",
+	"BrickColor",
+	"CFrame",
+	"Color3",
+	"ColorSequence",
+	"ColorSequenceKeypoint",
+	"DateTime",
+	"EnumItem",
+	"Faces",
+	"NumberRange",
+	"NumberSequence",
+	"NumberSequenceKeypoint",
+	"PathWaypoint",
+	"PhysicalProperties",
+	"Ray",
+	"Rect",
+	"Region3",
+	"Region3int16",
+	"TweenInfo",
+	"UDim",
+	"UDim2",
+	"Vector2",
+	"Vector2int16",
+	"Vector3",
+	"Vector3int16",
+]);
+
+export function isImmutableRobloxDataType(state: TransformState): TypeCheck {
+	const robloxType = isRobloxType(state);
+	return type => type.symbol !== undefined && IMMUTABLE_ROBLOX_DATA_TYPES.has(type.symbol.name) && robloxType(type);
+}
+
+/**
+ * True if the type is callable and every call signature definitely returns a primitive
+ * (string/number/boolean/undefined). Primitive results have no allocation identity, so a
+ * pure function of this type is value-stable across repeated calls with equal inputs.
+ */
+export function isFunctionReturningPrimitive(type: ts.Type): boolean {
+	const signatures = type.getCallSignatures();
+	return (
+		signatures.length > 0 &&
+		signatures.every(signature =>
+			isDefinitelyType(signature.getReturnType(), isStringType, isNumberType, isBooleanType, isUndefinedType),
+		)
+	);
+}
+
+/** Matches the constructor interface (e.g. `Vector3Constructor`) of an immutable data type. */
+export function isImmutableRobloxDataTypeConstructor(state: TransformState): TypeCheck {
+	const robloxType = isRobloxType(state);
+	return type => {
+		const name = type.symbol?.name;
+		return (
+			name !== undefined &&
+			name.endsWith("Constructor") &&
+			IMMUTABLE_ROBLOX_DATA_TYPES.has(name.slice(0, -"Constructor".length)) &&
+			robloxType(type)
+		);
+	};
+}
+
 // type utilities
 
 export function walkTypes(type: ts.Type, callback: (type: ts.Type) => void) {
