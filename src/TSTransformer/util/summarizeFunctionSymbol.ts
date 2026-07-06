@@ -79,6 +79,24 @@ export function getFunctionSymbolSummary(state: TransformState, symbol: ts.Symbo
 	return summary;
 }
 
+/**
+ * Body summary for a function-literal expression (an inline arrow/function expression that
+ * is not bound to any symbol — e.g. a callback argument). Same terms as
+ * `getFunctionSymbolSummary`; `undefined` for async/generator/bodyless functions.
+ */
+export function getFunctionExpressionSummary(
+	state: TransformState,
+	node: ts.ArrowFunction | ts.FunctionExpression,
+): EffectSummary | undefined {
+	if (node.asteriskToken !== undefined || ts.hasSyntacticModifier(node, ts.ModifierFlags.Async)) {
+		return undefined;
+	}
+	if (node.body === undefined) {
+		return undefined;
+	}
+	return summarizeFunctionBody(state, node as AnalyzableFunction);
+}
+
 const pendingSymbols = new Set<ts.Symbol>();
 let sawPendingSymbol = false;
 

@@ -509,6 +509,37 @@ export = () => {
 		expect(sorted[2]).to.equal(3);
 	});
 
+	it("should read an outer binding before an inline callback that writes it", () => {
+		let n = 0;
+		const arr = [1, 2, 3];
+		// the inline callback's body is analyzed too — its write to `n` must keep the
+		// earlier raw read of `n` ahead of the map loop
+		const values: Array<defined> = [
+			n,
+			arr.map(v => {
+				n += 1;
+				return v;
+			}),
+		];
+		expect(values[0]).to.equal(0);
+		expect(n).to.equal(3);
+	});
+
+	it("should copy a spread before a later element expression mutates the source", () => {
+		const arr = [1, 2];
+		function addNine() {
+			arr.push(9);
+			return 3;
+		}
+		// TS evaluates the spread copy before addNine() pushes into the source
+		const result = [...arr, addNine()];
+		expect(result.size()).to.equal(3);
+		expect(result[0]).to.equal(1);
+		expect(result[1]).to.equal(2);
+		expect(result[2]).to.equal(3);
+		expect(arr.size()).to.equal(3);
+	});
+
 	it("should call a known-pure callback per element without capturing the receiver", () => {
 		const double = (x: number) => x * 2;
 		let arr = [1, 2, 3];

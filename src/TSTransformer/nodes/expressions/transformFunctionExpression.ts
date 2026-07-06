@@ -5,6 +5,8 @@ import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformReturnStatementInner } from "TSTransformer/nodes/statements/transformReturnStatement";
 import { transformParameters } from "TSTransformer/nodes/transformParameters";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
+import { tagCalleeSummary } from "TSTransformer/util/effects";
+import { getFunctionExpressionSummary } from "TSTransformer/util/summarizeFunctionSymbol";
 import { wrapStatementsAsGenerator } from "TSTransformer/util/wrapStatementsAsGenerator";
 import ts from "typescript";
 
@@ -38,6 +40,13 @@ export function transformFunctionExpression(state: TransformState, node: ts.Func
 		parameters,
 		statements,
 	});
+
+	// record the body's effect summary so calls through this function value (typically a
+	// callback captured into a temporary) are not treated as unknown code
+	const summary = getFunctionExpressionSummary(state, node);
+	if (summary !== undefined && !summary.calls) {
+		tagCalleeSummary(expression, summary);
+	}
 
 	if (isAsync) {
 		expression = luau.call(state.TS(node, "async"), [expression]);

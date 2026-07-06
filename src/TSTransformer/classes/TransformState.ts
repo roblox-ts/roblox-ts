@@ -12,6 +12,7 @@ import { MultiTransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { TransformServices, TryUses } from "TSTransformer/types";
 import { createGetService } from "TSTransformer/util/createGetService";
+import { copyCalleeSummary } from "TSTransformer/util/effects";
 import { propertyAccessExpressionChain } from "TSTransformer/util/expressionChain";
 import { getModuleAncestor, skipUpwards } from "TSTransformer/util/traversal";
 import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
@@ -271,6 +272,10 @@ export class TransformState {
 	 */
 	public pushToVar(expression: luau.Expression | undefined, name?: string) {
 		const temp = luau.tempId(name || (expression && valueToIdStr(expression)));
+		if (expression) {
+			// the temp holds the same function value, so calls through it have the same effects
+			copyCalleeSummary(expression, temp);
+		}
 		this.prereq(
 			luau.create(luau.SyntaxKind.VariableDeclaration, {
 				left: temp,

@@ -226,6 +226,36 @@ Like `markConstIdentifier`, the analysis leans on roblox-ts's existing
 const-ness model (`isSymbolMutable`), which treats function-declaration
 bindings as never reassigned.
 
+**Inline callbacks** get the same treatment: `transformFunctionExpression`
+summarizes the body of every non-async, non-generator arrow/function literal
+and tags the emitted `luau.FunctionExpression`; `pushToVar` propagates the tag
+onto the capture temporary, since the temp holds the same function value. So
+`arr.filter(v => v > 1)` — where the literal must be captured into `_arg0`
+for the loop — still summarizes the loop body precisely, and neighboring
+operands stop paying for an "unknown code" callback.
+
+### 2.6 Fresh allocations: writes that alias nothing
+
+Temporaries are single-assignment and unnameable by user code. When a
+summarized statement list declares a temp from a table constructor or
+`table.create`/`table.pack` (never `table.clone`, which copies the source's
+metatable), that temp holds a **fresh, metatable-less table** — until the
+block's result escapes, nothing user-visible can reach it. Direct writes into
+it (`_newValue[_k] = v`, and `table.insert`/`table.move` whose mutation target
+it is) therefore alias nothing an operand could observe and run no
+metamethods: they are non-effects, minus a possible error when a computed
+key/position is not a compiler-controlled numeric (a temp counter, literal,
+`#x`, or arithmetic over such — macro-emitted keys always are).
+
+Freshness is keyed by the temp's numeric `id` (clones made at macro build
+time share it; a `Symbol` tag applied at summarize time would miss them) and
+is permanent, since the allocation's freshness never changes. This turns the
+output-building loops of `map`/`filter`/spread from heap-writers into mere
+heap-*readers*, so `use(obj.x, arr.map(double))` no longer captures `obj.x`.
+The compiler never emits `setmetatable` onto such temps (verified: the only
+temp-directed `setmetatable` calls pass `nil`, which removes metatables), so
+reads/writes cannot invoke user `__index`/`__newindex`.
+
 ## 3. Q1 rewritten: `ensureTransformOrder`
 
 The signature is unchanged. The implementation becomes:

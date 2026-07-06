@@ -41,11 +41,26 @@ type TaggedNode = luau.Expression & {
 	[BUILTIN_CALL_TAG]?: EffectSummary;
 	[BUILTIN_GLOBAL_TAG]?: true;
 	[CALLEE_SUMMARY_TAG]?: EffectSummary;
+	[BUILTIN_FRESH_TAG]?: true;
 };
 const OPERAND_TAG = Symbol("operandTag");
 const BUILTIN_CALL_TAG = Symbol("builtinCallSummary");
 const BUILTIN_GLOBAL_TAG = Symbol("builtinGlobal");
 const CALLEE_SUMMARY_TAG = Symbol("calleeSummary");
+// marks builtins whose call returns a fresh, metatable-less table (table.create/table.pack;
+// NOT table.clone, which copies the source's metatable)
+const BUILTIN_FRESH_TAG = Symbol("builtinReturnsFreshTable");
+/**
+ * `id`s of temporaries that some summarized statement list declared as a fresh,
+ * metatable-less table (a table constructor or table.create/pack call). Temporaries are
+ * single-assignment and unnameable by user code, so until the block's result escapes,
+ * direct writes into such a table are invisible to every operand — they alias nothing
+ * user-visible and (metatables being absent) run no user code. Membership is permanent:
+ * freshness of the allocation never changes. Keyed by the numeric `id` rather than a node
+ * tag because macros clone a temp's node at *build* time, before any summarization could
+ * tag it — the `id` is the identity that survives `luau.create`'s shallow clone.
+ */
+const freshTempIds = new Set<number>();
 
 /**
  * Records on an emitted callee expression the effect summary of the function body it is
@@ -55,6 +70,21 @@ const CALLEE_SUMMARY_TAG = Symbol("calleeSummary");
  */
 export function tagCalleeSummary(expression: luau.Expression, summary: EffectSummary) {
 	(expression as TaggedNode)[CALLEE_SUMMARY_TAG] = summary;
+}
+
+/**
+ * Propagates a callee summary from `from` onto `to`. Used when an expression is captured
+ * into a temporary (`pushToVar`): the temp holds the same function value, so calls through
+ * the temp have the same effects. Reads through parentheses.
+ */
+export function copyCalleeSummary(from: luau.Expression, to: luau.Expression) {
+	while (luau.isParenthesizedExpression(from)) {
+		from = from.expression;
+	}
+	const summary = (from as TaggedNode)[CALLEE_SUMMARY_TAG];
+	if (summary !== undefined) {
+		(to as TaggedNode)[CALLEE_SUMMARY_TAG] = summary;
+	}
 }
 
 /**
@@ -153,6 +183,9 @@ const MUTATES_HEAP_SUMMARY: EffectSummary = { ...PURE_SUMMARY, readsHeap: true, 
 const THROWS_SUMMARY: EffectSummary = { ...PURE_SUMMARY, throws: true };
 // sentinel: table.sort invokes a user comparator only when one is passed (see summarizeCall)
 const SORT_BUILTIN: EffectSummary = { ...PURE_SUMMARY };
+// sentinels: table.insert/move mutate a specific argument, which may be a fresh temp
+const INSERT_BUILTIN: EffectSummary = { ...PURE_SUMMARY };
+const MOVE_BUILTIN: EffectSummary = { ...PURE_SUMMARY };
 
 function setBuiltinCall(callee: luau.Expression, summary: EffectSummary) {
 	BUILTIN_CALL_SUMMARIES.set(callee, summary);
@@ -177,6 +210,8 @@ function setBuiltinCall(callee: luau.Expression, summary: EffectSummary) {
 		setBuiltinCall(luau.globals.string[name], THROWS_SUMMARY);
 	}
 	setBuiltinCall(luau.globals.table.create, PURE_SUMMARY);
+	(luau.globals.table.create as TaggedNode)[BUILTIN_FRESH_TAG] = true;
+	(luau.globals.table.pack as TaggedNode)[BUILTIN_FRESH_TAG] = true;
 	setBuiltinCall(luau.globals.table.find, READS_HEAP_SUMMARY);
 	setBuiltinCall(luau.globals.table.concat, READS_HEAP_THROWS_SUMMARY);
 	setBuiltinCall(luau.globals.table.isfrozen, READS_HEAP_SUMMARY);
@@ -184,9 +219,9 @@ function setBuiltinCall(callee: luau.Expression, summary: EffectSummary) {
 	setBuiltinCall(luau.globals.table.clone, READS_HEAP_THROWS_SUMMARY);
 	setBuiltinCall(luau.globals.table.pack, READS_HEAP_SUMMARY);
 	setBuiltinCall(luau.globals.table.unpack, READS_HEAP_SUMMARY);
-	setBuiltinCall(luau.globals.table.insert, MUTATES_HEAP_SUMMARY);
+	setBuiltinCall(luau.globals.table.insert, INSERT_BUILTIN);
 	setBuiltinCall(luau.globals.table.remove, MUTATES_HEAP_SUMMARY);
-	setBuiltinCall(luau.globals.table.move, MUTATES_HEAP_SUMMARY);
+	setBuiltinCall(luau.globals.table.move, MOVE_BUILTIN);
 	setBuiltinCall(luau.globals.table.clear, MUTATES_HEAP_SUMMARY);
 	setBuiltinCall(luau.globals.table.freeze, MUTATES_HEAP_SUMMARY);
 	setBuiltinCall(luau.globals.table.sort, SORT_BUILTIN);
@@ -253,12 +288,56 @@ function summarizeList(state: TransformState, list: luau.List<luau.Expression>):
 	return result;
 }
 
+/**
+ * A value that is definitely a non-nil number and whose evaluation cannot itself error:
+ * number literals, compiler temporaries (macro-emitted loop keys, counters, and lengths are
+ * always numbers), `#x`, and arithmetic over such. Used to decide whether a fresh-table
+ * write or a `table.insert`/`table.move` position argument can be a runtime error.
+ */
+function isCompilerNumeric(expression: luau.Expression): boolean {
+	if (luau.isNumberLiteral(expression) || luau.isTemporaryIdentifier(expression)) {
+		return true;
+	}
+	if (luau.isParenthesizedExpression(expression)) {
+		return isCompilerNumeric(expression.expression);
+	}
+	if (luau.isUnaryExpression(expression) && expression.operator === "#") {
+		return true;
+	}
+	if (
+		luau.isBinaryExpression(expression) &&
+		(expression.operator === "+" || expression.operator === "-" || expression.operator === "*")
+	) {
+		return isCompilerNumeric(expression.left) && isCompilerNumeric(expression.right);
+	}
+	return false;
+}
+
 function summarizeCall(state: TransformState, node: luau.CallExpression): EffectSummary {
 	// recognized by tag (which survives node cloning) with a Map fallback for the originals
 	let builtin = (node.expression as TaggedNode)[BUILTIN_CALL_TAG] ?? BUILTIN_CALL_SUMMARIES.get(node.expression);
 	if (builtin === SORT_BUILTIN) {
 		// table.sort runs a user comparator only when one is passed (array + comparator)
 		builtin = luau.list.size(node.args) <= 1 ? MUTATES_HEAP_SUMMARY : undefined;
+	}
+	if (builtin === INSERT_BUILTIN || builtin === MOVE_BUILTIN) {
+		// these mutate a specific argument: insert writes arg 1; move writes arg 5 when
+		// present (else arg 1) and reads its source (arg 1). When the mutated table is a
+		// block-fresh temp the write is invisible (see freshTempIds), leaving only source
+		// reads and — if a position/range argument is not a compiler-controlled numeric —
+		// a possible error.
+		const args = luau.list.toArray(node.args);
+		const target = builtin === MOVE_BUILTIN && args.length >= 5 ? args[4] : args[0];
+		if (target !== undefined && luau.isTemporaryIdentifier(target) && freshTempIds.has(target.id)) {
+			const controlArgs = builtin === MOVE_BUILTIN ? args.slice(1, 4) : args.length > 2 ? [args[1]] : [];
+			builtin = {
+				...PURE_SUMMARY,
+				readsHeap: builtin === MOVE_BUILTIN,
+				throws: !controlArgs.every(isCompilerNumeric),
+			};
+		} else {
+			builtin = MUTATES_HEAP_SUMMARY;
+		}
 	}
 	if (builtin === undefined) {
 		// a callee statically bound to an analyzed function body: the call's effects are the
@@ -400,11 +479,34 @@ export function summarizeExpression(
 	return CALLS_UNKNOWN_SUMMARY;
 }
 
+/** A table constructor, or a call to a builtin returning a fresh, metatable-less table. */
+function isFreshTableInitializer(expression: luau.Expression): boolean {
+	if (luau.isTable(expression)) {
+		return true;
+	}
+	return luau.isCallExpression(expression) && (expression.expression as TaggedNode)[BUILTIN_FRESH_TAG] === true;
+}
+
 function summarizeWritable(state: TransformState, writable: luau.WritableExpression): EffectSummary {
 	if (luau.isTemporaryIdentifier(writable)) {
 		return PURE_SUMMARY;
 	} else if (luau.isIdentifier(writable)) {
 		return { ...PURE_SUMMARY, writesLocals: new Set([writable.name]) };
+	}
+	// a direct write into a block-fresh table (see FRESH_TABLE_TAG) aliases nothing
+	// user-visible and runs no metamethods; it can still throw when a computed key might be
+	// nil/NaN at runtime, so only compiler-controlled keys drop the throw
+	const base = writable.expression;
+	if (luau.isTemporaryIdentifier(base) && freshTempIds.has(base.id)) {
+		if (luau.isComputedIndexExpression(writable)) {
+			const index = writable.index;
+			const indexSummary = summarizeExpression(state, index);
+			if (luau.isStringLiteral(index) || isCompilerNumeric(index)) {
+				return indexSummary;
+			}
+			return unionSummaries(indexSummary, { ...PURE_SUMMARY, throws: true });
+		}
+		return PURE_SUMMARY;
 	}
 	// property access / computed index write
 	let result = unionSummaries(summarizeExpression(state, writable.expression), {
@@ -449,6 +551,18 @@ function summarizeExpressionOrList(
 
 export function summarizeStatement(state: TransformState, statement: luau.Statement): EffectSummary {
 	if (luau.isVariableDeclaration(statement)) {
+		// statement lists are summarized in order, so a fresh-table temp is tagged here
+		// before any of the writes into it are summarized (the tag is permanent — temps are
+		// single-assignment)
+		if (
+			!luau.list.isList(statement.left) &&
+			luau.isTemporaryIdentifier(statement.left) &&
+			statement.right !== undefined &&
+			!luau.list.isList(statement.right) &&
+			isFreshTableInitializer(statement.right)
+		) {
+			freshTempIds.add(statement.left.id);
+		}
 		// declaring a user-named local counts as a write so shadowing is conservatively safe
 		return unionSummaries(
 			summarizeWritables(state, statement.left),
