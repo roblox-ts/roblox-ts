@@ -529,26 +529,28 @@ export function summarizeMemberRead(
 }
 
 /**
- * Classification of a member write through a base with the given source node. Writes can
- * always throw — a table may be frozen, an Instance property setter may reject the value —
- * but the *region* narrows by base type.
+ * Classification of a member write through a base with the given source node.
+ *
+ * A write to a definitely-table base only writes the table region, though it can still
+ * throw (frozen tables). A write to an Instance — or to a base we cannot classify, which
+ * may be an Instance — is treated as *unknown code*: property writes fire the
+ * `Changed`/`GetPropertyChangedSignal` family, and under `SignalBehavior.Immediate` those
+ * handlers run synchronously and may read or write anything, including locals they close
+ * over. (Engine APIs cannot touch Luau locals directly, but signal handlers are ordinary
+ * user closures.)
  */
 export function summarizeMemberWrite(state: TransformState, baseNode: ts.Expression | undefined): EffectSummary {
-	let regions = HEAP_ALL;
 	if (baseNode) {
 		const type = state.getType(baseNode);
-		if (!isPossiblyType(type, isUndefinedType, isAnyType(state))) {
-			if (isDefinitelyType(type, isInstanceType(state))) {
-				regions = HEAP_INSTANCES;
-			} else if (
-				!isPossiblyType(type, isRobloxType(state)) &&
-				isDefinitelyType(type, t => isObjectType(t) && t.getCallSignatures().length === 0)
-			) {
-				regions = HEAP_TABLES;
-			}
+		if (
+			!isPossiblyType(type, isUndefinedType, isAnyType(state)) &&
+			!isPossiblyType(type, isRobloxType(state)) &&
+			isDefinitelyType(type, t => isObjectType(t) && t.getCallSignatures().length === 0)
+		) {
+			return { ...PURE_SUMMARY, writesHeap: HEAP_TABLES, throws: true };
 		}
 	}
-	return { ...PURE_SUMMARY, writesHeap: regions, throws: true };
+	return CALLS_UNKNOWN_SUMMARY;
 }
 
 /**
@@ -775,12 +777,17 @@ function summarizeWritable(state: TransformState, writable: luau.WritableExpress
 		return PURE_SUMMARY;
 	}
 	// property access / computed index write: no source node at statement level, but the
-	// base may carry a value-region tag (writes can always throw — frozen tables, rejected
-	// Instance property values)
-	const region = getValueRegion(base) ?? HEAP_ALL;
+	// base may carry a value-region tag. A definitely-table write only writes the table
+	// region (it can still throw — frozen tables). A write through an Instance — or a base
+	// we cannot classify, which may be an Instance — is unknown code: property writes fire
+	// the Changed/GetPropertyChangedSignal family, and under SignalBehavior.Immediate those
+	// handlers run synchronously and may read or write anything, including locals.
+	if (getValueRegion(base) !== HEAP_TABLES) {
+		return CALLS_UNKNOWN_SUMMARY;
+	}
 	let result = unionSummaries(summarizeExpression(state, writable.expression), {
 		...PURE_SUMMARY,
-		writesHeap: region,
+		writesHeap: HEAP_TABLES,
 		throws: true,
 	});
 	if (luau.isComputedIndexExpression(writable)) {

@@ -6,6 +6,7 @@ import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { addOneIfArrayType } from "TSTransformer/util/addOneIfArrayType";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
+import { tagValueRegion } from "TSTransformer/util/effects";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { skipDownwards } from "TSTransformer/util/traversal";
 import ts from "typescript";
@@ -20,12 +21,16 @@ export function transformWritableExpression(
 	}
 	if (ts.isPropertyAccessExpression(node)) {
 		const expression = transformExpression(state, node.expression);
+		// classify the write's base region (table writes cannot run user code; Instance
+		// writes may fire Immediate-mode signal handlers)
+		tagValueRegion(state, expression, node.expression);
 		return luau.property(
 			readAfterWrite ? state.pushToVarIfNonId(expression, "exp") : convertToIndexableExpression(expression),
 			node.name.text,
 		);
 	} else if (ts.isElementAccessExpression(node)) {
 		const [expression, index] = ensureTransformOrder(state, [node.expression, node.argumentExpression]);
+		tagValueRegion(state, expression, node.expression);
 		const indexExp = addOneIfArrayType(state, state.getType(node.expression), index);
 		return luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 			expression: readAfterWrite

@@ -300,6 +300,20 @@ Error interleaving still rules: `use(part.Position, arr.pop())` keeps its
 temp, because both the Instance read and the (possibly frozen-table) write
 can throw and a `pcall`ing caller must observe the right error.
 
+**Locals and the copy boundary.** Engine APIs cannot read or write Luau
+locals directly — arguments are marshaled by copy — and the refined
+summaries above already say so (empty `readsLocals`/`writesLocals`). But two
+argument kinds are *references*, not copies: function values (callbacks are
+invoked, and closures write their upvalues) and Instances. And engine-state
+*mutations* fire the `Changed`/`GetPropertyChangedSignal` family, whose
+handlers run synchronously under `SignalBehavior.Immediate` — ordinary user
+closures that can read or write anything. Hence the asymmetry: engine-state
+*reads* are tame (no signals, no callbacks, no yields for the allowlist),
+while an Instance member *write* — or a write through a base that cannot be
+proven a plain table — is treated as unknown code. `transformWritableExpression`
+tags every member-assignment base with its region so table writes keep their
+precise summary.
+
 ## 3. Q1 rewritten: `ensureTransformOrder`
 
 The signature is unchanged. The implementation becomes:
