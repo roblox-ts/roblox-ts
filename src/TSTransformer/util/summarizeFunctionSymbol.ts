@@ -17,6 +17,7 @@ import {
 	isArrayType,
 	isBooleanType,
 	isDefinitelyType,
+	isFunctionReturningPrimitive,
 	isMapType,
 	isNumberType,
 	isSetType,
@@ -24,6 +25,13 @@ import {
 	isUndefinedType,
 } from "TSTransformer/util/types";
 import ts from "typescript";
+
+/** What the analysis knows about calling an immutably-bound, statically-known function. */
+export interface FunctionSymbolInfo {
+	readonly summary: EffectSummary;
+	/** every TS call signature definitely returns a primitive (see `isFunctionReturningPrimitive`) */
+	readonly returnsPrimitive: boolean;
+}
 
 /**
  * Computes an effect summary for calling a function whose body is statically known: a
@@ -48,7 +56,7 @@ import ts from "typescript";
  * in-progress summary are only cached at the root of the analysis, where the fixpoint is
  * complete.
  */
-export function getFunctionSymbolSummary(state: TransformState, symbol: ts.Symbol): EffectSummary | undefined {
+export function getFunctionSymbolInfo(state: TransformState, symbol: ts.Symbol): FunctionSymbolInfo | undefined {
 	if (symbol.flags & ts.SymbolFlags.Alias) {
 		symbol = state.typeChecker.getAliasedSymbol(symbol);
 	}
@@ -62,7 +70,7 @@ export function getFunctionSymbolSummary(state: TransformState, symbol: ts.Symbo
 	if (pendingSymbols.has(symbol)) {
 		// self/mutual recursion: the pending function's effects are already being unioned
 		sawPendingSymbol = true;
-		return PURE_SUMMARY;
+		return RECURSION_PENDING_INFO;
 	}
 
 	const func = getAnalyzableFunction(state, symbol);
@@ -74,26 +82,33 @@ export function getFunctionSymbolSummary(state: TransformState, symbol: ts.Symbo
 	pendingSymbols.add(symbol);
 	const outerSawPending = sawPendingSymbol;
 	sawPendingSymbol = false;
-	let summary: EffectSummary;
+	let dependedOnPending = true;
+	let info: FunctionSymbolInfo;
 	try {
-		summary = summarizeFunctionBody(state, func);
+		const summary = summarizeFunctionBody(state, func);
+		info = {
+			summary,
+			returnsPrimitive: isFunctionReturningPrimitive(state.typeChecker.getTypeOfSymbolAtLocation(symbol, func)),
+		};
+		dependedOnPending = sawPendingSymbol;
 	} finally {
 		pendingSymbols.delete(symbol);
+		sawPendingSymbol = outerSawPending || (dependedOnPending && pendingSymbols.size > 0);
 	}
-	const dependedOnPending = sawPendingSymbol;
 	// a result computed while some enclosing analysis is still pending may be a partial
-	// fixpoint — usable by that analysis, but not cacheable; propagate the taint upward
+	// fixpoint — usable by that analysis, but not cacheable
 	if (!dependedOnPending || pendingSymbols.size === 0) {
-		cache.set(symbol, summary);
+		cache.set(symbol, info);
 	}
-	sawPendingSymbol = outerSawPending || (dependedOnPending && pendingSymbols.size > 0);
-	return summary;
+	return info;
 }
+
+const RECURSION_PENDING_INFO: FunctionSymbolInfo = { summary: PURE_SUMMARY, returnsPrimitive: false };
 
 /**
  * Body summary for a function-literal expression (an inline arrow/function expression that
  * is not bound to any symbol — e.g. a callback argument). Same terms as
- * `getFunctionSymbolSummary`; `undefined` for async/generator/bodyless functions.
+ * `getFunctionSymbolInfo`; `undefined` for async/generator/bodyless functions.
  */
 export function getFunctionExpressionSummary(
 	state: TransformState,
@@ -156,7 +171,9 @@ const READS_TABLES_SUMMARY: EffectSummary = { ...PURE_SUMMARY, readsHeap: HEAP_T
 const READS_ALL_THROWS_SUMMARY: EffectSummary = { ...PURE_SUMMARY, readsHeap: HEAP_ALL, throws: true };
 const THROWS_SUMMARY: EffectSummary = { ...PURE_SUMMARY, throws: true };
 
-// call macros that only evaluate their arguments (no other observable behavior)
+// call macros that only evaluate their arguments (no other observable behavior); `assert`
+// is handled separately (it throws). Keep in sync with CALL_MACROS in macros/callMacros.ts
+// when adding a macro.
 const PURE_CALL_MACROS = new Set(["typeOf", "typeIs", "classIs", "identity", "$range", "$tuple", "$getModuleTree"]);
 
 function summarizeFunctionBody(state: TransformState, func: AnalyzableFunction): EffectSummary {
@@ -282,10 +299,10 @@ function summarizeFunctionBody(state: TransformState, func: AnalyzableFunction):
 		if (ts.isIdentifier(callee)) {
 			const symbol = state.typeChecker.getSymbolAtLocation(callee);
 			if (symbol !== undefined) {
-				const calleeSummary = getFunctionSymbolSummary(state, symbol);
-				if (calleeSummary !== undefined) {
+				const calleeInfo = getFunctionSymbolInfo(state, symbol);
+				if (calleeInfo !== undefined) {
 					// an analyzable callee is an immutable binding, so reading it is free
-					return unionSummaries(result, calleeSummary);
+					return unionSummaries(result, calleeInfo.summary);
 				}
 			}
 		}

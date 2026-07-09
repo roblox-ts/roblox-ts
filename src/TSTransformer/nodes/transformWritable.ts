@@ -29,8 +29,8 @@ export function transformWritableExpression(
 			node.name.text,
 		);
 	} else if (ts.isElementAccessExpression(node)) {
+		// ensureTransformOrder already tags the base's value region
 		const [expression, index] = ensureTransformOrder(state, [node.expression, node.argumentExpression]);
-		tagValueRegion(state, expression, node.expression);
 		const indexExp = addOneIfArrayType(state, state.getType(node.expression), index);
 		return luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 			expression: readAfterWrite

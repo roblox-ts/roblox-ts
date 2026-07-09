@@ -12,11 +12,11 @@ import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexa
 import {
 	commutes,
 	computeMacroCaptures,
-	PURE_SUMMARY,
+	decideOrderedCaptures,
+	OrderedOperand,
 	summarizeExpression,
 	summarizeStatements,
 	tagValueRegion,
-	unionSummaries,
 } from "TSTransformer/util/effects";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isMethod } from "TSTransformer/util/isMethod";
@@ -34,15 +34,13 @@ function runCallMacro(
 	nodeArguments: ReadonlyArray<ts.Expression>,
 ): luau.Expression {
 	// Each operand is transformed into prerequisite statements plus result expressions
-	// (a spread contributes multiple results). TS evaluates operands left-to-right, but in
-	// the emitted Luau all prereqs run before any result expression is consumed, so each
-	// result is implicitly deferred past every later operand's prereqs — capture it into a
-	// temporary at its original position when that deferral is observable. The operands are
-	// then handed to the macro, whose usage of them determines any further captures (see
-	// the trial-run analysis below).
-	interface OperandInfo {
+	// (a spread contributes multiple results). TS evaluates operands left-to-right; an
+	// operand result is captured at its original position when deferring it to the
+	// consumption point is observable (see decideOrderedCaptures). The operands are then
+	// handed to the macro, whose usage of them determines any further captures (see the
+	// trial-run analysis below).
+	interface OperandInfo extends OrderedOperand {
 		expressions: Array<luau.Expression>;
-		prereqs: luau.List<luau.Statement>;
 		node?: ts.Expression;
 	}
 
@@ -110,24 +108,7 @@ function runCallMacro(
 		}
 	}
 
-	// Decide captures right-to-left. `suffix` accumulates everything after an operand that
-	// will run before its deferred consumption: later operands' prereq statements, plus the
-	// evaluation of any later operand that is itself captured (its pushToVar assignment
-	// executes at its original position). A raw later operand contributes nothing — it is
-	// consumed after this operand, matching TS order.
-	const operandCaptures = operands.map(operand => new Array<boolean>(operand.expressions.length).fill(false));
-	let suffix = PURE_SUMMARY;
-	for (let i = operands.length - 1; i >= 0; i--) {
-		const operand = operands[i];
-		for (let j = operand.expressions.length - 1; j >= 0; j--) {
-			const operandSummary = summarizeExpression(state, operand.expressions[j], operand.node);
-			operandCaptures[i][j] = !commutes(operandSummary, suffix);
-			if (operandCaptures[i][j]) {
-				suffix = unionSummaries(operandSummary, suffix);
-			}
-		}
-		suffix = unionSummaries(summarizeStatements(state, operand.prereqs), suffix);
-	}
+	const operandCaptures = decideOrderedCaptures(state, operands);
 
 	const args = new Array<luau.Expression>();
 	for (let i = 0; i < operands.length; i++) {
@@ -151,11 +132,14 @@ function runCallMacro(
 	// that would otherwise be re-evaluated or evaluated out of order, then run the macro for
 	// real with those operands replaced by temporaries. The macro's transform never has to
 	// reason about ordering, and only the operands that genuinely need a temporary get one.
+	// (PropertyCallMacro's node parameter is a refinement of CallMacro's; the macro was
+	// selected for this node, so the wider signature is safe to call through.)
+	const macroFn = macro as CallMacro;
 	const operandExpressions = [expression, ...args];
 	// operands must be tagged (inside computeMacroCaptures) before the trial run so that any
 	// clones the macro makes of a reused operand carry the tag; the trial output is discarded
 	const captures = computeMacroCaptures(state, operandExpressions, () =>
-		DiagnosticService.suppressed(() => state.capture(() => macro(state, node as never, expression, args.slice()))),
+		DiagnosticService.suppressed(() => state.capture(() => macroFn(state, node, expression, args.slice()))),
 	);
 	for (let i = 0; i < operandExpressions.length; i++) {
 		if (captures[i]) {
@@ -168,7 +152,7 @@ function runCallMacro(
 	expression = operandExpressions[0];
 	const finalArgs = operandExpressions.slice(1);
 
-	return wrapReturnIfLuaTuple(state, node, macro(state, node as never, expression, finalArgs));
+	return wrapReturnIfLuaTuple(state, node, macroFn(state, node, expression, finalArgs));
 }
 
 /**

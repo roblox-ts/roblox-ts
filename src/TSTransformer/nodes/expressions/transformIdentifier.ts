@@ -8,9 +8,9 @@ import { isBlockLike, isNamespace } from "TSTransformer/typeGuards";
 import { tagCalleeSummary } from "TSTransformer/util/effects";
 import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
 import { isSymbolMutable } from "TSTransformer/util/isSymbolMutable";
-import { getFunctionSymbolSummary } from "TSTransformer/util/summarizeFunctionSymbol";
+import { getFunctionSymbolInfo } from "TSTransformer/util/summarizeFunctionSymbol";
 import { getAncestor, isAncestorOf, skipDownwards, skipUpwards } from "TSTransformer/util/traversal";
-import { getFirstConstructSymbol, isFunctionReturningPrimitive } from "TSTransformer/util/types";
+import { getFirstConstructSymbol } from "TSTransformer/util/types";
 import ts from "typescript";
 
 export function transformIdentifierDefined(state: TransformState, node: ts.Identifier) {
@@ -31,13 +31,9 @@ export function transformIdentifierDefined(state: TransformState, node: ts.Ident
 		state.markConstIdentifier(identifier);
 		// if this identifier is an immutable binding to a known function body, record the
 		// body's effect summary so calls through it are not treated as unknown code
-		const calleeSummary = getFunctionSymbolSummary(state, symbol);
-		if (calleeSummary !== undefined && !calleeSummary.calls) {
-			tagCalleeSummary(
-				identifier,
-				calleeSummary,
-				isFunctionReturningPrimitive(state.typeChecker.getTypeOfSymbolAtLocation(symbol, node)),
-			);
+		const calleeInfo = getFunctionSymbolInfo(state, symbol);
+		if (calleeInfo !== undefined && !calleeInfo.summary.calls) {
+			tagCalleeSummary(identifier, calleeInfo.summary, calleeInfo.returnsPrimitive);
 		}
 	}
 	return identifier;

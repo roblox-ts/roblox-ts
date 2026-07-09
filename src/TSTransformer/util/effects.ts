@@ -16,17 +16,6 @@ import {
 import ts from "typescript";
 
 /**
- * A conservative summary of the observable behavior of a piece of generated Luau.
- *
- * Used to decide whether evaluation of an expression can be deferred past a block of
- * statements or repeated (see `commutes` and `computeMacroCaptures`) without changing
- * the program's observable behavior relative to TypeScript's evaluation order.
- *
- * Compiler-generated temporaries are invisible to user code: reads of them are free and
- * writes to them are non-effects. This relies on the existing invariant that temporary
- * identifiers are never reassigned after being exposed from a transform.
- */
-/**
  * The heap is split into two disjoint regions, tracked as a bitmask: Lua tables (which is
  * where every compiler-emitted mutation lands) and Roblox engine state (Instances and
  * mutable userdata). Engine APIs never mutate Lua tables reachable from their arguments —
@@ -39,6 +28,17 @@ export const HEAP_TABLES: HeapRegions = 1 << 0;
 export const HEAP_INSTANCES: HeapRegions = 1 << 1;
 export const HEAP_ALL: HeapRegions = HEAP_TABLES | HEAP_INSTANCES;
 
+/**
+ * A conservative summary of the observable behavior of a piece of generated Luau.
+ *
+ * Used to decide whether evaluation of an expression can be deferred past a block of
+ * statements or repeated (see `commutes` and `computeMacroCaptures`) without changing
+ * the program's observable behavior relative to TypeScript's evaluation order.
+ *
+ * Compiler-generated temporaries are invisible to user code: reads of them are free and
+ * writes to them are non-effects. This relies on the existing invariant that temporary
+ * identifiers are never reassigned after being exposed from a transform.
+ */
 export interface EffectSummary {
 	/** Names of user-visible bindings (locals/globals) that may be read. */
 	readonly readsLocals: ReadonlySet<string> | "all";
@@ -96,9 +96,20 @@ const BUILTIN_FRESH_TAG = Symbol("builtinReturnsFreshTable");
 const freshTempIds = new Set<number>();
 
 /**
+ * Drops analysis state that only made sense within one compilation step. Temporary `id`s
+ * are process-globally unique (the counter never resets), so stale `freshTempIds` entries
+ * can never misclassify a later compile's temps — clearing just keeps watch-mode memory
+ * flat. Called when a new `MultiTransformState` is created.
+ */
+export function clearTransientAnalysisState() {
+	freshTempIds.clear();
+	maskedOperandTags = undefined;
+}
+
+/**
  * Records on an emitted callee expression the effect summary of the function body it is
  * statically known to refer to (an immutable binding whose body was analyzed — see
- * `getFunctionSymbolSummary`). `summarizeCall` then uses the body's summary instead of
+ * `getFunctionSymbolInfo`). `summarizeCall` then uses the body's summary instead of
  * treating the call as unknown code. The tag survives `luau.create`'s clones.
  */
 export function tagCalleeSummary(expression: luau.Expression, summary: EffectSummary, returnsPrimitive = false) {
@@ -455,6 +466,19 @@ const READONLY_INSTANCE_METHODS = new Set([
  * `undefined` when unknown: Instances live in the engine-state region; non-Roblox,
  * non-callable object types are plain Lua tables.
  */
+/**
+ * True if the type is definitely a plain Lua table: non-nil, not declared by
+ * `@rbxts/types` (Instances, datatypes, and other userdata all come from there), and a
+ * non-callable object type.
+ */
+function isDefinitelyPlainTable(state: TransformState, type: ts.Type): boolean {
+	return (
+		!isPossiblyType(type, isUndefinedType, isAnyType(state)) &&
+		!isPossiblyType(type, isRobloxType(state)) &&
+		isDefinitelyType(type, t => isObjectType(t) && t.getCallSignatures().length === 0)
+	);
+}
+
 function classifyValueRegion(state: TransformState, node: ts.Expression): HeapRegions | undefined {
 	const type = state.getType(node);
 	if (isPossiblyType(type, isUndefinedType, isAnyType(state))) {
@@ -463,10 +487,7 @@ function classifyValueRegion(state: TransformState, node: ts.Expression): HeapRe
 	if (isDefinitelyType(type, isInstanceType(state))) {
 		return HEAP_INSTANCES;
 	}
-	if (
-		!isPossiblyType(type, isRobloxType(state)) &&
-		isDefinitelyType(type, t => isObjectType(t) && t.getCallSignatures().length === 0)
-	) {
+	if (isDefinitelyPlainTable(state, type)) {
 		return HEAP_TABLES;
 	}
 	return undefined;
@@ -540,15 +561,8 @@ export function summarizeMemberRead(
  * user closures.)
  */
 export function summarizeMemberWrite(state: TransformState, baseNode: ts.Expression | undefined): EffectSummary {
-	if (baseNode) {
-		const type = state.getType(baseNode);
-		if (
-			!isPossiblyType(type, isUndefinedType, isAnyType(state)) &&
-			!isPossiblyType(type, isRobloxType(state)) &&
-			isDefinitelyType(type, t => isObjectType(t) && t.getCallSignatures().length === 0)
-		) {
-			return { ...PURE_SUMMARY, writesHeap: HEAP_TABLES, throws: true };
-		}
+	if (baseNode && isDefinitelyPlainTable(state, state.getType(baseNode))) {
+		return { ...PURE_SUMMARY, writesHeap: HEAP_TABLES, throws: true };
 	}
 	return CALLS_UNKNOWN_SUMMARY;
 }
@@ -761,7 +775,7 @@ function summarizeWritable(state: TransformState, writable: luau.WritableExpress
 	} else if (luau.isIdentifier(writable)) {
 		return { ...PURE_SUMMARY, writesLocals: new Set([writable.name]) };
 	}
-	// a direct write into a block-fresh table (see FRESH_TABLE_TAG) aliases nothing
+	// a direct write into a block-fresh table (see freshTempIds) aliases nothing
 	// user-visible and runs no metamethods; it can still throw when a computed key might be
 	// nil/NaN at runtime, so only compiler-controlled keys drop the throw
 	const base = writable.expression;
@@ -1155,24 +1169,27 @@ function computeBeforeSummary(
 	for (let j = 0; j < target; j++) earlier.add(j);
 
 	maskedOperandTags = earlier;
-	let acc = PURE_SUMMARY;
-	let handled = false;
-	luau.list.forEach(prereqs, statement => {
-		if (handled) return;
-		const before = beforeSummaryInStatement(state, statement, target, earlier);
-		if (before !== undefined) {
-			acc = unionSummaries(acc, before);
-			handled = true;
-		} else {
-			// this statement fully precedes the one holding the target
-			acc = unionSummaries(acc, summarizeStatement(state, statement));
+	try {
+		let acc = PURE_SUMMARY;
+		let handled = false;
+		luau.list.forEach(prereqs, statement => {
+			if (handled) return;
+			const before = beforeSummaryInStatement(state, statement, target, earlier);
+			if (before !== undefined) {
+				acc = unionSummaries(acc, before);
+				handled = true;
+			} else {
+				// this statement fully precedes the one holding the target
+				acc = unionSummaries(acc, summarizeStatement(state, statement));
+			}
+		});
+		if (!handled) {
+			acc = unionSummaries(acc, beforeSummaryInExpression(state, result, target) ?? PURE_SUMMARY);
 		}
-	});
-	if (!handled) {
-		acc = unionSummaries(acc, beforeSummaryInExpression(state, result, target) ?? PURE_SUMMARY);
+		return acc;
+	} finally {
+		maskedOperandTags = undefined;
 	}
-	maskedOperandTags = undefined;
-	return acc;
 }
 
 /** Before-summary of `target` within a single statement, or `undefined` if not inside it. */
@@ -1201,9 +1218,11 @@ function beforeSummaryInStatement(
 	const withTarget = new Set(earlier);
 	withTarget.add(target);
 	maskedOperandTags = withTarget;
-	const summary = summarizeStatement(state, statement);
-	maskedOperandTags = earlier;
-	return summary;
+	try {
+		return summarizeStatement(state, statement);
+	} finally {
+		maskedOperandTags = earlier;
+	}
 }
 
 function beforeSummaryInExpressionOrList(
@@ -1273,10 +1292,55 @@ function summarizeWholeOutput(
 	const masked = new Set<number>();
 	for (let j = 0; j <= target; j++) masked.add(j);
 	maskedOperandTags = masked;
-	let summary = summarizeStatements(state, prereqs);
-	summary = unionSummaries(summary, summarizeExpression(state, result));
-	maskedOperandTags = undefined;
-	return summary;
+	try {
+		const summary = summarizeStatements(state, prereqs);
+		return unionSummaries(summary, summarizeExpression(state, result));
+	} finally {
+		maskedOperandTags = undefined;
+	}
+}
+
+/**
+ * An ordered operand as the drivers see it: the result expression(s) it transformed into
+ * (a spread contributes several), the prerequisite statements it produced, and optionally
+ * its source node for type refinement.
+ */
+export interface OrderedOperand {
+	readonly expressions: ReadonlyArray<luau.Expression>;
+	readonly prereqs: luau.List<luau.Statement>;
+	readonly node?: ts.Expression;
+}
+
+/**
+ * Decides, per operand result expression, whether it must be captured into a temporary at
+ * its original position to preserve TypeScript's left-to-right evaluation order.
+ *
+ * In the emitted Luau, every operand's prerequisite statements run before any result
+ * expression is consumed, so each result is implicitly deferred past every *later*
+ * operand's prereqs — and past the evaluation of any later operand that is itself
+ * captured, since its `pushToVar` assignment executes at its original position. A raw
+ * later operand contributes nothing: it stays at the consumption point, after this
+ * operand, matching TS order. That second term is why decisions run right-to-left (each
+ * new capture can cascade further left).
+ */
+export function decideOrderedCaptures(
+	state: TransformState,
+	operands: ReadonlyArray<OrderedOperand>,
+): Array<Array<boolean>> {
+	const captures = operands.map(operand => new Array<boolean>(operand.expressions.length).fill(false));
+	let suffix = PURE_SUMMARY;
+	for (let i = operands.length - 1; i >= 0; i--) {
+		const operand = operands[i];
+		for (let j = operand.expressions.length - 1; j >= 0; j--) {
+			const operandSummary = summarizeExpression(state, operand.expressions[j], operand.node);
+			captures[i][j] = !commutes(operandSummary, suffix);
+			if (captures[i][j]) {
+				suffix = unionSummaries(operandSummary, suffix);
+			}
+		}
+		suffix = unionSummaries(summarizeStatements(state, operand.prereqs), suffix);
+	}
+	return captures;
 }
 
 /**

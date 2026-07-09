@@ -19,6 +19,8 @@ const PRIMITIVE_LUAU_TYPES = new Set([
 	"buffer",
 ]);
 
+// NOTE: when adding a macro here, also classify it in PURE_CALL_MACROS (or as throwing) in
+// util/summarizeFunctionSymbol.ts so the function-body analysis knows its effects.
 export const CALL_MACROS: MacroList<CallMacro> = {
 	assert: (state, node, expression, args) => {
 		args[0] = createTruthinessChecks(state, args[0], node.arguments[0]);

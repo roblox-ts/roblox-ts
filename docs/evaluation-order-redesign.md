@@ -341,6 +341,11 @@ can cascade further left. Omitting it is unsound: in `[n, bumpN(), arr.pop()]`
 where `bumpN` writes `n`, `bumpN()` is captured (it must precede pop's
 prereqs), which hoists the write above the raw read of `n`.
 
+This decision procedure is `decideOrderedCaptures` in `util/effects.ts`,
+shared by `ensureTransformOrder` and `runCallMacro`'s operand sequencing
+(where an operand may contribute several result expressions, e.g. an unpacked
+spread).
+
 Notable behavioral deltas (all verified against runtime semantics):
 
 * `f(x, arr.pop())` — `x` reads a local; pop's prereqs only write heap →

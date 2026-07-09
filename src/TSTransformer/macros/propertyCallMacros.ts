@@ -15,29 +15,19 @@ import ts from "typescript";
  * the macro, observes how each operand is actually used, and captures into a temporary
  * any operand that would otherwise be re-evaluated or evaluated out of TypeScript's order.
  *
- * The wrappers below (`inline` / `mutatesHeap` / `runsUserCode`) are documentation only:
- * they label, for a human reader, what a macro does with the operands it receives. They
- * carry no behavior — the driver's analysis is what makes the decisions.
- *
  * Within a transform, `pushToVarIfComplex`/`pushToVar` may still be used to avoid
  * *recomputing* a non-trivial operand-derived expression that is used several times —
  * that is a code-size choice, never a correctness requirement.
  */
 
-function inline(transform: PropertyCallMacro): PropertyCallMacro {
-	return transform;
-}
-const mutatesHeap = inline;
-const runsUserCode = inline;
-
 function makeMathMethod(operator: luau.BinaryOperator): PropertyCallMacro {
-	return inline((state, node, expression, args) => {
+	return (state, node, expression, args) => {
 		let rhs = args[0];
 		if (!luau.isSimple(rhs)) {
 			rhs = luau.create(luau.SyntaxKind.ParenthesizedExpression, { expression: rhs });
 		}
 		return luau.binary(expression, operator, rhs);
-	});
+	};
 }
 
 const OPERATOR_TO_NAME_MAP = new Map<luau.BinaryOperator, "add" | "sub" | "mul" | "div" | "idiv">([
@@ -59,13 +49,13 @@ function makeMathSet(...operators: Array<luau.BinaryOperator>) {
 }
 
 function makeStringCallback(strCallback: luau.PropertyAccessExpression): PropertyCallMacro {
-	return inline((state, node, expression, args) => {
+	return (state, node, expression, args) => {
 		return luau.call(strCallback, [expression, ...args]);
-	});
+	};
 }
 
 const STRING_CALLBACKS: MacroList<PropertyCallMacro> = {
-	size: inline((state, node, expression) => luau.unary("#", expression)),
+	size: (state, node, expression) => luau.unary("#", expression),
 
 	byte: makeStringCallback(luau.globals.string.byte),
 	find: makeStringCallback(luau.globals.string.find),
@@ -89,7 +79,7 @@ function makeEveryOrSomeMethod(
 	) => Array<luau.Expression>,
 	initialState: boolean,
 ): PropertyCallMacro {
-	return runsUserCode((state, node, expression, args) => {
+	return (state, node, expression, args) => {
 		const callbackId = convertToIndexableExpression(args[0]);
 		const resultId = state.pushToVar(luau.bool(initialState), "result");
 
@@ -119,7 +109,7 @@ function makeEveryOrSomeMethod(
 		);
 
 		return resultId;
-	});
+	};
 }
 
 function makeEveryMethod(
@@ -184,13 +174,13 @@ function joinNeedsToString(state: TransformState, node: ts.CallExpression) {
 }
 
 const ARRAY_LIKE_METHODS: MacroList<PropertyCallMacro> = {
-	size: inline((state, node, expression) => luau.unary("#", expression)),
+	size: (state, node, expression) => luau.unary("#", expression),
 };
 
 const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
-	isEmpty: inline((state, node, expression) => luau.binary(luau.unary("#", expression), "==", luau.number(0))),
+	isEmpty: (state, node, expression) => luau.binary(luau.unary("#", expression), "==", luau.number(0)),
 
-	join: runsUserCode((state, node, expression, args) => {
+	join: (state, node, expression, args) => {
 		args = argumentsWithDefaults(state, args, [luau.strings[", "]]);
 
 		if (joinNeedsToString(state, node)) {
@@ -218,25 +208,25 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		}
 
 		return luau.call(luau.globals.table.concat, [expression, args[0]]);
-	}),
+	},
 
-	move: inline((state, node, expression, args) => {
+	move: (state, node, expression, args) => {
 		const moveArgs = [expression, offset(args[0], 1), offset(args[1], 1), offset(args[2], 1)];
 		if (args[3]) {
 			moveArgs.push(args[3]);
 		}
 		return luau.call(luau.globals.table.move, moveArgs);
-	}),
+	},
 
-	includes: inline((state, node, expression, args) => {
+	includes: (state, node, expression, args) => {
 		const callArgs = [expression, args[0]];
 		if (args[1]) {
 			callArgs.push(offset(args[1], 1));
 		}
 		return luau.binary(luau.call(luau.globals.table.find, callArgs), "~=", luau.nil());
-	}),
+	},
 
-	indexOf: inline((state, node, expression, args) => {
+	indexOf: (state, node, expression, args) => {
 		const findArgs = [expression, args[0]];
 
 		if (args.length > 1) {
@@ -251,13 +241,13 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			}),
 			-1,
 		);
-	}),
+	},
 
 	every: makeEveryMethod((keyId, valueId, expression) => [valueId, offset(keyId, -1), expression]),
 
 	some: makeSomeMethod((keyId, valueId, expression) => [valueId, offset(keyId, -1), expression]),
 
-	forEach: runsUserCode((state, node, expression, args) => {
+	forEach: (state, node, expression, args) => {
 		const callbackId = convertToIndexableExpression(args[0]);
 		const keyId = luau.tempId("k");
 		const valueId = luau.tempId("v");
@@ -274,9 +264,9 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		);
 
 		return !isUsedAsStatement(node) ? luau.nil() : luau.none();
-	}),
+	},
 
-	map: runsUserCode((state, node, expression, args) => {
+	map: (state, node, expression, args) => {
 		const callbackId = convertToIndexableExpression(args[0]);
 		const newValueId = state.pushToVar(
 			luau.call(luau.globals.table.create, [luau.unary("#", expression)]),
@@ -302,9 +292,9 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		);
 
 		return newValueId;
-	}),
+	},
 
-	mapFiltered: runsUserCode((state, node, expression, args) => {
+	mapFiltered: (state, node, expression, args) => {
 		const callbackId = convertToIndexableExpression(args[0]);
 		const newValueId = state.pushToVar(luau.array(), "newValue");
 		const lengthId = state.pushToVar(luau.number(0), "length");
@@ -344,9 +334,9 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		);
 
 		return newValueId;
-	}),
+	},
 
-	filterUndefined: mutatesHeap((state, node, expression) => {
+	filterUndefined: (state, node, expression) => {
 		const lengthId = state.pushToVar(luau.number(0), "length");
 		const indexId1 = luau.tempId("i");
 		state.prereq(
@@ -412,9 +402,9 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		);
 
 		return resultId;
-	}),
+	},
 
-	filter: runsUserCode((state, node, expression, args) => {
+	filter: (state, node, expression, args) => {
 		const callbackId = convertToIndexableExpression(args[0]);
 		const newValueId = state.pushToVar(luau.array(), "newValue");
 		const lengthId = state.pushToVar(luau.number(0), "length");
@@ -453,9 +443,9 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		);
 
 		return newValueId;
-	}),
+	},
 
-	reduce: runsUserCode((state, node, expression, args) => {
+	reduce: (state, node, expression, args) => {
 		const callbackId = convertToIndexableExpression(args[0]);
 
 		let start: luau.Expression = luau.number(1);
@@ -521,9 +511,9 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		);
 
 		return resultId;
-	}),
+	},
 
-	find: runsUserCode((state, node, expression, args) => {
+	find: (state, node, expression, args) => {
 		const callbackId = convertToIndexableExpression(args[0]);
 		const loopId = luau.tempId("i");
 		const valueId = luau.tempId("v");
@@ -555,9 +545,9 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		);
 
 		return resultId;
-	}),
+	},
 
-	findIndex: runsUserCode((state, node, expression, args) => {
+	findIndex: (state, node, expression, args) => {
 		const callbackId = convertToIndexableExpression(args[0]);
 		const loopId = luau.tempId("i");
 		const valueId = luau.tempId("v");
@@ -589,11 +579,11 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		);
 
 		return resultId;
-	}),
+	},
 };
 
 const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
-	push: mutatesHeap((state, node, expression, args) => {
+	push: (state, node, expression, args) => {
 		// for `a.push()` always emit luau.unary so the call doesn't disappear in emit
 		if (args.length === 0) {
 			return luau.unary("#", expression);
@@ -608,9 +598,9 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		}
 
 		return !isUsedAsStatement(node) ? luau.unary("#", expression) : luau.none();
-	}),
+	},
 
-	pop: mutatesHeap((state, node, expression) => {
+	pop: (state, node, expression) => {
 		let lengthExp: luau.Expression = luau.unary("#", expression);
 
 		const returnValueIsUsed = !isUsedAsStatement(node);
@@ -638,11 +628,11 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		);
 
 		return returnValueIsUsed ? retValue! : luau.none();
-	}),
+	},
 
-	shift: inline((state, node, expression) => luau.call(luau.globals.table.remove, [expression, luau.number(1)])),
+	shift: (state, node, expression) => luau.call(luau.globals.table.remove, [expression, luau.number(1)]),
 
-	unshift: mutatesHeap((state, node, expression, args) => {
+	unshift: (state, node, expression, args) => {
 		// insertions are emitted in reverse argument order; this is safe because
 		// stabilized operands may be evaluated in any order relative to each other
 		for (let i = args.length - 1; i >= 0; i--) {
@@ -655,17 +645,15 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		}
 
 		return !isUsedAsStatement(node) ? luau.unary("#", expression) : luau.none();
-	}),
+	},
 
-	insert: inline((state, node, expression, args) => {
+	insert: (state, node, expression, args) => {
 		return luau.call(luau.globals.table.insert, [expression, offset(args[0], 1), args[1]]);
-	}),
+	},
 
-	remove: inline((state, node, expression, args) =>
-		luau.call(luau.globals.table.remove, [expression, offset(args[0], 1)]),
-	),
+	remove: (state, node, expression, args) => luau.call(luau.globals.table.remove, [expression, offset(args[0], 1)]),
 
-	unorderedRemove: mutatesHeap((state, node, expression, args) => {
+	unorderedRemove: (state, node, expression, args) => {
 		// computed once to avoid re-emitting the arithmetic at each of its three uses
 		const indexExp = state.pushToVarIfComplex(offset(args[0], 1), "index");
 
@@ -709,9 +697,9 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		);
 
 		return valueIsUsed ? valueId : luau.none();
-	}),
+	},
 
-	sort: runsUserCode((state, node, expression, args) => {
+	sort: (state, node, expression, args) => {
 		args.unshift(expression);
 
 		state.prereq(
@@ -721,24 +709,22 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		);
 
 		return !isUsedAsStatement(node) ? expression : luau.none();
-	}),
+	},
 
-	clear: mutatesHeap((state, node, expression) => {
+	clear: (state, node, expression) => {
 		state.prereq(
 			luau.create(luau.SyntaxKind.CallStatement, {
 				expression: luau.call(luau.globals.table.clear, [expression]),
 			}),
 		);
 		return !isUsedAsStatement(node) ? luau.nil() : luau.none();
-	}),
+	},
 };
 
 const READONLY_SET_MAP_SHARED_METHODS: MacroList<PropertyCallMacro> = {
-	isEmpty: inline((state, node, expression) =>
-		luau.binary(luau.call(luau.globals.next, [expression]), "==", luau.nil()),
-	),
+	isEmpty: (state, node, expression) => luau.binary(luau.call(luau.globals.next, [expression]), "==", luau.nil()),
 
-	size: mutatesHeap((state, node, expression) => {
+	size: (state, node, expression) => {
 		const sizeId = state.pushToVar(luau.number(0), "size");
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
@@ -754,19 +740,19 @@ const READONLY_SET_MAP_SHARED_METHODS: MacroList<PropertyCallMacro> = {
 			}),
 		);
 		return sizeId;
-	}),
+	},
 
-	has: inline((state, node, expression, args) => {
+	has: (state, node, expression, args) => {
 		const left = luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 			expression: convertToIndexableExpression(expression),
 			index: args[0],
 		});
 		return luau.binary(left, "~=", luau.nil());
-	}),
+	},
 };
 
 const SET_MAP_SHARED_METHODS: MacroList<PropertyCallMacro> = {
-	delete: mutatesHeap((state, node, expression, args) => {
+	delete: (state, node, expression, args) => {
 		// computed once to avoid re-emitting a non-trivial key at each of its uses
 		const arg = state.pushToVarIfComplex(args[0], "value");
 		const valueIsUsed = !isUsedAsStatement(node);
@@ -797,22 +783,22 @@ const SET_MAP_SHARED_METHODS: MacroList<PropertyCallMacro> = {
 		);
 
 		return valueIsUsed ? valueExistedId! : luau.none();
-	}),
+	},
 
-	clear: mutatesHeap((state, node, expression) => {
+	clear: (state, node, expression) => {
 		state.prereq(
 			luau.create(luau.SyntaxKind.CallStatement, {
 				expression: luau.call(luau.globals.table.clear, [expression]),
 			}),
 		);
 		return !isUsedAsStatement(node) ? luau.nil() : luau.none();
-	}),
+	},
 };
 
 const READONLY_SET_METHODS: MacroList<PropertyCallMacro> = {
 	...READONLY_SET_MAP_SHARED_METHODS,
 
-	forEach: runsUserCode((state, node, expression, args) => {
+	forEach: (state, node, expression, args) => {
 		const callbackId = convertToIndexableExpression(args[0]);
 		const valueId = luau.tempId("v");
 		state.prereq(
@@ -828,13 +814,13 @@ const READONLY_SET_METHODS: MacroList<PropertyCallMacro> = {
 		);
 
 		return !isUsedAsStatement(node) ? luau.nil() : luau.none();
-	}),
+	},
 };
 
 const SET_METHODS: MacroList<PropertyCallMacro> = {
 	...SET_MAP_SHARED_METHODS,
 
-	add: mutatesHeap((state, node, expression, args) => {
+	add: (state, node, expression, args) => {
 		state.prereq(
 			luau.create(luau.SyntaxKind.Assignment, {
 				left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
@@ -846,13 +832,13 @@ const SET_METHODS: MacroList<PropertyCallMacro> = {
 			}),
 		);
 		return !isUsedAsStatement(node) ? expression : luau.none();
-	}),
+	},
 };
 
 const READONLY_MAP_METHODS: MacroList<PropertyCallMacro> = {
 	...READONLY_SET_MAP_SHARED_METHODS,
 
-	forEach: runsUserCode((state, node, expression, args) => {
+	forEach: (state, node, expression, args) => {
 		const callbackId = convertToIndexableExpression(args[0]);
 		const keyId = luau.tempId("k");
 		const valueId = luau.tempId("v");
@@ -869,20 +855,19 @@ const READONLY_MAP_METHODS: MacroList<PropertyCallMacro> = {
 		);
 
 		return !isUsedAsStatement(node) ? luau.nil() : luau.none();
-	}),
+	},
 
-	get: inline((state, node, expression, args) =>
+	get: (state, node, expression, args) =>
 		luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 			expression: convertToIndexableExpression(expression),
 			index: args[0],
 		}),
-	),
 };
 
 const MAP_METHODS: MacroList<PropertyCallMacro> = {
 	...SET_MAP_SHARED_METHODS,
 
-	set: mutatesHeap((state, node, expression, args) => {
+	set: (state, node, expression, args) => {
 		const [keyExp, valueExp] = args;
 		state.prereq(
 			luau.create(luau.SyntaxKind.Assignment, {
@@ -895,17 +880,16 @@ const MAP_METHODS: MacroList<PropertyCallMacro> = {
 			}),
 		);
 		return !isUsedAsStatement(node) ? expression : luau.none();
-	}),
+	},
 };
 
 const PROMISE_METHODS: MacroList<PropertyCallMacro> = {
-	then: inline((state, node, expression, args) =>
+	then: (state, node, expression, args) =>
 		luau.create(luau.SyntaxKind.MethodCallExpression, {
 			expression: convertToIndexableExpression(expression),
 			name: "andThen",
 			args: luau.list.make(...args),
 		}),
-	),
 };
 
 export const PROPERTY_CALL_MACROS: { [className: string]: MacroList<PropertyCallMacro> } = {
