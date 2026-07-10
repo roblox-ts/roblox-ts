@@ -798,6 +798,54 @@ export = () => {
 		expect(values[2]).to.equal(3);
 	});
 
+	it("should keep read-only engine calls inline across table mutations", () => {
+		const arr = [1, 2, 3];
+		function bothDefined(a: unknown, b: unknown): boolean {
+			return a !== undefined && b !== undefined;
+		}
+		// FindFirstChild/GetChildren are read-only, non-yielding engine calls: they touch
+		// only engine state, which macro table writes cannot alias
+		expect(bothDefined(game.FindFirstChild("Workspace"), arr.pop())).to.equal(true);
+		expect(bothDefined(game.GetChildren(), arr.pop())).to.equal(true);
+		expect(arr.size()).to.equal(1);
+	});
+
+	it("should order instance property reads against table mutations", () => {
+		const workspace = game.GetService("Workspace");
+		const arr = [1, 2, 3];
+		// an instance property read may throw and pop's frozen-table write may throw, so
+		// error interleaving forces the read ahead of pop's statements
+		const values = [workspace.Name, tostring(arr.pop())];
+		expect(values[0]).to.equal("Workspace");
+		expect(values[1]).to.equal("3");
+	});
+
+	it("should evaluate an expression-position compound assignment in TS order", () => {
+		let x = 2;
+		function f(): number {
+			x = 100;
+			return 10;
+		}
+		// TS reads x (2) before f() runs, and the expression's value is the stored result
+		const y = (x *= f());
+		expect(y).to.equal(20);
+		expect(x).to.equal(20);
+	});
+
+	it("should analyze helpers that iterate $range", () => {
+		function total(): number {
+			let t = 0;
+			for (const i of $range(1, 4)) {
+				t += i;
+			}
+			return t;
+		}
+		const arr = [1, 2, 3];
+		const values = [total(), arr.pop()!];
+		expect(values[0]).to.equal(10);
+		expect(values[1]).to.equal(3);
+	});
+
 	it("should evaluate set-literal members in order around macros", () => {
 		const order = new Array<string>();
 		function a(): string {

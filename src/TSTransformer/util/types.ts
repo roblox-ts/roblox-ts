@@ -210,12 +210,38 @@ export function isRobloxType(state: TransformState): TypeCheck {
 }
 
 /**
- * Matches the `Instance` interface from `@rbxts/types`. Combined with
- * `isDefinitelyType`'s recursive base-type walking, this matches every Instance subclass.
+ * Matches the `Instance` interface from `@rbxts/types` and every subclass. Walks the
+ * heritage chain itself: `isDefinitelyType`'s recursion only steps through plain
+ * class/interface bases, but some Instance heritage passes through *generic* bases
+ * (`DataModel extends ServiceProvider<Services>`), which appear as type references — those
+ * are stepped through via their target.
  */
 export function isInstanceType(state: TransformState): TypeCheck {
 	const robloxType = isRobloxType(state);
-	return type => type.symbol?.name === "Instance" && robloxType(type);
+	return type => {
+		const seen = new Set<ts.Type>();
+		const stack = [type];
+		while (stack.length > 0) {
+			let current = stack.pop()!;
+			const target = (current as ts.TypeReference).target as ts.Type | undefined;
+			if (target !== undefined) {
+				current = target;
+			}
+			if (seen.has(current)) {
+				continue;
+			}
+			seen.add(current);
+			if (current.symbol?.name === "Instance" && robloxType(current)) {
+				return true;
+			}
+			if (current.isClassOrInterface()) {
+				for (const baseType of current.getBaseTypes() ?? []) {
+					stack.push(baseType);
+				}
+			}
+		}
+		return false;
+	};
 }
 
 /**
