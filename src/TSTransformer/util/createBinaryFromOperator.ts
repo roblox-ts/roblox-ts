@@ -22,6 +22,14 @@ const OPERATOR_MAP = new Map<ts.SyntaxKind, luau.BinaryOperator>([
 	[ts.SyntaxKind.SlashToken, "/"],
 	[ts.SyntaxKind.AsteriskAsteriskToken, "^"],
 	[ts.SyntaxKind.PercentToken, "%"],
+
+	// compound math assignments, for the split form `x = _readable * f()` emitted when the
+	// value may change what the target read observes (see compoundReadNeedsMaterializing)
+	[ts.SyntaxKind.MinusEqualsToken, "-"],
+	[ts.SyntaxKind.AsteriskEqualsToken, "*"],
+	[ts.SyntaxKind.SlashEqualsToken, "/"],
+	[ts.SyntaxKind.AsteriskAsteriskEqualsToken, "^"],
+	[ts.SyntaxKind.PercentEqualsToken, "%"],
 ]);
 
 function createBinaryAdd(left: luau.Expression, leftType: ts.Type, right: luau.Expression, rightType: ts.Type) {

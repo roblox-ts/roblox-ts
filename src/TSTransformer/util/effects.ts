@@ -462,11 +462,6 @@ const READONLY_INSTANCE_METHODS = new Set([
 ]);
 
 /**
- * The heap region of the value a definitely-non-nil expression of this type holds, or
- * `undefined` when unknown: Instances live in the engine-state region; non-Roblox,
- * non-callable object types are plain Lua tables.
- */
-/**
  * True if the type is definitely a plain Lua table: non-nil, not declared by
  * `@rbxts/types` (Instances, datatypes, and other userdata all come from there), and a
  * non-callable object type.
@@ -479,6 +474,11 @@ function isDefinitelyPlainTable(state: TransformState, type: ts.Type): boolean {
 	);
 }
 
+/**
+ * The heap region of the value a definitely-non-nil expression of this type holds, or
+ * `undefined` when unknown: Instances live in the engine-state region; non-Roblox,
+ * non-callable object types are plain Lua tables.
+ */
 function classifyValueRegion(state: TransformState, node: ts.Expression): HeapRegions | undefined {
 	const type = state.getType(node);
 	if (isPossiblyType(type, isUndefinedType, isAnyType(state))) {
@@ -1120,10 +1120,31 @@ function orderedChildExpressions(expression: luau.Expression): Array<luau.Expres
 }
 
 /**
+ * The direct child of `expression` whose value Luau reads *at the consuming instruction*
+ * rather than at the child's own position. Locals are registers: an identifier used as an
+ * arithmetic/comparison operand (`ADD`, `EQ`, …) or as a computed index's base
+ * (`GETTABLE`) is read when the instruction executes — after the sibling operand's inline
+ * code has already run. (Call/method arguments, table constructor fields, and `..` chains
+ * discharge each operand into a register at its own position, and `and`/`or` test the left
+ * register before the right side runs, so those stay strictly ordered.)
+ */
+function lazilyReadChild(expression: luau.Expression): luau.Expression | undefined {
+	if (luau.isBinaryExpression(expression) && expression.operator !== "and" && expression.operator !== "or") {
+		return expression.left;
+	}
+	if (luau.isComputedIndexExpression(expression)) {
+		return expression.expression;
+	}
+	return undefined;
+}
+
+/**
  * Summary of everything evaluated strictly *before* the single occurrence of `target`
  * within `expression`, or `undefined` if `target` is not inside it. Because a parent
  * operation always runs after all its children, only the target's left-siblings (and their
- * descendants) at each level of the path contribute. `maskedOperandTags` must be set to the
+ * descendants) at each level of the path contribute — except when the target is a local
+ * read placed in a lazily-read register position (see `lazilyReadChild`), where the
+ * sibling operands' code also precedes the read. `maskedOperandTags` must be set to the
  * earlier-canonical operands so they are excluded.
  */
 function beforeSummaryInExpression(
@@ -1135,11 +1156,23 @@ function beforeSummaryInExpression(
 	if (tag !== undefined) {
 		return tag === target ? PURE_SUMMARY : undefined;
 	}
+	const children = orderedChildExpressions(expression);
+	const lazyChild = lazilyReadChild(expression);
 	let left = PURE_SUMMARY;
-	for (const child of orderedChildExpressions(expression)) {
+	for (const child of children) {
 		const before = beforeSummaryInExpression(state, child, target);
 		if (before !== undefined) {
-			return unionSummaries(left, before);
+			let result = unionSummaries(left, before);
+			if (child === lazyChild && luau.isIdentifier(child) && (child as TaggedNode)[OPERAND_TAG] === target) {
+				// the operand is itself the lazily-read register: every sibling operand's
+				// code runs before its value is read
+				for (const sibling of children) {
+					if (sibling !== child) {
+						result = unionSummaries(result, summarizeExpression(state, sibling));
+					}
+				}
+			}
+			return result;
 		}
 		left = unionSummaries(left, summarizeExpression(state, child));
 	}

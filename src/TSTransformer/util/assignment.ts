@@ -1,6 +1,7 @@
 import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer";
 import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOperator";
+import { commutes, summarizeExpression } from "TSTransformer/util/effects";
 import { isDefinitelyType, isStringType } from "TSTransformer/util/types";
 import ts from "typescript";
 
@@ -19,6 +20,26 @@ const COMPOUND_OPERATOR_MAP = new Map<ts.SyntaxKind, luau.AssignmentOperator>([
 	// normal assignment
 	[ts.SyntaxKind.EqualsToken, "="],
 ]);
+
+/**
+ * Luau's compound assignment (`x *= f()`) reads a local target's register at the operator
+ * instruction, after the value's inline code has run — but TypeScript reads the target
+ * first. When the value may change what the target read observes, the simple compound
+ * operator cannot be used; the read must be materialized ahead of the value
+ * (`local _readable = x; x = _readable * f()`).
+ */
+export function compoundReadNeedsMaterializing(
+	state: TransformState,
+	writable: luau.WritableExpression,
+	writeNode: ts.Expression,
+	value: luau.Expression,
+	valueNode: ts.Expression,
+): boolean {
+	return (
+		luau.isIdentifier(writable) &&
+		!commutes(summarizeExpression(state, writable, writeNode), summarizeExpression(state, value, valueNode))
+	);
+}
 
 export function getSimpleAssignmentOperator(
 	leftType: ts.Type,

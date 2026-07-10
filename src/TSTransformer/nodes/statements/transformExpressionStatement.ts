@@ -4,7 +4,11 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { transformLogicalOrCoalescingAssignmentExpressionStatement } from "TSTransformer/nodes/transformLogicalOrCoalescingAssignmentExpression";
 import { transformWritableAssignment, transformWritableExpression } from "TSTransformer/nodes/transformWritable";
 import { isUnaryAssignmentOperator } from "TSTransformer/typeGuards";
-import { createCompoundAssignmentStatement, getSimpleAssignmentOperator } from "TSTransformer/util/assignment";
+import {
+	compoundReadNeedsMaterializing,
+	createCompoundAssignmentStatement,
+	getSimpleAssignmentOperator,
+} from "TSTransformer/util/assignment";
 import { getAssignableValue } from "TSTransformer/util/getAssignableValue";
 import { skipDownwards } from "TSTransformer/util/traversal";
 import { wrapExpressionStatement } from "TSTransformer/util/wrapExpressionStatement";
@@ -51,6 +55,24 @@ export function transformExpressionStatementInner(
 				operator === undefined,
 			);
 			if (operator !== undefined) {
+				if (
+					operator !== "=" &&
+					compoundReadNeedsMaterializing(state, writable, expression.left, value, expression.right)
+				) {
+					const readableTemp = state.pushToVar(writable, "readable");
+					return luau.list.make(
+						createCompoundAssignmentStatement(
+							state,
+							expression,
+							writable,
+							writableType,
+							readableTemp,
+							operatorKind as ts.AssignmentOperator,
+							value,
+							valueType,
+						),
+					);
+				}
 				return luau.list.make(
 					luau.create(luau.SyntaxKind.Assignment, {
 						left: writable,

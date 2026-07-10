@@ -341,6 +341,41 @@ export = () => {
 		expect(arr.size()).to.equal(3);
 	});
 
+	// Luau reads a local operand's register at the operator instruction, not at operand
+	// position — these pin that the compiler materializes the left value when the right
+	// side changes it
+
+	it("should read the left operand of a binary expression before the right side runs", () => {
+		let a = 1;
+		function f() {
+			a = 5;
+			return 2;
+		}
+		expect(a + f()).to.equal(3);
+		expect(a).to.equal(5);
+	});
+
+	it("should read a compound assignment's target before its value expression runs", () => {
+		let x = 2;
+		function f() {
+			x = 100;
+			return 10;
+		}
+		x *= f();
+		expect(x).to.equal(20);
+	});
+
+	it("should read the map for get before a key argument that rebinds it", () => {
+		let map = new Map<string, number>([["k", 1]]);
+		function key() {
+			map = new Map<string, number>([["k", 2]]);
+			return "k";
+		}
+		// TS reads `map` (the original) before key() rebinds the binding
+		expect(map.get(key())).to.equal(1);
+		expect(map.get("k")).to.equal(2);
+	});
+
 	it("should evaluate math macro operands left-to-right", () => {
 		let v1 = new Vector2(1, 2);
 		function swap() {
@@ -485,6 +520,22 @@ export = () => {
 		expect(original[3]).to.equal(99);
 		expect(target.size()).to.equal(1);
 		expect(target[0]).to.equal(9);
+	});
+
+	it("should push to the original nested array when the argument reassigns the property", () => {
+		const holder = { items: [1, 2, 3] };
+		const original = holder.items;
+		function swap() {
+			holder.items = [9];
+			return 99;
+		}
+		// TS evaluates the receiver (holder.items, the original array) before swap()
+		// replaces the property
+		holder.items.push(swap());
+		expect(original.size()).to.equal(4);
+		expect(original[3]).to.equal(99);
+		expect(holder.items.size()).to.equal(1);
+		expect(holder.items[0]).to.equal(9);
 	});
 
 	it("should evaluate a helper returning a fresh array exactly once for a macro receiver", () => {

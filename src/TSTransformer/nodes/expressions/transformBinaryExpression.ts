@@ -12,6 +12,7 @@ import { transformLogicalOrCoalescingAssignmentExpression } from "TSTransformer/
 import { transformWritableAssignment, transformWritableExpression } from "TSTransformer/nodes/transformWritable";
 import { arrayLikeExpressionContainsSpread } from "TSTransformer/util/arrayLikeExpressionContainsSpread";
 import {
+	compoundReadNeedsMaterializing,
 	createAssignmentExpression,
 	createCompoundAssignmentExpression,
 	getSimpleAssignmentOperator,
@@ -19,6 +20,7 @@ import {
 import { createBitwiseFromOperator, isBitwiseOperator } from "TSTransformer/util/bitwise";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOperator";
+import { commutes, summarizeExpression } from "TSTransformer/util/effects";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { getAssignableValue } from "TSTransformer/util/getAssignableValue";
 import { getKindName } from "TSTransformer/util/getKindName";
@@ -205,6 +207,19 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 			operator === undefined,
 		);
 		if (operator !== undefined) {
+			if (operator !== "=" && compoundReadNeedsMaterializing(state, writable, node.left, value, node.right)) {
+				const readableTemp = state.pushToVar(writable, "readable");
+				return createCompoundAssignmentExpression(
+					state,
+					node,
+					writable,
+					writableType,
+					readableTemp,
+					operatorKind as ts.AssignmentOperator,
+					value,
+					valueType,
+				);
+			}
 			return createAssignmentExpression(
 				state,
 				writable,
@@ -229,7 +244,7 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 		return createBitwiseFromOperator(state, operatorKind, node);
 	}
 
-	const [left, right] = ensureTransformOrder(state, [node.left, node.right]);
+	let [left, right] = ensureTransformOrder(state, [node.left, node.right]);
 
 	if (operatorKind === ts.SyntaxKind.InKeyword) {
 		return luau.binary(
@@ -245,6 +260,16 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 			DiagnosticService.addDiagnostic(errors.noRobloxSymbolInstanceof(node.right));
 		}
 		return luau.call(state.TS(node, "instanceof"), [left, right]);
+	}
+
+	// Luau reads a local operand's register at the operator instruction, after the right
+	// side's inline code has run — materialize the left value when the right side may
+	// change it (e.g. `a + f()` where `f` reassigns `a`)
+	if (
+		luau.isIdentifier(left) &&
+		!commutes(summarizeExpression(state, left, node.left), summarizeExpression(state, right, node.right))
+	) {
+		left = state.pushToVar(left, "left");
 	}
 
 	const leftType = state.getType(node.left);

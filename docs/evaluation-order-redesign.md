@@ -300,6 +300,23 @@ Error interleaving still rules: `use(part.Position, arr.pop())` keeps its
 temp, because both the Instance read and the (possibly frozen-table) write
 can throw and a `pcall`ing caller must observe the right error.
 
+**Register reads are lazy.** Luau locals are registers, and an instruction
+reads its register operands when it *executes* — not when the operand appears.
+In `v1 + (swap())`, the `ADD` reads `v1`'s register after `swap()` has run, so
+a right side that reassigns the left local is observed, violating TS order.
+This applies to arithmetic/comparison operands and computed-index bases
+(`GETTABLE`), including Luau's own compound assignments (`x *= f()`). It does
+**not** apply to call/method arguments, table constructor fields, or `..`
+chains (each operand is discharged into a register at its own position), nor
+to `and`/`or` (the left register is tested before the right side runs).
+Three places encode this: `beforeSummaryInExpression` extends an identifier
+operand's "before" with its sibling operands when it sits in a lazily-read
+position; `transformBinaryExpression` materializes a left-identifier operand
+that does not commute with the right side; and compound assignments fall back
+from Luau's compound operator to the split
+`local _readable = x; x = _readable * f()` form under the same test
+(`compoundReadNeedsMaterializing`).
+
 **Locals and the copy boundary.** Engine APIs cannot read or write Luau
 locals directly — arguments are marshaled by copy — and the refined
 summaries above already say so (empty `readsLocals`/`writesLocals`). But two
