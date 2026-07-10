@@ -620,4 +620,200 @@ export = () => {
 		arr = [];
 		expect(arr.size()).to.equal(0);
 	});
+
+	// analyzer robustness: helpers whose bodies use constructs the function-body analysis
+	// must walk (or conservatively bail on). Each helper is used as a macro operand so the
+	// analysis actually runs on it, and each spec pins ordinary runtime behavior.
+
+	it("should analyze helpers containing loops, switch, and try/catch", () => {
+		let log = "";
+		function classify(n: number): string {
+			let out = "";
+			for (let i = 0; i < n; i++) {
+				if (i === 2) continue;
+				out += "i";
+			}
+			let j = n;
+			while (j > 0) {
+				j -= 1;
+				if (j === 0) break;
+			}
+			do {
+				out += "d";
+			} while (false);
+			switch (n) {
+				case 3:
+					out += "3";
+					break;
+				default:
+					out += "?";
+					break;
+			}
+			try {
+				if (n > 100) throw "too big";
+				out += "t";
+			} catch (e) {
+				log += tostring(e);
+			} finally {
+				out += "f";
+			}
+			return out;
+		}
+		const arr = [1, 2, 3];
+		const values = [classify(3), arr.pop()!];
+		expect(values[0]).to.equal("iid3tf");
+		expect(values[1]).to.equal(3);
+		expect(log).to.equal("");
+	});
+
+	it("should analyze helpers with destructured and defaulted parameters", () => {
+		function sum([a, b]: [number, number], { c }: { c: number }, d = 4): number {
+			return a + b + c + d;
+		}
+		const arr = [1, 2, 3];
+		const values = [sum([1, 2], { c: 3 }), arr.pop()!];
+		expect(values[0]).to.equal(10);
+		expect(values[1]).to.equal(3);
+	});
+
+	it("should analyze helpers that build tables with spreads and computed keys", () => {
+		const base = [1, 2];
+		const key = "k";
+		function build(): number {
+			const copy = [...base, 3];
+			const obj: { [index: string]: number } = { [key]: copy.size() };
+			const merged: { [index: string]: number } = { x: 1, ...obj };
+			return merged.k! + merged.x!;
+		}
+		const arr = [1, 2, 3];
+		const values = [build(), arr.pop()!];
+		expect(values[0]).to.equal(4);
+		expect(values[1]).to.equal(3);
+	});
+
+	it("should treat generator and async helpers as unknown code", () => {
+		let n = 0;
+		function* gen() {
+			n += 1;
+			yield n;
+		}
+		function drain(): number {
+			let total = 0;
+			for (const v of gen()) {
+				total += v;
+			}
+			return total;
+		}
+		const arr = [1, 2, 3];
+		// drain iterates a generator (user code) — the read of `n` must stay ahead of it
+		const values = [n, drain(), arr.pop()!];
+		expect(values[0]).to.equal(0);
+		expect(values[1]).to.equal(1);
+		expect(values[2]).to.equal(3);
+		expect(n).to.equal(1);
+	});
+
+	it("should analyze mutually recursive helpers", () => {
+		function isEven(n: number): boolean {
+			return n === 0 ? true : isOdd(n - 1);
+		}
+		function isOdd(n: number): boolean {
+			return n === 0 ? false : isEven(n - 1);
+		}
+		const arr = [1, 2, 3];
+		const values = [isEven(4), arr.pop()!];
+		expect(values[0]).to.equal(true);
+		expect(values[1]).to.equal(3);
+	});
+
+	it("should treat construction and methods of user classes as unknown code", () => {
+		let constructed = 0;
+		class Counter {
+			public value = 0;
+			constructor() {
+				constructed += 1;
+			}
+			public bump(): number {
+				this.value += 1;
+				return this.value;
+			}
+		}
+		function make(): number {
+			const c = new Counter();
+			return c.bump();
+		}
+		const arr = [1, 2, 3];
+		// make() constructs and calls methods — unknown code, ordered ahead of pop
+		const values = [constructed, make(), arr.pop()!];
+		expect(values[0]).to.equal(0);
+		expect(values[1]).to.equal(1);
+		expect(values[2]).to.equal(3);
+		expect(constructed).to.equal(1);
+	});
+
+	it("should analyze helpers using typeOf, typeIs, and assert macros", () => {
+		function describe(value: unknown): string {
+			assert(value !== undefined);
+			if (typeIs(value, "number")) {
+				return `n${value}`;
+			}
+			return typeOf(value);
+		}
+		const arr = [1, 2, 3];
+		const values = [describe(5), describe("x"), arr.pop()!];
+		expect(values[0]).to.equal("n5");
+		expect(values[1]).to.equal("string");
+		expect(values[2]).to.equal(3);
+	});
+
+	it("should analyze helpers with compound member updates", () => {
+		const state = { n: 1, m: 2 };
+		const keys = ["n", "m"] as const;
+		function bumpAll(): number {
+			state.n += 10;
+			state[keys[1]] *= 2;
+			state.n++;
+			return state.n + state.m;
+		}
+		const arr = [1, 2, 3];
+		// bumpAll writes the table `state` reads from — the earlier read stays ahead
+		const values = [state.n, bumpAll(), arr.pop()!];
+		expect(values[0]).to.equal(1);
+		expect(values[1]).to.equal(16);
+		expect(values[2]).to.equal(3);
+	});
+
+	it("should summarize template literals by their interpolated types", () => {
+		const obj = { n: 5 };
+		function primitiveTemplate(x: number): string {
+			return `v=${x}`;
+		}
+		function objectTemplate(): string {
+			return `${obj.n}`;
+		}
+		const arr = [1, 2, 3];
+		const values = [primitiveTemplate(1), objectTemplate(), arr.pop()!];
+		expect(values[0]).to.equal("v=1");
+		expect(values[1]).to.equal("5");
+		expect(values[2]).to.equal(3);
+	});
+
+	it("should evaluate set-literal members in order around macros", () => {
+		const order = new Array<string>();
+		function a(): string {
+			order.push("a");
+			return "a";
+		}
+		function b(): string {
+			order.push("b");
+			return "b";
+		}
+		const arr = [1, 2, 3];
+		const set = new Set([a(), b()]);
+		expect(set.has("a")).to.equal(true);
+		expect(set.has("b")).to.equal(true);
+		expect(arr.pop()).to.equal(3);
+		expect(order[0]).to.equal("a");
+		expect(order[1]).to.equal("b");
+	});
 };
