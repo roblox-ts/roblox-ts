@@ -371,6 +371,7 @@ function isCompilerNumeric(expression: luau.Expression): boolean {
 	) {
 		return isCompilerNumeric(expression.left) && isCompilerNumeric(expression.right);
 	}
+	/* istanbul ignore next -- conservative default for uncontrolled shapes */
 	return false;
 }
 
@@ -764,6 +765,7 @@ export function summarizeExpression(
 		});
 		return result;
 	}
+	/* istanbul ignore next -- conservative default for unmodeled expressions */
 	return CALLS_UNKNOWN_SUMMARY;
 }
 
@@ -999,13 +1001,13 @@ function walkOperandsInExpression(
 		luau.list.forEach(expression.args, walk);
 	} else if (luau.isArray(expression) || luau.isSet(expression)) {
 		luau.list.forEach(expression.members, walk);
-	} else if (luau.isFunctionExpression(expression)) {
-		// the body runs when the closure is called — treat every operand inside as repeated
-		walkOperandsInStatements(expression.statements, true, onOperand);
 	}
 	/* istanbul ignore next -- operand-walking generality: current macros do not place
-	operands inside these constructs */
-	if (luau.isIfExpression(expression)) {
+	operands inside these constructs (operand-position closures return at the tag check) */
+	if (luau.isFunctionExpression(expression)) {
+		// the body runs when the closure is called — treat every operand inside as repeated
+		walkOperandsInStatements(expression.statements, true, onOperand);
+	} else if (luau.isIfExpression(expression)) {
 		walk(expression.condition);
 		// only one branch evaluates — neither is guaranteed to run
 		walkOperandsInExpression(expression.expression, true, onOperand);
@@ -1056,6 +1058,8 @@ function walkOperandsInStatement(
 
 	if (luau.isVariableDeclaration(statement) || luau.isAssignment(statement)) {
 		const left = statement.left;
+		/* istanbul ignore if -- multi-value declarations appear only in operand prereqs,
+		which are emitted before the trial and never walked */
 		if (luau.list.isList(left)) {
 			luau.list.forEach(left, expr);
 		} else {
@@ -1063,6 +1067,7 @@ function walkOperandsInStatement(
 		}
 		const right = statement.right;
 		if (right !== undefined) {
+			/* istanbul ignore if -- see above */
 			if (luau.list.isList(right)) {
 				luau.list.forEach(right, expr);
 			} else {
@@ -1071,12 +1076,6 @@ function walkOperandsInStatement(
 		}
 	} else if (luau.isCallStatement(statement)) {
 		expr(statement.expression);
-	} else if (luau.isReturnStatement(statement)) {
-		if (luau.list.isList(statement.expression)) {
-			luau.list.forEach(statement.expression, expr);
-		} else {
-			expr(statement.expression);
-		}
 	} else if (luau.isIfStatement(statement)) {
 		expr(statement.condition);
 		unsafeBody(statement.statements);
@@ -1097,8 +1096,14 @@ function walkOperandsInStatement(
 		unsafeBody(statement.statements);
 	}
 	/* istanbul ignore next -- operand-walking generality: current macros do not place
-	operands inside these statements */
-	if (luau.isWhileStatement(statement) || luau.isRepeatStatement(statement)) {
+	operands inside these statements (returns never appear in macro output) */
+	if (luau.isReturnStatement(statement)) {
+		if (luau.list.isList(statement.expression)) {
+			luau.list.forEach(statement.expression, expr);
+		} else {
+			expr(statement.expression);
+		}
+	} else if (luau.isWhileStatement(statement) || luau.isRepeatStatement(statement)) {
 		unsafeExpr(statement.condition);
 		unsafeBody(statement.statements);
 	} else if (luau.isDoStatement(statement)) {
@@ -1124,12 +1129,13 @@ function orderedChildExpressions(expression: luau.Expression): Array<luau.Expres
 		return [expression.condition, expression.expression, expression.alternative];
 	} else if (luau.isCallExpression(expression) || luau.isMethodCallExpression(expression)) {
 		return [expression.expression, ...luau.list.toArray(expression.args)];
-	} else if (luau.isArray(expression) || luau.isSet(expression)) {
-		return luau.list.toArray(expression.members);
 	}
 	/* istanbul ignore next -- child-walking generality: current macros do not build these
-	constructs around analyzed subexpressions */
-	if (luau.isMap(expression)) {
+	constructs around analyzed subexpressions (table children short-circuit at the
+	allocation check) */
+	if (luau.isArray(expression) || luau.isSet(expression)) {
+		return luau.list.toArray(expression.members);
+	} else if (luau.isMap(expression)) {
 		return luau.list.toArray(expression.fields).flatMap(field => [field.index, field.value]);
 	} else if (luau.isMixedTable(expression)) {
 		return luau.list

@@ -861,6 +861,36 @@ export = () => {
 		expect(arr.findIndex(v => v === 1)).to.equal(-1);
 	});
 
+	it("should evaluate a tuple spread into a macro before later effects", () => {
+		const arr = [10, 20, 30];
+		let n = 0;
+		function pair(): [number, number] {
+			n += 1;
+			return [1, 99];
+		}
+		// the spread unpacks into temporaries as part of its operand's prereqs, ordered
+		// against everything after it
+		arr.insert(...pair());
+		expect(arr[0]).to.equal(99);
+		expect(arr.size()).to.equal(4);
+		expect(n).to.equal(1);
+	});
+
+	it("should treat calls through mutable function bindings as unknown code", () => {
+		let impl = (): number => 5;
+		function callImpl(): number {
+			return impl();
+		}
+		const arr = [1, 2, 3];
+		// `impl` is a let binding, so callImpl's body cannot be summarized precisely — its
+		// call must stay ordered ahead of pop's mutation
+		const values = [callImpl(), arr.pop()!];
+		expect(values[0]).to.equal(5);
+		expect(values[1]).to.equal(3);
+		impl = () => 6;
+		expect(callImpl()).to.equal(6);
+	});
+
 	it("should analyze helpers that iterate $range", () => {
 		function total(): number {
 			let t = 0;
