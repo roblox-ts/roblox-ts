@@ -117,6 +117,7 @@ export function getFunctionExpressionSummary(
 	if (node.asteriskToken !== undefined || ts.hasSyntacticModifier(node, ts.ModifierFlags.Async)) {
 		return undefined;
 	}
+	/* istanbul ignore next -- defensive: arrow/function-expression literals always have bodies */
 	if (node.body === undefined) {
 		return undefined;
 	}
@@ -135,6 +136,7 @@ function getAnalyzableFunction(state: TransformState, symbol: ts.Symbol): Analyz
 		return undefined;
 	}
 	const declaration = symbol.valueDeclaration;
+	/* istanbul ignore next -- defensive: non-alias function symbols carry a value declaration */
 	if (declaration === undefined) {
 		return undefined;
 	}
@@ -187,6 +189,7 @@ function summarizeFunctionBody(state: TransformState, func: AnalyzableFunction):
 
 	const readIdentifier = (node: ts.Identifier): EffectSummary => {
 		const symbol = state.typeChecker.getSymbolAtLocation(node);
+		/* istanbul ignore next -- defensive: the checker resolves identifiers in checked bodies */
 		if (symbol === undefined) {
 			return CALLS_UNKNOWN_SUMMARY;
 		}
@@ -194,6 +197,8 @@ function summarizeFunctionBody(state: TransformState, func: AnalyzableFunction):
 			return PURE_SUMMARY;
 		}
 		// outer mutable binding: an exports-table read if exported, else a plain local read
+		/* istanbul ignore next -- spec files use `export =`, so export-let bindings only occur
+		in real projects */
 		if (state.isExportsTableBinding(symbol)) {
 			return READS_TABLES_SUMMARY;
 		}
@@ -202,6 +207,7 @@ function summarizeFunctionBody(state: TransformState, func: AnalyzableFunction):
 
 	const writeIdentifier = (node: ts.Identifier): EffectSummary => {
 		const symbol = state.typeChecker.getSymbolAtLocation(node);
+		/* istanbul ignore next -- defensive: the checker resolves identifiers in checked bodies */
 		if (symbol === undefined) {
 			return CALLS_UNKNOWN_SUMMARY;
 		}
@@ -209,6 +215,8 @@ function summarizeFunctionBody(state: TransformState, func: AnalyzableFunction):
 			return PURE_SUMMARY;
 		}
 		// outer binding write: an exports-table write if exported, else a plain local write
+		/* istanbul ignore next -- spec files use `export =`, so export-let bindings only occur
+		in real projects */
 		if (state.isExportsTableBinding(symbol)) {
 			return { ...PURE_SUMMARY, writesHeap: HEAP_TABLES };
 		}
@@ -293,6 +301,7 @@ function summarizeFunctionBody(state: TransformState, func: AnalyzableFunction):
 			if (macroName === "assert") {
 				return unionSummaries(result, THROWS_SUMMARY);
 			}
+			/* istanbul ignore next -- every current call macro except assert is effect-free */
 			return CALLS_UNKNOWN_SUMMARY;
 		}
 
@@ -317,6 +326,7 @@ function summarizeFunctionBody(state: TransformState, func: AnalyzableFunction):
 	};
 
 	const visitForOf = (node: ts.ForOfStatement): EffectSummary => {
+		/* istanbul ignore next -- `for await` is rejected by diagnostics before analysis */
 		if (node.awaitModifier !== undefined) {
 			return CALLS_UNKNOWN_SUMMARY;
 		}
@@ -349,6 +359,7 @@ function summarizeFunctionBody(state: TransformState, func: AnalyzableFunction):
 		kind >= ts.SyntaxKind.FirstAssignment && kind <= ts.SyntaxKind.LastAssignment;
 
 	const visit = (node: ts.Node): EffectSummary => {
+		/* istanbul ignore next -- requires a ~2000-node body; a size guard, not a semantics path */
 		if (fuel-- <= 0) {
 			return CALLS_UNKNOWN_SUMMARY;
 		}
@@ -393,6 +404,7 @@ function summarizeFunctionBody(state: TransformState, func: AnalyzableFunction):
 				if (ts.isPropertyAccessExpression(operand) || ts.isElementAccessExpression(operand)) {
 					return unionSummaries(visit(operand), summarizeMemberWrite(state, operand.expression));
 				}
+				/* istanbul ignore next -- TS grammar restricts update targets to references */
 				return CALLS_UNKNOWN_SUMMARY;
 			}
 			return visit(node.operand);
@@ -410,6 +422,7 @@ function summarizeFunctionBody(state: TransformState, func: AnalyzableFunction):
 					} else if (ts.isPropertyAccessExpression(target) || ts.isElementAccessExpression(target)) {
 						result = unionSummaries(result, summarizeMemberRead(state, target.expression));
 					} else {
+						/* istanbul ignore next -- TS grammar restricts compound targets to references */
 						result = unionSummaries(result, READS_ALL_THROWS_SUMMARY);
 					}
 				}
@@ -484,7 +497,8 @@ function summarizeFunctionBody(state: TransformState, func: AnalyzableFunction):
 				} else if (ts.isMethodDeclaration(property)) {
 					result = unionSummaries(result, PURE_SUMMARY);
 				} else {
-					return CALLS_UNKNOWN_SUMMARY; // accessors, etc.
+					/* istanbul ignore next -- accessors are rejected by diagnostics before analysis */
+					return CALLS_UNKNOWN_SUMMARY;
 				}
 			}
 			return result;

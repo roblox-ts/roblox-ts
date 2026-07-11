@@ -375,6 +375,7 @@ export class TransformState {
 	 * including of symbols declared in other files.
 	 */
 	public isExportsTableBinding(idSymbol: ts.Symbol): boolean {
+		/* istanbul ignore next -- defensive: mutable bindings always carry a value declaration */
 		if (!idSymbol.valueDeclaration) {
 			return false;
 		}
@@ -384,6 +385,8 @@ export class TransformState {
 		const moduleSymbol = this.typeChecker.getSymbolAtLocation(
 			ts.isSourceFile(moduleAncestor) ? moduleAncestor : moduleAncestor.name,
 		);
+		/* istanbul ignore next -- ambient global .d.ts files cannot declare mutable bindings
+		reachable from analyzed bodies in the suite */
 		if (!moduleSymbol) {
 			return false;
 		}

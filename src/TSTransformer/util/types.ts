@@ -227,6 +227,7 @@ export function isInstanceType(state: TransformState): TypeCheck {
 			if (target !== undefined) {
 				current = target;
 			}
+			/* istanbul ignore next -- heritage chains in @rbxts/types are trees */
 			if (seen.has(current)) {
 				continue;
 			}

@@ -832,6 +832,35 @@ export = () => {
 		expect(x).to.equal(20);
 	});
 
+	it("should order two helpers that write the same binding", () => {
+		let n = 0;
+		function first(): string {
+			n = 1;
+			return "a";
+		}
+		function second(): string {
+			n = 2;
+			return "b";
+		}
+		const arr = [1, 2, 3];
+		// both helpers write `n` — their relative order (and their order against pop) is fixed
+		const values = [first(), second(), arr.pop()!];
+		expect(values[0]).to.equal("a");
+		expect(values[1]).to.equal("b");
+		expect(values[2]).to.equal(3);
+		expect(n).to.equal(2);
+	});
+
+	it("should evaluate findIndex's callback against the original array", () => {
+		let arr = [10, 20, 30];
+		const index = arr.findIndex(v => v === 20);
+		expect(index).to.equal(1);
+		expect(arr.findIndex(v => v === 99)).to.equal(-1);
+		// keep `arr` a live let-binding so the receiver is not const-folded
+		arr = [];
+		expect(arr.findIndex(v => v === 1)).to.equal(-1);
+	});
+
 	it("should analyze helpers that iterate $range", () => {
 		function total(): number {
 			let t = 0;

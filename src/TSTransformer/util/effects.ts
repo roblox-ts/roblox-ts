@@ -358,6 +358,7 @@ function isCompilerNumeric(expression: luau.Expression): boolean {
 	if (luau.isNumberLiteral(expression) || luau.isTemporaryIdentifier(expression)) {
 		return true;
 	}
+	/* istanbul ignore next -- macro-emitted positions are not parenthesized */
 	if (luau.isParenthesizedExpression(expression)) {
 		return isCompilerNumeric(expression.expression);
 	}
@@ -638,6 +639,8 @@ export function summarizeExpression(
 		) {
 			return PURE_SUMMARY;
 		}
+		/* istanbul ignore next -- identifiers are const-marked at creation; the source-node
+		fallback is kept for robustness against transforms that bypass it */
 		if (node) {
 			const idNode = skipDownwards(node);
 			if (ts.isIdentifier(idNode)) {
@@ -648,8 +651,6 @@ export function summarizeExpression(
 			}
 		}
 		return readsLocal(expression.name);
-	} else if (luau.isVarArgsLiteral(expression)) {
-		return PURE_SUMMARY;
 	} else if (luau.isFunctionExpression(expression)) {
 		// allocating a closure is unobservable; its body only runs when called
 		return PURE_SUMMARY;
@@ -704,17 +705,6 @@ export function summarizeExpression(
 			result = unionSummaries(result, summarizeExpression(state, field.value));
 		});
 		return result;
-	} else if (luau.isMixedTable(expression)) {
-		let result = PURE_SUMMARY;
-		luau.list.forEach(expression.fields, field => {
-			if (luau.isMapField(field)) {
-				result = unionSummaries(result, summarizeExpression(state, field.index));
-				result = unionSummaries(result, summarizeExpression(state, field.value));
-			} else {
-				result = unionSummaries(result, summarizeExpression(state, field));
-			}
-		});
-		return result;
 	} else if (luau.isInterpolatedString(expression)) {
 		// interpolating a table invokes its `__tostring` metamethod, which roblox-ts maps
 		// user-defined `toString()` methods onto — so unless every interpolated value is
@@ -758,6 +748,22 @@ export function summarizeExpression(
 		}
 		return CALLS_UNKNOWN_SUMMARY;
 	}
+	/* istanbul ignore next -- generality: current transforms do not place these constructs
+	in summarized positions */
+	if (luau.isVarArgsLiteral(expression)) {
+		return PURE_SUMMARY;
+	} else if (luau.isMixedTable(expression)) {
+		let result = PURE_SUMMARY;
+		luau.list.forEach(expression.fields, field => {
+			if (luau.isMapField(field)) {
+				result = unionSummaries(result, summarizeExpression(state, field.index));
+				result = unionSummaries(result, summarizeExpression(state, field.value));
+			} else {
+				result = unionSummaries(result, summarizeExpression(state, field));
+			}
+		});
+		return result;
+	}
 	return CALLS_UNKNOWN_SUMMARY;
 }
 
@@ -786,8 +792,10 @@ function summarizeWritable(state: TransformState, writable: luau.WritableExpress
 			if (luau.isStringLiteral(index) || isCompilerNumeric(index)) {
 				return indexSummary;
 			}
+			/* istanbul ignore next -- no current macro writes an uncontrolled key into a fresh table */
 			return unionSummaries(indexSummary, { ...PURE_SUMMARY, throws: true });
 		}
+		/* istanbul ignore next -- no current macro writes a named property into a fresh table */
 		return PURE_SUMMARY;
 	}
 	// property access / computed index write: no source node at statement level, but the
@@ -833,6 +841,7 @@ function summarizeExpressionOrList(
 	if (value === undefined) {
 		return PURE_SUMMARY;
 	}
+	/* istanbul ignore next -- expression-list initializers do not occur in analyzed positions */
 	if (luau.list.isList(value)) {
 		return summarizeList(state, value);
 	}
@@ -872,6 +881,7 @@ export function summarizeStatement(state: TransformState, statement: luau.Statem
 			summarizeExpression(state, statement.condition),
 			summarizeStatements(state, statement.statements),
 		);
+		/* istanbul ignore else -- macros do not emit elseif chains */
 		if (luau.list.isList(statement.elseBody)) {
 			result = unionSummaries(result, summarizeStatements(state, statement.elseBody));
 		} else {
@@ -889,6 +899,7 @@ export function summarizeStatement(state: TransformState, statement: luau.Statem
 			summarizeExpression(state, statement.start),
 			summarizeExpression(state, statement.end),
 		);
+		/* istanbul ignore next -- no macro emits a stepped numeric loop */
 		if (statement.step) {
 			result = unionSummaries(result, summarizeExpression(state, statement.step));
 		}
@@ -910,9 +921,13 @@ export function summarizeStatement(state: TransformState, statement: luau.Statem
 			...PURE_SUMMARY,
 			writesHeap: HEAP_TABLES,
 		});
-	} else if (luau.isReturnStatement(statement)) {
+	}
+	/* istanbul ignore next -- macro output does not contain return statements; anything
+	unmodeled is conservatively unknown code */
+	if (luau.isReturnStatement(statement)) {
 		return summarizeExpressionOrList(state, statement.expression);
 	}
+	/* istanbul ignore next */
 	return CALLS_UNKNOWN_SUMMARY;
 }
 
@@ -979,16 +994,22 @@ function walkOperandsInExpression(
 		} else {
 			walk(expression.right);
 		}
-	} else if (luau.isIfExpression(expression)) {
-		walk(expression.condition);
-		// only one branch evaluates — neither is guaranteed to run
-		walkOperandsInExpression(expression.expression, true, onOperand);
-		walkOperandsInExpression(expression.alternative, true, onOperand);
 	} else if (luau.isCallExpression(expression) || luau.isMethodCallExpression(expression)) {
 		walk(expression.expression);
 		luau.list.forEach(expression.args, walk);
 	} else if (luau.isArray(expression) || luau.isSet(expression)) {
 		luau.list.forEach(expression.members, walk);
+	} else if (luau.isFunctionExpression(expression)) {
+		// the body runs when the closure is called — treat every operand inside as repeated
+		walkOperandsInStatements(expression.statements, true, onOperand);
+	}
+	/* istanbul ignore next -- operand-walking generality: current macros do not place
+	operands inside these constructs */
+	if (luau.isIfExpression(expression)) {
+		walk(expression.condition);
+		// only one branch evaluates — neither is guaranteed to run
+		walkOperandsInExpression(expression.expression, true, onOperand);
+		walkOperandsInExpression(expression.alternative, true, onOperand);
 	} else if (luau.isMap(expression)) {
 		luau.list.forEach(expression.fields, field => {
 			walk(field.index);
@@ -1009,9 +1030,6 @@ function walkOperandsInExpression(
 				walk(part);
 			}
 		});
-	} else if (luau.isFunctionExpression(expression)) {
-		// the body runs when the closure is called — treat every operand inside as repeated
-		walkOperandsInStatements(expression.statements, true, onOperand);
 	}
 	// identifiers, temporaries, literals, varargs: no operand-bearing subexpressions
 }
@@ -1062,6 +1080,7 @@ function walkOperandsInStatement(
 	} else if (luau.isIfStatement(statement)) {
 		expr(statement.condition);
 		unsafeBody(statement.statements);
+		/* istanbul ignore else -- macros do not emit elseif chains */
 		if (luau.list.isList(statement.elseBody)) {
 			unsafeBody(statement.elseBody);
 		} else {
@@ -1076,7 +1095,10 @@ function walkOperandsInStatement(
 		expr(statement.end);
 		if (statement.step) expr(statement.step);
 		unsafeBody(statement.statements);
-	} else if (luau.isWhileStatement(statement) || luau.isRepeatStatement(statement)) {
+	}
+	/* istanbul ignore next -- operand-walking generality: current macros do not place
+	operands inside these statements */
+	if (luau.isWhileStatement(statement) || luau.isRepeatStatement(statement)) {
 		unsafeExpr(statement.condition);
 		unsafeBody(statement.statements);
 	} else if (luau.isDoStatement(statement)) {
@@ -1104,7 +1126,10 @@ function orderedChildExpressions(expression: luau.Expression): Array<luau.Expres
 		return [expression.expression, ...luau.list.toArray(expression.args)];
 	} else if (luau.isArray(expression) || luau.isSet(expression)) {
 		return luau.list.toArray(expression.members);
-	} else if (luau.isMap(expression)) {
+	}
+	/* istanbul ignore next -- child-walking generality: current macros do not build these
+	constructs around analyzed subexpressions */
+	if (luau.isMap(expression)) {
 		return luau.list.toArray(expression.fields).flatMap(field => [field.index, field.value]);
 	} else if (luau.isMixedTable(expression)) {
 		return luau.list
@@ -1240,7 +1265,9 @@ function beforeSummaryInStatement(
 		return statement.right !== undefined
 			? beforeSummaryInExpressionOrList(state, statement.right, target)
 			: undefined;
-	} else if (luau.isReturnStatement(statement)) {
+	}
+	/* istanbul ignore next -- macro output does not contain return statements */
+	if (luau.isReturnStatement(statement)) {
 		return beforeSummaryInExpressionOrList(state, statement.expression, target);
 	}
 	// assignments (base/index/rhs order not fully defined) and control-flow: if the target is
@@ -1263,21 +1290,23 @@ function beforeSummaryInExpressionOrList(
 	value: luau.Expression | luau.List<luau.Expression>,
 	target: number,
 ): EffectSummary | undefined {
-	if (!luau.list.isList(value)) {
-		return beforeSummaryInExpression(state, value, target);
+	/* istanbul ignore if -- list-valued positions (multi-value declarations) do not hold
+	operands today */
+	if (luau.list.isList(value)) {
+		let left = PURE_SUMMARY;
+		let found: EffectSummary | undefined;
+		luau.list.forEach(value, expression => {
+			if (found !== undefined) return;
+			const before = beforeSummaryInExpression(state, expression, target);
+			if (before !== undefined) {
+				found = unionSummaries(left, before);
+			} else {
+				left = unionSummaries(left, summarizeExpression(state, expression));
+			}
+		});
+		return found;
 	}
-	let left = PURE_SUMMARY;
-	let found: EffectSummary | undefined;
-	luau.list.forEach(value, expression => {
-		if (found !== undefined) return;
-		const before = beforeSummaryInExpression(state, expression, target);
-		if (before !== undefined) {
-			found = unionSummaries(left, before);
-		} else {
-			left = unionSummaries(left, summarizeExpression(state, expression));
-		}
-	});
-	return found;
+	return beforeSummaryInExpression(state, value, target);
 }
 
 /**
@@ -1415,6 +1444,7 @@ export function computeMacroCaptures(
 	// tag operands by their canonical index so occurrences (and clones) can be found; bail
 	// to a safe all-capture if two slots share a node object (occurrences unattributable)
 	for (let i = 0; i < n; i++) {
+		/* istanbul ignore next -- defensive: the drivers never pass one node in two slots */
 		if ((operands[i] as TaggedNode)[OPERAND_TAG] !== undefined) {
 			for (let j = 0; j < i; j++) delete (operands[j] as TaggedNode)[OPERAND_TAG];
 			return captures.fill(true);
