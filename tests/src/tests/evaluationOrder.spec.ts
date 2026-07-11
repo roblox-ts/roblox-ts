@@ -871,7 +871,8 @@ export = () => {
 		// the spread unpacks into temporaries as part of its operand's prereqs, ordered
 		// against everything after it
 		arr.insert(...pair());
-		expect(arr[0]).to.equal(99);
+		expect(arr[0]).to.equal(10);
+		expect(arr[1]).to.equal(99);
 		expect(arr.size()).to.equal(4);
 		expect(n).to.equal(1);
 	});
