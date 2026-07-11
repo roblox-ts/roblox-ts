@@ -131,7 +131,7 @@ Key facts of Luau that the summary exploits:
 | other unary / binary / `IfExpression` / parenthesized | union of children (TS bans metamethod-bearing operands for these operators) |
 | array/set/map/mixed-table literals | union of members (fresh allocation is unobservable) |
 | interpolated strings | union of parts ∪ `{readsHeap, throws}` (`__tostring` metamethods) |
-| call of a **known builtin** (recognized by `luau.globals` node identity) | per-builtin table, e.g. `string.*`/`table.create`/`typeof` → ∅⁺, `table.find`/`next` → `readsHeap`, `table.insert`/`remove`/`clear`/`move`/`setmetatable` → `readsHeap+writesHeap`, `table.sort` with comparator / `tostring` / `TS.*` → `calls`, `error`/`assert` → `throws` |
+| call of a **known builtin** (recognized by `luau.globals` node identity) | per-builtin table, e.g. ordinary `string.*` operations → `throws`, `table.create`/`typeof` → ∅⁺, `table.find`/`next` → `readsHeap`, `table.insert`/`remove`/`clear`/`move`/`setmetatable` → `readsHeap+writesHeap`, `string.gsub` / `table.sort` with comparator / `tostring` / `TS.*` → `calls`, `error`/`assert` → `throws` |
 | any other call / method call | `calls` (= everything) |
 
 ⁺ builtin calls additionally union their argument summaries.

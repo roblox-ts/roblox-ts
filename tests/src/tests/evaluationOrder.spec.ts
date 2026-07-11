@@ -231,6 +231,24 @@ export = () => {
 		expect(order[1]).to.equal("arg");
 	});
 
+	it("should run gsub replacement callbacks before later argument prereqs", () => {
+		const replacements = new Map<string, number>();
+		const seen = new Array<defined>();
+		function observe(value: string, size: number) {
+			seen.push(value);
+			seen.push(size);
+		}
+		observe(
+			"x".gsub("x", () => {
+				replacements.set("x", 1);
+				return "y";
+			})[0],
+			replacements.size(),
+		);
+		expect(seen[0]).to.equal("y");
+		expect(seen[1]).to.equal(1);
+	});
+
 	it("should keep mutation position for unorderedRemove index expressions", () => {
 		const arr = [0, 1, 2, 3, 4, 5, 6, 7];
 		let i = 2;

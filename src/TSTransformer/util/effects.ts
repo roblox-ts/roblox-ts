@@ -257,7 +257,6 @@ function setBuiltinCall(callee: luau.Expression, summary: EffectSummary) {
 		"find",
 		"format",
 		"gmatch",
-		"gsub",
 		"lower",
 		"match",
 		"rep",
@@ -266,9 +265,13 @@ function setBuiltinCall(callee: luau.Expression, summary: EffectSummary) {
 		"sub",
 		"upper",
 	] as const) {
-		// string.format/gsub can error on bad input; strings are immutable so no heap access
+		// string operations can error on bad input; strings are immutable so no heap access
 		setBuiltinCall(luau.globals.string[name], THROWS_SUMMARY);
 	}
+	// gsub accepts callback and table replacements. A callback can run arbitrary user code,
+	// while a table replacement reads user-visible heap state, so neither overload can be
+	// safely represented by the ordinary string-operation summary.
+	setBuiltinCall(luau.globals.string.gsub, CALLS_UNKNOWN_SUMMARY);
 	setBuiltinCall(luau.globals.table.create, PURE_SUMMARY);
 	(luau.globals.table.create as TaggedNode)[BUILTIN_FRESH_TAG] = true;
 	(luau.globals.table.pack as TaggedNode)[BUILTIN_FRESH_TAG] = true;
