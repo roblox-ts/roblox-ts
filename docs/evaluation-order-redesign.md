@@ -115,7 +115,7 @@ Key facts of Luau that the summary exploits:
   `Instance` child access), hence `throws`.
 * **Compiler-emitted global references** (`luau.globals.*` — `table`,
   `string`, `TS`, `game`, …) are singleton AST nodes and effectively const;
-  they are recognized by node identity.
+  tags preserve their identity when AST construction clones a node.
 
 ### 2.1 Expression summaries
 
@@ -131,7 +131,7 @@ Key facts of Luau that the summary exploits:
 | other unary / binary / `IfExpression` / parenthesized | union of children (TS bans metamethod-bearing operands for these operators) |
 | array/set/map/mixed-table literals | union of members (fresh allocation is unobservable) |
 | interpolated strings | union of parts ∪ `{readsHeap, throws}` (`__tostring` metamethods) |
-| call of a **known builtin** (recognized by `luau.globals` node identity) | per-builtin table, e.g. ordinary `string.*` operations → `throws`, `table.create`/`typeof` → ∅⁺, `table.find`/`next` → `readsHeap`, `table.insert`/`remove`/`clear`/`move`/`setmetatable` → `readsHeap+writesHeap+throws`, `string.gsub` / `table.sort` with comparator / `tostring` / `TS.*` → `calls`, `error`/`assert` → `throws` |
+| call of a **known builtin** (recognized by a tag on `luau.globals` nodes) | per-builtin table, e.g. ordinary `string.*` operations → `throws`, `table.create`/`typeof` → ∅⁺, `table.find`/`table.unpack`/`unpack` → `readsHeap+throws`, `select`/`utf8.codes` → `throws`, `next` → `readsHeap`, `table.insert`/`remove`/`clear`/`move`/`setmetatable` → `readsHeap+writesHeap+throws`, `string.gsub` / `table.sort` with comparator / `tostring` / `TS.*` → `calls`, `error`/`assert` → `throws` |
 | any other call / method call | `calls` (= everything) |
 
 ⁺ builtin calls additionally union their argument summaries.
@@ -256,7 +256,7 @@ The compiler never emits `setmetatable` onto such temps (verified: the only
 temp-directed `setmetatable` calls pass `nil`, which removes metatables), so
 reads/writes cannot invoke user `__index`/`__newindex`.
 
-### 2.7 Heap regions, type-refined errors, and tame engine calls
+### 2.7 Heap regions, type-refined errors, and engine calls
 
 The heap is split into two disjoint regions tracked as a bitmask: **Lua
 tables** and **Roblox engine state** (Instances and mutable userdata). Every
@@ -284,11 +284,17 @@ Region and error classification come from TS types:
   accesses fall back to the base's tag. This is what makes `pop`'s prereqs
   table-region (and its reads non-throwing), so
   `use(part.GetMass(), arr.pop())` keeps the engine read inline.
-* **Tame engine calls**: methods on immutable data-type values and `new`
-  construction are pure value computations; static methods on their
-  constructors stay unknown because the same constructor surfaces include
-  clock/RNG reads (`DateTime.now`, `BrickColor.random`) and throwing parsers.
-  A fixed allowlist of read-only, non-yielding Instance methods
+* **Engine calls**: immutability is not an effect summary. Data-type instance
+  and static methods stay unknown because they may read clocks, RNG, locale,
+  or other environment state and may reject arguments. Immutable construction
+  defaults to throwing because constructors such as `NumberRange` and the
+  keypoint-array `ColorSequence` overload enforce runtime invariants. A
+  signature-shape allowlist marks only known-total overloads (numeric component
+  constructors, basic geometry values, numeric `NumberSequence`, enum-backed
+  values, and the one/two-`Color3` `ColorSequence` forms) pure; value-constrained
+  overloads such as `NumberRange` require statically proven valid literals.
+  Roblox enum namespace/member reads are constant and pure. A fixed allowlist of
+  read-only, non-yielding Instance methods
   (`GetChildren`, `FindFirstChild`, `IsA`, `GetAttribute`, …) summarize as
   engine-state reads. Everything else — anything that can mutate engine
   state, dispatch user handlers (`BindableFunction:Invoke`), or *yield*

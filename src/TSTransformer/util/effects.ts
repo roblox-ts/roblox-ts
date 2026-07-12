@@ -8,9 +8,11 @@ import {
 	isImmutableRobloxDataType,
 	isImmutableRobloxDataTypeConstructor,
 	isInstanceType,
+	isNumberType,
 	isObjectType,
 	isPossiblyType,
 	isRobloxType,
+	isStringType,
 	isUndefinedType,
 } from "TSTransformer/util/types";
 import ts from "typescript";
@@ -84,29 +86,6 @@ const VALUE_REGION_TAG = Symbol("valueRegion");
 // NOT table.clone, which copies the source's metatable)
 const BUILTIN_FRESH_TAG = Symbol("builtinReturnsFreshTable");
 /**
- * `id`s of temporaries that some summarized statement list declared as a fresh,
- * metatable-less table (a table constructor or table.create/pack call). Temporaries are
- * single-assignment and unnameable by user code, so until the block's result escapes,
- * direct writes into such a table are invisible to every operand — they alias nothing
- * user-visible and (metatables being absent) run no user code. Membership is permanent:
- * freshness of the allocation never changes. Keyed by the numeric `id` rather than a node
- * tag because macros clone a temp's node at *build* time, before any summarization could
- * tag it — the `id` is the identity that survives `luau.create`'s shallow clone.
- */
-const freshTempIds = new Set<number>();
-
-/**
- * Drops analysis state that only made sense within one compilation step. Temporary `id`s
- * are process-globally unique (the counter never resets), so stale `freshTempIds` entries
- * can never misclassify a later compile's temps — clearing just keeps watch-mode memory
- * flat. Called when a new `MultiTransformState` is created.
- */
-export function clearTransientAnalysisState() {
-	freshTempIds.clear();
-	maskedOperandTags = undefined;
-}
-
-/**
  * Records on an emitted callee expression the effect summary of the function body it is
  * statically known to refer to (an immutable binding whose body was analyzed — see
  * `getFunctionSymbolInfo`). `summarizeCall` then uses the body's summary instead of
@@ -140,13 +119,6 @@ export function copyCalleeSummary(from: luau.Expression, to: luau.Expression) {
 		(to as TaggedNode)[VALUE_REGION_TAG] = region;
 	}
 }
-
-/**
- * While set, `summarizeExpression` returns `PURE_SUMMARY` for any operand whose tag is in
- * this set. Used by `computeMacroCaptures` to summarize a macro's output while excluding
- * the operands (and their clones) whose effects are accounted for separately.
- */
-let maskedOperandTags: ReadonlySet<number> | undefined;
 
 export const PURE_SUMMARY: EffectSummary = {
 	readsLocals: EMPTY_SET,
@@ -280,13 +252,13 @@ function setBuiltinCall(callee: luau.Expression, summary: EffectSummary) {
 	setBuiltinCall(luau.globals.table.create, PURE_SUMMARY);
 	(luau.globals.table.create as TaggedNode)[BUILTIN_FRESH_TAG] = true;
 	(luau.globals.table.pack as TaggedNode)[BUILTIN_FRESH_TAG] = true;
-	setBuiltinCall(luau.globals.table.find, READS_HEAP_SUMMARY);
+	setBuiltinCall(luau.globals.table.find, READS_HEAP_THROWS_SUMMARY);
 	setBuiltinCall(luau.globals.table.concat, READS_HEAP_THROWS_SUMMARY);
 	setBuiltinCall(luau.globals.table.isfrozen, READS_HEAP_SUMMARY);
 	setBuiltinCall(luau.globals.table.maxn, READS_HEAP_SUMMARY);
 	setBuiltinCall(luau.globals.table.clone, READS_HEAP_THROWS_SUMMARY);
 	setBuiltinCall(luau.globals.table.pack, READS_HEAP_SUMMARY);
-	setBuiltinCall(luau.globals.table.unpack, READS_HEAP_SUMMARY);
+	setBuiltinCall(luau.globals.table.unpack, READS_HEAP_THROWS_SUMMARY);
 	setBuiltinCall(luau.globals.table.insert, INSERT_BUILTIN);
 	setBuiltinCall(luau.globals.table.remove, MUTATES_HEAP_SUMMARY);
 	setBuiltinCall(luau.globals.table.move, MOVE_BUILTIN);
@@ -295,17 +267,17 @@ function setBuiltinCall(callee: luau.Expression, summary: EffectSummary) {
 	setBuiltinCall(luau.globals.table.sort, SORT_BUILTIN);
 	setBuiltinCall(luau.globals.math.min, PURE_SUMMARY);
 	setBuiltinCall(luau.globals.next, READS_HEAP_SUMMARY);
-	setBuiltinCall(luau.globals.select, READS_HEAP_SUMMARY);
+	setBuiltinCall(luau.globals.select, THROWS_SUMMARY);
 	setBuiltinCall(luau.globals.type, PURE_SUMMARY);
 	setBuiltinCall(luau.globals.typeof, PURE_SUMMARY);
 	setBuiltinCall(luau.globals.getmetatable, READS_HEAP_SUMMARY);
 	setBuiltinCall(luau.globals.setmetatable, MUTATES_HEAP_SUMMARY);
 	setBuiltinCall(luau.globals.error, THROWS_SUMMARY);
 	setBuiltinCall(luau.globals.assert, THROWS_SUMMARY);
-	setBuiltinCall(luau.globals.unpack, READS_HEAP_SUMMARY);
+	setBuiltinCall(luau.globals.unpack, READS_HEAP_THROWS_SUMMARY);
 	setBuiltinCall(luau.globals.ipairs, READS_HEAP_SUMMARY);
 	setBuiltinCall(luau.globals.pairs, READS_HEAP_SUMMARY);
-	setBuiltinCall(luau.globals.utf8.codes, READS_HEAP_SUMMARY);
+	setBuiltinCall(luau.globals.utf8.codes, THROWS_SUMMARY);
 	// NOT listed (treated as unknown code): tostring (__tostring metamethods), pcall,
 	// require, coroutine.yield, TS.* runtime library functions
 }
@@ -350,20 +322,29 @@ export function markInterpolatedStringPrimitive(expression: luau.InterpolatedStr
 	PRIMITIVE_INTERPOLATED_STRINGS.add(expression);
 }
 
-function summarizeList(state: TransformState, list: luau.List<luau.Expression>): EffectSummary {
+function summarizeList(
+	state: TransformState,
+	list: luau.List<luau.Expression>,
+	sourceNodes?: ReadonlyArray<ts.Expression>,
+): EffectSummary {
 	let result = PURE_SUMMARY;
-	luau.list.forEach(list, expression => (result = unionSummaries(result, summarizeExpression(state, expression))));
+	let index = 0;
+	luau.list.forEach(list, expression => {
+		result = unionSummaries(result, summarizeExpression(state, expression, sourceNodes?.[index]));
+		index++;
+	});
 	return result;
 }
 
 /**
  * A value that is definitely a non-nil number and whose evaluation cannot itself error:
- * number literals, compiler temporaries (macro-emitted loop keys, counters, and lengths are
- * always numbers), `#x`, and arithmetic over such. Used to decide whether a fresh-table
- * write or a `table.insert`/`table.move` position argument can be a runtime error.
+ * number literals, `#x`, and arithmetic over such. Used to decide whether a fresh-table
+ * write or a `table.insert`/`table.move` position argument can be a runtime error. A
+ * temporary is not sufficient evidence: arbitrary user expressions are captured into
+ * temporaries too.
  */
 function isCompilerNumeric(expression: luau.Expression): boolean {
-	if (luau.isNumberLiteral(expression) || luau.isTemporaryIdentifier(expression)) {
+	if (luau.isNumberLiteral(expression)) {
 		return true;
 	}
 	/* istanbul ignore next -- macro-emitted positions are not parenthesized */
@@ -393,12 +374,16 @@ function summarizeCall(state: TransformState, node: luau.CallExpression, tsNode?
 	if (builtin === INSERT_BUILTIN || builtin === MOVE_BUILTIN) {
 		// these mutate a specific argument: insert writes arg 1; move writes arg 5 when
 		// present (else arg 1) and reads its source (arg 1). When the mutated table is a
-		// block-fresh temp the write is invisible (see freshTempIds), leaving only source
+		// block-fresh temp the write is invisible (see effectFreshTempIds), leaving only source
 		// reads and — if a position/range argument is not a compiler-controlled numeric —
 		// a possible error.
 		const args = luau.list.toArray(node.args);
 		const target = builtin === MOVE_BUILTIN && args.length >= 5 ? args[4] : args[0];
-		if (target !== undefined && luau.isTemporaryIdentifier(target) && freshTempIds.has(target.id)) {
+		if (
+			target !== undefined &&
+			luau.isTemporaryIdentifier(target) &&
+			state.multiTransformState.effectFreshTempIds.has(target.id)
+		) {
 			const controlArgs = builtin === MOVE_BUILTIN ? args.slice(1, 4) : args.length > 2 ? [args[1]] : [];
 			builtin = {
 				...PURE_SUMMARY,
@@ -424,16 +409,19 @@ function summarizeCall(state: TransformState, node: luau.CallExpression, tsNode?
 		if (tsNode) {
 			const source = skipDownwards(tsNode);
 			let known: EffectSummary | undefined;
+			let sourceArguments: ReadonlyArray<ts.Expression> | undefined;
 			if (ts.isNewExpression(source)) {
 				known = summarizeKnownConstruction(state, source);
+				sourceArguments = source.arguments;
 			} else if (ts.isCallExpression(source)) {
+				sourceArguments = source.arguments;
 				const callee = skipDownwards(source.expression);
 				if (ts.isPropertyAccessExpression(callee)) {
 					known = summarizeKnownEngineCall(state, callee);
 				}
 			}
 			if (known !== undefined) {
-				return unionSummaries(known, summarizeList(state, node.args));
+				return unionSummaries(known, summarizeList(state, node.args, sourceArguments));
 			}
 		}
 		return CALLS_UNKNOWN_SUMMARY;
@@ -524,6 +512,13 @@ function getValueRegion(expression: luau.Expression): HeapRegions | undefined {
 	return (expression as TaggedNode)[VALUE_REGION_TAG];
 }
 
+function isRobloxEnumContainer(state: TransformState, type: ts.Type) {
+	return (
+		isRobloxType(state)(type) &&
+		(type.getProperty("GetEnumItems") !== undefined || type.getProperty("GetEnums") !== undefined)
+	);
+}
+
 /**
  * Classification of a member read through a base: reading a field of an immutable Roblox
  * data type is pure; reading from an Instance touches engine state and may throw (typed
@@ -543,7 +538,8 @@ export function summarizeMemberRead(
 		if (
 			!isPossiblyType(type, isUndefinedType, isAnyType(state)) &&
 			(isDefinitelyType(type, isImmutableRobloxDataType(state)) ||
-				isDefinitelyType(type, isImmutableRobloxDataTypeConstructor(state)))
+				isDefinitelyType(type, isImmutableRobloxDataTypeConstructor(state)) ||
+				isDefinitelyType(type, type => isRobloxEnumContainer(state, type)))
 		) {
 			return PURE_SUMMARY;
 		}
@@ -579,11 +575,10 @@ export function summarizeMemberWrite(state: TransformState, baseNode: ts.Express
 
 /**
  * Summary for a call with a property-access callee that is statically known to be a tame
- * engine API, or `undefined` when unknown: methods of immutable Roblox data types are pure
- * value computations; allowlisted read-only Instance methods only read
- * engine state. Static methods on datatype constructors are deliberately excluded: value
- * immutability says nothing about clock/RNG reads or argument-dependent errors. Argument
- * effects are the caller's responsibility.
+ * engine API, or `undefined` when unknown. Allowlisted read-only Instance methods only
+ * read engine state. Datatype methods are deliberately excluded: value immutability says
+ * nothing about clock/RNG/environment reads or argument-dependent errors. Argument effects
+ * are the caller's responsibility.
  */
 export function summarizeKnownEngineCall(
 	state: TransformState,
@@ -593,21 +588,169 @@ export function summarizeKnownEngineCall(
 	if (isPossiblyType(receiverType, isUndefinedType, isAnyType(state))) {
 		return undefined;
 	}
-	if (isDefinitelyType(receiverType, isImmutableRobloxDataType(state))) {
-		return PURE_SUMMARY;
-	}
 	if (isDefinitelyType(receiverType, isInstanceType(state)) && READONLY_INSTANCE_METHODS.has(callee.name.text)) {
 		return READS_INSTANCES_SUMMARY;
 	}
 	return undefined;
 }
 
-/** Summary for `new X(…)` when `X` constructs an immutable Roblox data type. */
-export function summarizeKnownConstruction(state: TransformState, node: ts.NewExpression): EffectSummary | undefined {
-	if (isDefinitelyType(state.getType(node.expression), isImmutableRobloxDataTypeConstructor(state))) {
-		return PURE_SUMMARY;
+type PureConstructionClassifier = (state: TransformState, node: ts.NewExpression) => boolean;
+
+function hasOnlyNumericArguments(state: TransformState, node: ts.NewExpression, minimum: number, maximum = minimum) {
+	const args = node.arguments ?? [];
+	return (
+		args.length >= minimum &&
+		args.length <= maximum &&
+		args.every(argument => !ts.isSpreadElement(argument) && isDefinitelyType(state.getType(argument), isNumberType))
+	);
+}
+
+function isDefinitelyRobloxTypeNamed(state: TransformState, node: ts.Expression, name: string) {
+	const robloxType = isRobloxType(state);
+	return isDefinitelyType(state.getType(node), type => type.symbol?.name === name && robloxType(type));
+}
+
+function isDefinitelyImmutableRobloxValue(state: TransformState, node: ts.Expression) {
+	return isDefinitelyType(state.getType(node), isImmutableRobloxDataType(state));
+}
+
+function hasOnlyRobloxArgumentsNamed(state: TransformState, node: ts.NewExpression, name: string, count: number) {
+	const args = node.arguments ?? [];
+	return (
+		args.length === count &&
+		args.every(argument => !ts.isSpreadElement(argument) && isDefinitelyRobloxTypeNamed(state, argument, name))
+	);
+}
+
+function getFiniteNumericLiteral(node: ts.Expression): number | undefined {
+	node = skipDownwards(node);
+	if (ts.isNumericLiteral(node)) {
+		const value = Number(node.text);
+		return Number.isFinite(value) ? value : undefined;
+	}
+	if (
+		ts.isPrefixUnaryExpression(node) &&
+		(node.operator === ts.SyntaxKind.PlusToken || node.operator === ts.SyntaxKind.MinusToken)
+	) {
+		const value = getFiniteNumericLiteral(node.operand);
+		return value !== undefined ? (node.operator === ts.SyntaxKind.MinusToken ? -value : value) : undefined;
 	}
 	return undefined;
+}
+
+const PURE_CONSTRUCTION_CLASSIFIERS = new Map<string, PureConstructionClassifier>([
+	["AxesConstructor", () => true],
+	["BrickColorConstructor", (state, node) => hasOnlyNumericArguments(state, node, 3)],
+	[
+		"CFrameConstructor",
+		(state, node) => {
+			const args = node.arguments ?? [];
+			return (
+				args.length === 0 ||
+				hasOnlyNumericArguments(state, node, 3) ||
+				hasOnlyNumericArguments(state, node, 12) ||
+				hasOnlyRobloxArgumentsNamed(state, node, "Vector3", 1)
+			);
+		},
+	],
+	[
+		"ColorSequenceKeypointConstructor",
+		(state, node) => {
+			const args = node.arguments ?? [];
+			return (
+				args.length === 2 &&
+				!ts.isSpreadElement(args[0]) &&
+				isDefinitelyType(state.getType(args[0]), isNumberType) &&
+				!ts.isSpreadElement(args[1]) &&
+				isDefinitelyRobloxTypeNamed(state, args[1], "Color3")
+			);
+		},
+	],
+	["Color3Constructor", (state, node) => hasOnlyNumericArguments(state, node, 0, 3)],
+	["FacesConstructor", () => true],
+	["UDimConstructor", (state, node) => hasOnlyNumericArguments(state, node, 0, 2)],
+	[
+		"UDim2Constructor",
+		(state, node) => {
+			const args = node.arguments ?? [];
+			return (
+				args.length === 0 ||
+				hasOnlyNumericArguments(state, node, 4) ||
+				(args.length === 2 && args.every(argument => isDefinitelyRobloxTypeNamed(state, argument, "UDim")))
+			);
+		},
+	],
+	[
+		"NumberRangeConstructor",
+		(state, node) => {
+			const args = node.arguments ?? [];
+			const minimum = args[0] && !ts.isSpreadElement(args[0]) ? getFiniteNumericLiteral(args[0]) : undefined;
+			if (args.length === 1) return minimum !== undefined;
+			const maximum = args[1] && !ts.isSpreadElement(args[1]) ? getFiniteNumericLiteral(args[1]) : undefined;
+			return args.length === 2 && minimum !== undefined && maximum !== undefined && minimum <= maximum;
+		},
+	],
+	[
+		"NumberSequenceConstructor",
+		(state, node) => hasOnlyNumericArguments(state, node, 1) || hasOnlyNumericArguments(state, node, 2),
+	],
+	["NumberSequenceKeypointConstructor", (state, node) => hasOnlyNumericArguments(state, node, 2, 3)],
+	[
+		"PathWaypointConstructor",
+		(state, node) => {
+			const args = node.arguments ?? [];
+			if (args.length === 0) return true;
+			if (args.length > 3 || !isDefinitelyRobloxTypeNamed(state, args[0], "Vector3")) return false;
+			if (args[1] && !isDefinitelyImmutableRobloxValue(state, args[1])) return false;
+			return args[2] === undefined || isDefinitelyType(state.getType(args[2]), isStringType);
+		},
+	],
+	[
+		"PhysicalPropertiesConstructor",
+		(state, node) => {
+			const args = node.arguments ?? [];
+			return (
+				args.length === 1 && !ts.isSpreadElement(args[0]) && isDefinitelyImmutableRobloxValue(state, args[0])
+			);
+		},
+	],
+	["RayConstructor", (state, node) => hasOnlyRobloxArgumentsNamed(state, node, "Vector3", 2)],
+	[
+		"RectConstructor",
+		(state, node) =>
+			(node.arguments?.length ?? 0) === 0 ||
+			hasOnlyNumericArguments(state, node, 4) ||
+			hasOnlyRobloxArgumentsNamed(state, node, "Vector2", 2),
+	],
+	["Region3Constructor", (state, node) => hasOnlyRobloxArgumentsNamed(state, node, "Vector3", 2)],
+	["Region3int16Constructor", (state, node) => hasOnlyRobloxArgumentsNamed(state, node, "Vector3int16", 2)],
+	["Vector2Constructor", (state, node) => hasOnlyNumericArguments(state, node, 0, 2)],
+	["Vector2int16Constructor", (state, node) => hasOnlyNumericArguments(state, node, 0, 2)],
+	["Vector3Constructor", (state, node) => hasOnlyNumericArguments(state, node, 0, 3)],
+	["Vector3int16Constructor", (state, node) => hasOnlyNumericArguments(state, node, 0, 3)],
+	[
+		"ColorSequenceConstructor",
+		(state, node) => {
+			const args = node.arguments ?? [];
+			return (
+				(args.length === 1 || args.length === 2) &&
+				args.every(
+					argument => !ts.isSpreadElement(argument) && isDefinitelyRobloxTypeNamed(state, argument, "Color3"),
+				)
+			);
+		},
+	],
+]);
+
+/** Immutable Roblox values cannot be mutated after construction, but unrecognized overloads may reject arguments. */
+export function summarizeKnownConstruction(state: TransformState, node: ts.NewExpression): EffectSummary | undefined {
+	const constructorType = state.getType(node.expression);
+	if (!isDefinitelyType(constructorType, isImmutableRobloxDataTypeConstructor(state))) {
+		return undefined;
+	}
+	const constructorName = constructorType.aliasSymbol?.name ?? constructorType.symbol?.name;
+	const classifier = constructorName !== undefined ? PURE_CONSTRUCTION_CLASSIFIERS.get(constructorName) : undefined;
+	return classifier?.(state, node) ? PURE_SUMMARY : THROWS_SUMMARY;
 }
 
 /**
@@ -624,6 +767,7 @@ export function summarizeExpression(
 ): EffectSummary {
 	// during macro-capture analysis, certain operand subtrees are accounted for separately
 	// and must not contribute their own effects to the surrounding summary
+	const maskedOperandTags = state.multiTransformState.effectMaskedOperandTags;
 	if (maskedOperandTags !== undefined) {
 		const tag = (expression as TaggedNode)[OPERAND_TAG];
 		if (tag !== undefined && maskedOperandTags.has(tag)) {
@@ -790,11 +934,11 @@ function summarizeWritable(state: TransformState, writable: luau.WritableExpress
 	} else if (luau.isIdentifier(writable)) {
 		return { ...PURE_SUMMARY, writesLocals: new Set([writable.name]) };
 	}
-	// a direct write into a block-fresh table (see freshTempIds) aliases nothing
+	// a direct write into a block-fresh table (see effectFreshTempIds) aliases nothing
 	// user-visible and runs no metamethods; it can still throw when a computed key might be
 	// nil/NaN at runtime, so only compiler-controlled keys drop the throw
 	const base = writable.expression;
-	if (luau.isTemporaryIdentifier(base) && freshTempIds.has(base.id)) {
+	if (luau.isTemporaryIdentifier(base) && state.multiTransformState.effectFreshTempIds.has(base.id)) {
 		if (luau.isComputedIndexExpression(writable)) {
 			const index = writable.index;
 			const indexSummary = summarizeExpression(state, index);
@@ -869,7 +1013,7 @@ export function summarizeStatement(state: TransformState, statement: luau.Statem
 			!luau.list.isList(statement.right) &&
 			isFreshTableInitializer(statement.right)
 		) {
-			freshTempIds.add(statement.left.id);
+			state.multiTransformState.effectFreshTempIds.add(statement.left.id);
 		}
 		// declaring a user-named local counts as a write so shadowing is conservatively safe
 		return unionSummaries(
@@ -1182,7 +1326,7 @@ function lazilyReadChild(expression: luau.Expression): luau.Expression | undefin
  * operation always runs after all its children, only the target's left-siblings (and their
  * descendants) at each level of the path contribute — except when the target is a local
  * read placed in a lazily-read register position (see `lazilyReadChild`), where the
- * sibling operands' code also precedes the read. `maskedOperandTags` must be set to the
+ * sibling operands' code also precedes the read. `effectMaskedOperandTags` must be set to the
  * earlier-canonical operands so they are excluded.
  */
 function beforeSummaryInExpression(
@@ -1239,7 +1383,8 @@ function computeBeforeSummary(
 	const earlier = new Set<number>();
 	for (let j = 0; j < target; j++) earlier.add(j);
 
-	maskedOperandTags = earlier;
+	const previousMaskedOperandTags = state.multiTransformState.effectMaskedOperandTags;
+	state.multiTransformState.effectMaskedOperandTags = earlier;
 	try {
 		let acc = PURE_SUMMARY;
 		let handled = false;
@@ -1259,7 +1404,7 @@ function computeBeforeSummary(
 		}
 		return acc;
 	} finally {
-		maskedOperandTags = undefined;
+		state.multiTransformState.effectMaskedOperandTags = previousMaskedOperandTags;
 	}
 }
 
@@ -1290,11 +1435,11 @@ function beforeSummaryInStatement(
 	}
 	const withTarget = new Set(earlier);
 	withTarget.add(target);
-	maskedOperandTags = withTarget;
+	state.multiTransformState.effectMaskedOperandTags = withTarget;
 	try {
 		return summarizeStatement(state, statement);
 	} finally {
-		maskedOperandTags = earlier;
+		state.multiTransformState.effectMaskedOperandTags = earlier;
 	}
 }
 
@@ -1366,12 +1511,13 @@ function summarizeWholeOutput(
 ): EffectSummary {
 	const masked = new Set<number>();
 	for (let j = 0; j <= target; j++) masked.add(j);
-	maskedOperandTags = masked;
+	const previousMaskedOperandTags = state.multiTransformState.effectMaskedOperandTags;
+	state.multiTransformState.effectMaskedOperandTags = masked;
 	try {
 		const summary = summarizeStatements(state, prereqs);
 		return unionSummaries(summary, summarizeExpression(state, result));
 	} finally {
-		maskedOperandTags = undefined;
+		state.multiTransformState.effectMaskedOperandTags = previousMaskedOperandTags;
 	}
 }
 

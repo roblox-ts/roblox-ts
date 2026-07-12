@@ -5,6 +5,72 @@
 // See docs/evaluation-order-redesign.md.
 
 export = () => {
+	it("should preserve table.find errors before later local writes", () => {
+		let value = 0;
+		function observe(found: boolean | number, assigned: number) {
+			return found !== false && assigned > 0;
+		}
+		const badIndex = 0 / 0;
+		const [includesSuccess] = pcall(() => observe([1].includes(1, badIndex), (value = 1)));
+		expect(includesSuccess).to.equal(false);
+		expect(value).to.equal(0);
+
+		const [indexOfSuccess] = pcall(() => observe([1].indexOf(1, badIndex), (value = 1)));
+		expect(indexOfSuccess).to.equal(false);
+		expect(value).to.equal(0);
+	});
+
+	it("should preserve tuple select errors before later local writes", () => {
+		function values(): LuaTuple<Array<number>> {
+			return [1, 2] as unknown as LuaTuple<Array<number>>;
+		}
+		let value = 0;
+		function observe(selected: number, assigned: number) {
+			return selected + assigned;
+		}
+		const badIndex = 0 / 0;
+		const [success] = pcall(() => observe(values()[badIndex], (value = 1)));
+		expect(success).to.equal(false);
+		expect(value).to.equal(0);
+	});
+
+	it("should keep user-derived fresh-table key errors ordered", () => {
+		let value = 0;
+		function setValue() {
+			value = 1;
+			return 0;
+		}
+		const badKey = 0 / 0;
+		const map = new Map<string, number>();
+		function observe(first: number, object: { [key: number]: number }) {
+			return first + object[1];
+		}
+		const [success] = pcall(() => observe(setValue(), { [badKey]: map.size() }));
+		expect(success).to.equal(false);
+		expect(value).to.equal(1);
+	});
+
+	it("should preserve immutable datatype construction errors before later local writes", () => {
+		let value = 0;
+		function observe(range: NumberRange, assigned: number) {
+			return range.Min + assigned;
+		}
+		const [success] = pcall(() => observe(new NumberRange(undefined as never), (value = 1)));
+		expect(success).to.equal(false);
+		expect(value).to.equal(0);
+	});
+
+	it("should preserve immutable datatype method errors before later local writes", () => {
+		let value = 0;
+		function observe(frame: CFrame, assigned: number) {
+			return frame.X + assigned;
+		}
+		const frame = new CFrame();
+		const [success] = pcall(() => observe(frame.ToObjectSpace(undefined as never), (value = 1)));
+		expect(success).to.equal(false);
+		expect(value).to.equal(0);
+	});
+
 	it("should preserve immutable datatype static errors before later local writes", () => {
 		let value = 0;
 		function observe(color: Color3, assigned: number) {
@@ -640,13 +706,94 @@ export = () => {
 		expect(values[1]).to.equal(6);
 	});
 
-	it("should order immutable datatype construction with mutating macros", () => {
+	it("should keep known-total immutable construction inline with mutating macros", () => {
 		const arr = [1, 2, 3];
-		// constructing a Vector3 and reading its field is a pure value computation
-		const values = [new Vector3(4, 5, 6).X, arr.pop()!];
+		const values = [
+			new Vector3(4, 5, 6).X,
+			new UDim(0.5, 12).Offset,
+			new UDim2(new UDim(0.25, 1), new UDim(0.75, 2)).Y.Scale,
+			arr.pop()!,
+		];
 		expect(values[0]).to.equal(4);
-		expect(values[1]).to.equal(3);
+		expect(values[1]).to.equal(12);
+		expect(values[2]).to.equal(0.75);
+		expect(values[3]).to.equal(3);
 		expect(arr.size()).to.equal(2);
+
+		const other = [1, 2, 3];
+		const sequenceValues = [new ColorSequence(new Color3(0.25, 0.5, 0.75)), other.pop()!] as const;
+		expect(sequenceValues[0].Keypoints[0].Value.R).to.equal(0.25);
+		expect(sequenceValues[1]).to.equal(3);
+		expect(other.size()).to.equal(2);
+
+		const constrained = [1, 2, 3];
+		const keypoints = [
+			new ColorSequenceKeypoint(0, new Color3(1, 0, 0)),
+			new ColorSequenceKeypoint(1, new Color3(0, 0, 1)),
+		];
+		const constrainedValues = [new ColorSequence(keypoints), constrained.pop()!] as const;
+		expect(constrainedValues[0].Keypoints.size()).to.equal(2);
+		expect(constrainedValues[1]).to.equal(3);
+		expect(constrained.size()).to.equal(2);
+
+		const geometry = [1, 2, 3];
+		const position = new Vector3(1, 2, 3);
+		const min2 = new Vector2(0, 0);
+		const max2 = new Vector2(4, 5);
+		const min3 = new Vector3(0, 0, 0);
+		const max3 = new Vector3(4, 5, 6);
+		const min16 = new Vector3int16(0, 0, 0);
+		const max16 = new Vector3int16(4, 5, 6);
+		const geometryValues = [
+			new CFrame(position).X,
+			new Ray(position, max3).Origin.X,
+			new Rect(min2, max2).Width,
+			new Region3(min3, max3).Size.X,
+			new Region3int16(min16, max16).Max.Z,
+			new BrickColor(1, 0, 0).r,
+			geometry.pop()!,
+		];
+		expect(geometryValues[0]).to.equal(1);
+		expect(geometryValues[1]).to.equal(1);
+		expect(geometryValues[2]).to.equal(4);
+		expect(geometryValues[3]).to.equal(4);
+		expect(geometryValues[4]).to.equal(6);
+		expect(geometryValues[5] >= 0).to.equal(true);
+		expect(geometryValues[6]).to.equal(3);
+		expect(geometry.size()).to.equal(2);
+
+		const numbers = [1, 2, 3];
+		const numberSequenceValues = [new NumberSequence(1, 2), numbers.pop()!] as const;
+		expect(numberSequenceValues[0].Keypoints[0].Value).to.equal(1);
+		expect(numberSequenceValues[1]).to.equal(3);
+		expect(numbers.size()).to.equal(2);
+
+		const bounded = [1, 2, 3];
+		const boundedValues = [
+			new NumberRange(0, 1).Max,
+			new ColorSequenceKeypoint(0.5, new Color3(1, 0, 0)).Time,
+			new NumberSequenceKeypoint(0.5, 2, 0.25).Value,
+			new CFrame(0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1).X,
+			bounded.pop()!,
+		];
+		expect(boundedValues[0]).to.equal(1);
+		expect(boundedValues[1]).to.equal(0.5);
+		expect(boundedValues[2]).to.equal(2);
+		expect(boundedValues[3]).to.equal(0);
+		expect(boundedValues[4]).to.equal(3);
+		expect(bounded.size()).to.equal(2);
+
+		if (math.random() > 1) {
+			// Lune does not implement every Roblox datatype, but these still exercise compiler emit.
+			const engineOnly = [1, 2, 3];
+			const engineValues = [
+				new Axes(Enum.Axis.X).X,
+				new PathWaypoint(position, Enum.PathWaypointAction.Walk, "review").Position.X,
+				new PhysicalProperties(Enum.Material.Plastic).Density,
+				engineOnly.pop()!,
+			];
+			expect(engineValues.size()).to.equal(4);
+		}
 	});
 
 	it("should call a known-pure callback per element without capturing the receiver", () => {
@@ -746,10 +893,7 @@ export = () => {
 			seen.push(object);
 			seen.push(mapped);
 		}
-		observe(
-			makeObject(),
-			[0].map(() => value)[0],
-		);
+		observe(makeObject(), [0].map(() => value)[0]);
 		expect(seen[1]).to.equal(1);
 	});
 

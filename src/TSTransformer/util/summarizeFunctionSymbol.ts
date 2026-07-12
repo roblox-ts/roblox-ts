@@ -66,6 +66,7 @@ export function getFunctionSymbolInfo(state: TransformState, symbol: ts.Symbol):
 	}
 
 	const cache = state.multiTransformState.functionSymbolSummaryCache;
+	const pendingSymbols = state.multiTransformState.functionAnalysisPendingSymbols;
 	const cached = cache.get(symbol);
 	if (cached !== undefined) {
 		return cached === false ? undefined : cached;
@@ -73,7 +74,7 @@ export function getFunctionSymbolInfo(state: TransformState, symbol: ts.Symbol):
 
 	if (pendingSymbols.has(symbol)) {
 		// self/mutual recursion: the pending function's effects are already being unioned
-		sawPendingSymbol = true;
+		state.multiTransformState.functionAnalysisSawPendingSymbol = true;
 		return RECURSION_PENDING_INFO;
 	}
 
@@ -84,8 +85,8 @@ export function getFunctionSymbolInfo(state: TransformState, symbol: ts.Symbol):
 	}
 
 	pendingSymbols.add(symbol);
-	const outerSawPending = sawPendingSymbol;
-	sawPendingSymbol = false;
+	const outerSawPending = state.multiTransformState.functionAnalysisSawPendingSymbol;
+	state.multiTransformState.functionAnalysisSawPendingSymbol = false;
 	let dependedOnPending = true;
 	let info: FunctionSymbolInfo;
 	try {
@@ -94,10 +95,11 @@ export function getFunctionSymbolInfo(state: TransformState, symbol: ts.Symbol):
 			summary,
 			returnsPrimitive: isFunctionReturningPrimitive(state.typeChecker.getTypeOfSymbolAtLocation(symbol, func)),
 		};
-		dependedOnPending = sawPendingSymbol;
+		dependedOnPending = state.multiTransformState.functionAnalysisSawPendingSymbol;
 	} finally {
 		pendingSymbols.delete(symbol);
-		sawPendingSymbol = outerSawPending || (dependedOnPending && pendingSymbols.size > 0);
+		state.multiTransformState.functionAnalysisSawPendingSymbol =
+			outerSawPending || (dependedOnPending && pendingSymbols.size > 0);
 	}
 	// a result computed while some enclosing analysis is still pending may be a partial
 	// fixpoint — usable by that analysis, but not cacheable
@@ -127,9 +129,6 @@ export function getFunctionExpressionSummary(
 	}
 	return summarizeFunctionBody(state, node as AnalyzableFunction);
 }
-
-const pendingSymbols = new Set<ts.Symbol>();
-let sawPendingSymbol = false;
 
 type AnalyzableFunction = (ts.FunctionDeclaration | ts.ArrowFunction | ts.FunctionExpression) & {
 	body: ts.ConciseBody;

@@ -246,10 +246,10 @@ export function isInstanceType(state: TransformState): TypeCheck {
 }
 
 /**
- * Roblox data types that are immutable values: their fields cannot change after
- * construction, their methods cannot mutate them (or anything else), never yield, and
- * never invoke user code. Deliberately excludes mutable ones (`Random`, `RaycastParams`,
- * `OverlapParams`, …) and reference-typed containers (`SharedTable`).
+ * Roblox data types whose values cannot change after construction. This classification
+ * says nothing about whether construction or methods can error or read engine state.
+ * Deliberately excludes mutable ones (`Random`, `RaycastParams`, `OverlapParams`, …) and
+ * reference-typed containers (`SharedTable`).
  */
 const IMMUTABLE_ROBLOX_DATA_TYPES = new Set([
 	"Axes",
@@ -303,7 +303,7 @@ export function isFunctionReturningPrimitive(type: ts.Type): boolean {
 export function isImmutableRobloxDataTypeConstructor(state: TransformState): TypeCheck {
 	const robloxType = isRobloxType(state);
 	return type => {
-		const name = type.symbol?.name;
+		const name = type.aliasSymbol?.name ?? type.symbol?.name;
 		return (
 			name !== undefined &&
 			name.endsWith("Constructor") &&
