@@ -8,6 +8,13 @@ export type IdentifierMacro = (state: TransformState, node: ts.Identifier) => lu
 
 export type ConstructorMacro = (state: TransformState, node: ts.NewExpression) => luau.Expression;
 
+/** Coarse source-level effects used when analyzing calls inside known function bodies. */
+export const enum CallMacroEffect {
+	Pure,
+	Throws,
+	Unknown,
+}
+
 /**
  * Macros are plain functions of their operands. They embed the object expression and each
  * argument wherever the emitted Luau needs them, without regard to evaluation order: the
@@ -15,12 +22,16 @@ export type ConstructorMacro = (state: TransformState, node: ts.NewExpression) =
  * captures into a temporary any operand that would otherwise be re-evaluated or evaluated
  * out of TypeScript's order before running the macro for real.
  */
-export type CallMacro = (
+export type CallMacroTransform = (
 	state: TransformState,
 	node: ts.CallExpression,
 	expression: luau.Expression,
 	args: Array<luau.Expression>,
 ) => luau.Expression;
+
+export type CallMacro = CallMacroTransform & {
+	readonly effect: CallMacroEffect;
+};
 
 export type PropertyCallMacro = (
 	state: TransformState,

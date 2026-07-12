@@ -1,14 +1,18 @@
 import { TransformState } from "TSTransformer";
+import { CALL_MACROS } from "TSTransformer/macros/callMacros";
+import { CallMacro, CallMacroEffect } from "TSTransformer/macros/types";
 import {
 	CALLS_UNKNOWN_SUMMARY,
 	EffectSummary,
-	HEAP_ALL,
 	HEAP_TABLES,
 	PURE_SUMMARY,
+	READS_ALL_THROWS_SUMMARY,
+	READS_TABLES_SUMMARY,
 	summarizeKnownConstruction,
 	summarizeKnownEngineCall,
 	summarizeMemberRead,
 	summarizeMemberWrite,
+	THROWS_SUMMARY,
 	unionSummaries,
 } from "TSTransformer/util/effects";
 import { isSymbolMutable } from "TSTransformer/util/isSymbolMutable";
@@ -168,16 +172,6 @@ function getAnalyzableFunction(state: TransformState, symbol: ts.Symbol): Analyz
 // analysis gives up on very large bodies rather than walking them in full
 const ANALYSIS_NODE_BUDGET = 2000;
 
-// the exports table, iterated containers, spread sources, and metatable walks are all Lua tables
-const READS_TABLES_SUMMARY: EffectSummary = { ...PURE_SUMMARY, readsHeap: HEAP_TABLES };
-const READS_ALL_THROWS_SUMMARY: EffectSummary = { ...PURE_SUMMARY, readsHeap: HEAP_ALL, throws: true };
-const THROWS_SUMMARY: EffectSummary = { ...PURE_SUMMARY, throws: true };
-
-// call macros that only evaluate their arguments (no other observable behavior); `assert`
-// is handled separately (it throws). Keep in sync with CALL_MACROS in macros/callMacros.ts
-// when adding a macro.
-const PURE_CALL_MACROS = new Set(["typeOf", "typeIs", "classIs", "identity", "$range", "$tuple", "$getModuleTree"]);
-
 function summarizeFunctionBody(state: TransformState, func: AnalyzableFunction): EffectSummary {
 	let fuel = ANALYSIS_NODE_BUDGET;
 
@@ -275,15 +269,12 @@ function summarizeFunctionBody(state: TransformState, func: AnalyzableFunction):
 		return result;
 	};
 
-	const getCallMacroName = (callee: ts.Expression): string | undefined => {
+	const getCallMacro = (callee: ts.Expression): CallMacro | undefined => {
 		if (!ts.isIdentifier(callee)) {
 			return undefined;
 		}
 		const symbol = state.typeChecker.getSymbolAtLocation(callee);
-		if (symbol === undefined || state.services.macroManager.getCallMacro(symbol) === undefined) {
-			return undefined;
-		}
-		return symbol.name;
+		return symbol !== undefined ? state.services.macroManager.getCallMacro(symbol) : undefined;
 	};
 
 	const visitCall = (node: ts.CallExpression): EffectSummary => {
@@ -293,15 +284,10 @@ function summarizeFunctionBody(state: TransformState, func: AnalyzableFunction):
 		}
 		const callee = skipDownwards(node.expression);
 
-		const macroName = getCallMacroName(callee);
-		if (macroName !== undefined) {
-			if (PURE_CALL_MACROS.has(macroName)) {
-				return result;
-			}
-			if (macroName === "assert") {
-				return unionSummaries(result, THROWS_SUMMARY);
-			}
-			/* istanbul ignore next -- every current call macro except assert is effect-free */
+		const macro = getCallMacro(callee);
+		if (macro !== undefined) {
+			if (macro.effect === CallMacroEffect.Pure) return result;
+			if (macro.effect === CallMacroEffect.Throws) return unionSummaries(result, THROWS_SUMMARY);
 			return CALLS_UNKNOWN_SUMMARY;
 		}
 
@@ -316,7 +302,7 @@ function summarizeFunctionBody(state: TransformState, func: AnalyzableFunction):
 			}
 		}
 		if (ts.isPropertyAccessExpression(callee)) {
-			// tame engine calls: immutable data type methods/statics, read-only Instance methods
+			// tame engine calls: immutable data type methods and read-only Instance methods
 			const known = summarizeKnownEngineCall(state, callee);
 			if (known !== undefined) {
 				return unionSummaries(unionSummaries(result, visit(callee.expression)), known);
@@ -338,7 +324,7 @@ function summarizeFunctionBody(state: TransformState, func: AnalyzableFunction):
 		// iterating anything but a plain array/set/map/string (or $range) may invoke a user
 		// iterator/generator
 		const iterated = skipDownwards(node.expression);
-		if (ts.isCallExpression(iterated) && getCallMacroName(skipDownwards(iterated.expression)) === "$range") {
+		if (ts.isCallExpression(iterated) && getCallMacro(skipDownwards(iterated.expression)) === CALL_MACROS.$range) {
 			return result;
 		}
 		if (
@@ -495,7 +481,9 @@ function summarizeFunctionBody(state: TransformState, func: AnalyzableFunction):
 				} else if (ts.isSpreadAssignment(property)) {
 					result = unionSummaries(result, unionSummaries(visit(property.expression), READS_TABLES_SUMMARY));
 				} else if (ts.isMethodDeclaration(property)) {
-					result = unionSummaries(result, PURE_SUMMARY);
+					if (ts.isComputedPropertyName(property.name)) {
+						result = unionSummaries(result, visit(property.name.expression));
+					}
 				} else {
 					/* istanbul ignore next -- accessors are rejected by diagnostics before analysis */
 					return CALLS_UNKNOWN_SUMMARY;

@@ -75,8 +75,9 @@ function runCallMacro(
 		const spreadOperand = operands[operands.length - 1];
 		const spreadExp = spreadOperand.expressions.pop();
 		const tempIds = luau.list.make<luau.TemporaryIdentifier>();
-		for (let i = nodeArguments.length - 1; i < argumentCount; i++) {
-			const tempId = luau.tempId(`spread${i}`);
+		const explicitArgumentCount = nodeArguments.length - 1;
+		for (let i = 0; i < argumentCount; i++) {
+			const tempId = luau.tempId(`spread${explicitArgumentCount + i}`);
 			spreadOperand.expressions.push(tempId);
 			luau.list.push(tempIds, tempId);
 		}
@@ -155,6 +156,20 @@ function runCallMacro(
 	return wrapReturnIfLuaTuple(state, node, macroFn(state, node, expression, finalArgs));
 }
 
+function stabilizeBeforePrereqs(
+	state: TransformState,
+	expression: luau.Expression,
+	node: ts.Expression,
+	prereqs: luau.List<luau.Statement>,
+	name?: string,
+) {
+	if (!commutes(summarizeExpression(state, expression, node), summarizeStatements(state, prereqs))) {
+		expression = state.pushToVar(expression, name);
+	}
+	state.prereqList(prereqs);
+	return expression;
+}
+
 /**
  * Some C functions like `tonumber()` will error if the given argument is a function that returns nothing.
  * i.e.
@@ -217,10 +232,7 @@ export function transformCallExpressionInner(
 	const [args, prereqs] = state.capture(() => ensureTransformOrder(state, nodeArguments));
 	fixVoidArgumentsForRobloxFunctions(state, expType, args, nodeArguments);
 
-	if (!commutes(summarizeExpression(state, expression, node.expression), summarizeStatements(state, prereqs))) {
-		expression = state.pushToVar(expression, "fn");
-	}
-	state.prereqList(prereqs);
+	expression = stabilizeBeforePrereqs(state, expression, node.expression, prereqs, "fn");
 
 	const exp = luau.call(convertToIndexableExpression(expression), args);
 
@@ -259,15 +271,7 @@ export function transformPropertyCallExpressionInner(
 	const [args, prereqs] = state.capture(() => ensureTransformOrder(state, nodeArguments));
 	fixVoidArgumentsForRobloxFunctions(state, expType, args, nodeArguments);
 
-	if (
-		!commutes(
-			summarizeExpression(state, baseExpression, expression.expression),
-			summarizeStatements(state, prereqs),
-		)
-	) {
-		baseExpression = state.pushToVar(baseExpression);
-	}
-	state.prereqList(prereqs);
+	baseExpression = stabilizeBeforePrereqs(state, baseExpression, expression.expression, prereqs);
 
 	let exp: luau.Expression;
 	if (isMethod(state, expression)) {
@@ -332,15 +336,7 @@ export function transformElementCallExpressionInner(
 
 	fixVoidArgumentsForRobloxFunctions(state, expType, args, nodeArguments);
 
-	if (
-		!commutes(
-			summarizeExpression(state, baseExpression, expression.expression),
-			summarizeStatements(state, prereqs),
-		)
-	) {
-		baseExpression = state.pushToVar(baseExpression);
-	}
-	state.prereqList(prereqs);
+	baseExpression = stabilizeBeforePrereqs(state, baseExpression, expression.expression, prereqs);
 
 	if (isMethod(state, expression)) {
 		baseExpression = state.pushToVarIfComplex(baseExpression);

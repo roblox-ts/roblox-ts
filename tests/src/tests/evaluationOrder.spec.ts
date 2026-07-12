@@ -5,6 +5,16 @@
 // See docs/evaluation-order-redesign.md.
 
 export = () => {
+	it("should preserve immutable datatype static errors before later local writes", () => {
+		let value = 0;
+		function observe(color: Color3, assigned: number) {
+			return color.R > 0 && assigned > 0;
+		}
+		const [success] = pcall(() => observe(Color3.fromHex("not-a-color"), (value = 1)));
+		expect(success).to.equal(false);
+		expect(value).to.equal(0);
+	});
+
 	it("should evaluate call arguments before a later argument's assignment prereq", () => {
 		const seen = new Array<number>();
 		function observe(a: number, b: number) {
@@ -265,6 +275,17 @@ export = () => {
 		// mutates anything, so the array must be untouched
 		expect(() => arr.push("a", fmt.format([] as never))).to.throw();
 		expect(arr.size()).to.equal(0);
+	});
+
+	it("should preserve table mutation errors before later local writes", () => {
+		const frozen = table.freeze([1]) as Array<number>;
+		let value = 0;
+		function observe(removed: number | undefined, assigned: number) {
+			return removed !== undefined && assigned > 0;
+		}
+		const [success] = pcall(() => observe(frozen.shift(), (value = 1)));
+		expect(success).to.equal(false);
+		expect(value).to.equal(0);
 	});
 
 	it("should evaluate interpolated objects before later arguments' prereqs", () => {
@@ -709,6 +730,29 @@ export = () => {
 		expect(values[1]).to.equal(3);
 	});
 
+	it("should analyze computed object-method names", () => {
+		let value = 0;
+		function key() {
+			value = 1;
+			return "method";
+		}
+		function makeObject() {
+			return {
+				[key()]() {},
+			};
+		}
+		const seen = new Array<defined>();
+		function observe(object: object, mapped: number) {
+			seen.push(object);
+			seen.push(mapped);
+		}
+		observe(
+			makeObject(),
+			[0].map(() => value)[0],
+		);
+		expect(seen[1]).to.equal(1);
+	});
+
 	it("should treat generator and async helpers as unknown code", () => {
 		let n = 0;
 		function* gen() {
@@ -893,6 +937,14 @@ export = () => {
 		expect(arr[1]).to.equal(99);
 		expect(arr.size()).to.equal(4);
 		expect(n).to.equal(1);
+	});
+
+	it("should unpack tuple spreads after explicit macro arguments", () => {
+		const arr = [10];
+		const value: [number] = [99];
+		arr.insert(0, ...value);
+		expect(arr[0]).to.equal(99);
+		expect(arr[1]).to.equal(10);
 	});
 
 	it("should treat calls through mutable function bindings as unknown code", () => {

@@ -131,7 +131,7 @@ Key facts of Luau that the summary exploits:
 | other unary / binary / `IfExpression` / parenthesized | union of children (TS bans metamethod-bearing operands for these operators) |
 | array/set/map/mixed-table literals | union of members (fresh allocation is unobservable) |
 | interpolated strings | union of parts ∪ `{readsHeap, throws}` (`__tostring` metamethods) |
-| call of a **known builtin** (recognized by `luau.globals` node identity) | per-builtin table, e.g. ordinary `string.*` operations → `throws`, `table.create`/`typeof` → ∅⁺, `table.find`/`next` → `readsHeap`, `table.insert`/`remove`/`clear`/`move`/`setmetatable` → `readsHeap+writesHeap`, `string.gsub` / `table.sort` with comparator / `tostring` / `TS.*` → `calls`, `error`/`assert` → `throws` |
+| call of a **known builtin** (recognized by `luau.globals` node identity) | per-builtin table, e.g. ordinary `string.*` operations → `throws`, `table.create`/`typeof` → ∅⁺, `table.find`/`next` → `readsHeap`, `table.insert`/`remove`/`clear`/`move`/`setmetatable` → `readsHeap+writesHeap+throws`, `string.gsub` / `table.sort` with comparator / `tostring` / `TS.*` → `calls`, `error`/`assert` → `throws` |
 | any other call / method call | `calls` (= everything) |
 
 ⁺ builtin calls additionally union their argument summaries.
@@ -284,13 +284,16 @@ Region and error classification come from TS types:
   accesses fall back to the base's tag. This is what makes `pop`'s prereqs
   table-region (and its reads non-throwing), so
   `use(part.GetMass(), arr.pop())` keeps the engine read inline.
-* **Tame engine calls**: methods (and statics/constructors) of immutable
-  data types are pure value computations; a fixed allowlist of read-only,
-  non-yielding Instance methods (`GetChildren`, `FindFirstChild`, `IsA`,
-  `GetAttribute`, …) summarize as engine-state reads. Everything else —
-  anything that can mutate engine state, dispatch user handlers
-  (`BindableFunction:Invoke`), or *yield* (`WaitForChild`), during which
-  other user threads may mutate anything — remains unknown code.
+* **Tame engine calls**: methods on immutable data-type values and `new`
+  construction are pure value computations; static methods on their
+  constructors stay unknown because the same constructor surfaces include
+  clock/RNG reads (`DateTime.now`, `BrickColor.random`) and throwing parsers.
+  A fixed allowlist of read-only, non-yielding Instance methods
+  (`GetChildren`, `FindFirstChild`, `IsA`, `GetAttribute`, …) summarize as
+  engine-state reads. Everything else — anything that can mutate engine
+  state, dispatch user handlers (`BindableFunction:Invoke`), or *yield*
+  (`WaitForChild`), during which other user threads may mutate anything —
+  remains unknown code.
 * **Value stability**: a callee whose TS signature definitely returns a
   primitive is tagged; a *pure* call to it is repeatable (primitives have no
   allocation identity), so such calls survive not-exactly-once contexts
@@ -389,8 +392,10 @@ strong and too weak at once.
 
 ### 4.2 The new contract: driver observes what the macro actually does
 
-Macros are plain functions again — no effect-class annotation, no ordering
-helpers in their bodies. They embed the object expression and each argument
+Macros remain callable transforms with no ordering helpers in their bodies.
+Call macros carry a coarse source-level effect classification used only when
+analyzing known TypeScript function bodies; property-macro output is still
+analyzed structurally. They embed the object expression and each argument
 wherever the emitted Luau needs them. `runCallMacro` (in
 `transformCallExpression.ts`) discovers the required captures by **running the
 macro and inspecting its output**:

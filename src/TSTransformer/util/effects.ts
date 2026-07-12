@@ -232,14 +232,19 @@ export function commutes(a: EffectSummary, b: EffectSummary): boolean {
  */
 const BUILTIN_CALL_SUMMARIES = new Map<luau.Expression, EffectSummary>();
 // the builtins the compiler emits all operate on Lua tables, never on engine state
-const READS_HEAP_SUMMARY: EffectSummary = { ...PURE_SUMMARY, readsHeap: HEAP_TABLES };
+export const READS_TABLES_SUMMARY: EffectSummary = { ...PURE_SUMMARY, readsHeap: HEAP_TABLES };
+const READS_HEAP_SUMMARY = READS_TABLES_SUMMARY;
 const READS_HEAP_THROWS_SUMMARY: EffectSummary = { ...PURE_SUMMARY, readsHeap: HEAP_TABLES, throws: true };
-const MUTATES_HEAP_SUMMARY: EffectSummary = { ...PURE_SUMMARY, readsHeap: HEAP_TABLES, writesHeap: HEAP_TABLES };
-const THROWS_SUMMARY: EffectSummary = { ...PURE_SUMMARY, throws: true };
+const MUTATES_HEAP_SUMMARY: EffectSummary = {
+	...PURE_SUMMARY,
+	readsHeap: HEAP_TABLES,
+	writesHeap: HEAP_TABLES,
+	throws: true,
+};
+export const THROWS_SUMMARY: EffectSummary = { ...PURE_SUMMARY, throws: true };
 // unrefined member accesses: without type information the base may be a table or an Instance
-const READS_ALL_THROWS_SUMMARY: EffectSummary = { ...PURE_SUMMARY, readsHeap: HEAP_ALL, throws: true };
+export const READS_ALL_THROWS_SUMMARY: EffectSummary = { ...PURE_SUMMARY, readsHeap: HEAP_ALL, throws: true };
 const READS_INSTANCES_THROWS_SUMMARY: EffectSummary = { ...PURE_SUMMARY, readsHeap: HEAP_INSTANCES, throws: true };
-const READS_TABLES_SUMMARY: EffectSummary = { ...PURE_SUMMARY, readsHeap: HEAP_TABLES };
 const READS_INSTANCES_SUMMARY: EffectSummary = { ...PURE_SUMMARY, readsHeap: HEAP_INSTANCES };
 // sentinel: table.sort invokes a user comparator only when one is passed (see summarizeCall)
 const SORT_BUILTIN: EffectSummary = { ...PURE_SUMMARY };
@@ -574,9 +579,11 @@ export function summarizeMemberWrite(state: TransformState, baseNode: ts.Express
 
 /**
  * Summary for a call with a property-access callee that is statically known to be a tame
- * engine API, or `undefined` when unknown: methods (and statics) of immutable Roblox data
- * types are pure value computations; allowlisted read-only Instance methods only read
- * engine state. Argument effects are the caller's responsibility.
+ * engine API, or `undefined` when unknown: methods of immutable Roblox data types are pure
+ * value computations; allowlisted read-only Instance methods only read
+ * engine state. Static methods on datatype constructors are deliberately excluded: value
+ * immutability says nothing about clock/RNG reads or argument-dependent errors. Argument
+ * effects are the caller's responsibility.
  */
 export function summarizeKnownEngineCall(
 	state: TransformState,
@@ -586,10 +593,7 @@ export function summarizeKnownEngineCall(
 	if (isPossiblyType(receiverType, isUndefinedType, isAnyType(state))) {
 		return undefined;
 	}
-	if (
-		isDefinitelyType(receiverType, isImmutableRobloxDataType(state)) ||
-		isDefinitelyType(receiverType, isImmutableRobloxDataTypeConstructor(state))
-	) {
+	if (isDefinitelyType(receiverType, isImmutableRobloxDataType(state))) {
 		return PURE_SUMMARY;
 	}
 	if (isDefinitelyType(receiverType, isInstanceType(state)) && READONLY_INSTANCE_METHODS.has(callee.name.text)) {
