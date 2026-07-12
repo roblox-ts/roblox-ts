@@ -57,6 +57,7 @@ export function transformVariable(
 					left,
 					operator: "=",
 					right,
+					isConst,
 				}),
 			);
 		}
