@@ -287,6 +287,7 @@ function summarizeFunctionBody(state: TransformState, func: AnalyzableFunction):
 		if (macro !== undefined) {
 			if (macro.effect === CallMacroEffect.Pure) return result;
 			if (macro.effect === CallMacroEffect.Throws) return unionSummaries(result, THROWS_SUMMARY);
+			/* istanbul ignore next -- no registered call macro currently uses the Unknown effect */
 			return CALLS_UNKNOWN_SUMMARY;
 		}
 

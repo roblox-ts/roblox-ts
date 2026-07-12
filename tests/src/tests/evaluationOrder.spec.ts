@@ -5,6 +5,10 @@
 // See docs/evaluation-order-redesign.md.
 
 export = () => {
+	it("should preserve the identity macro value", () => {
+		expect(identity(5)).to.equal(5);
+	});
+
 	it("should preserve table.find errors before later local writes", () => {
 		let value = 0;
 		function observe(found: boolean | number, assigned: number) {
@@ -770,7 +774,7 @@ export = () => {
 
 		const bounded = [1, 2, 3];
 		const boundedValues = [
-			new NumberRange(0, 1).Max,
+			new NumberRange(-1, 1).Max,
 			new ColorSequenceKeypoint(0.5, new Color3(1, 0, 0)).Time,
 			new NumberSequenceKeypoint(0.5, 2, 0.25).Value,
 			new CFrame(0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1).X,
@@ -788,11 +792,12 @@ export = () => {
 			const engineOnly = [1, 2, 3];
 			const engineValues = [
 				new Axes(Enum.Axis.X).X,
+				new Faces(Enum.NormalId.Top).Top,
 				new PathWaypoint(position, Enum.PathWaypointAction.Walk, "review").Position.X,
 				new PhysicalProperties(Enum.Material.Plastic).Density,
 				engineOnly.pop()!,
 			];
-			expect(engineValues.size()).to.equal(4);
+			expect(engineValues.size()).to.equal(5);
 		}
 	});
 
@@ -1009,9 +1014,12 @@ export = () => {
 		function bothDefined(a: unknown, b: unknown): boolean {
 			return a !== undefined && b !== undefined;
 		}
+		function findWorkspace() {
+			return game.FindFirstChild("Workspace");
+		}
 		// FindFirstChild/GetChildren are read-only, non-yielding engine calls: they touch
 		// only engine state, which macro table writes cannot alias
-		expect(bothDefined(game.FindFirstChild("Workspace"), arr.pop())).to.equal(true);
+		expect(bothDefined(findWorkspace(), arr.pop())).to.equal(true);
 		expect(bothDefined(game.GetChildren(), arr.pop())).to.equal(true);
 		expect(arr.size()).to.equal(1);
 	});
