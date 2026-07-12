@@ -793,11 +793,15 @@ export = () => {
 			const engineValues = [
 				new Axes(Enum.Axis.X).X,
 				new Faces(Enum.NormalId.Top).Top,
+				new NumberRange(1e999).Max,
+				new NumberRange(-(1 + 2)).Max,
+				new PathWaypoint().Position.X,
 				new PathWaypoint(position, Enum.PathWaypointAction.Walk, "review").Position.X,
 				new PhysicalProperties(Enum.Material.Plastic).Density,
+				new Rect().Width,
 				engineOnly.pop()!,
 			];
-			expect(engineValues.size()).to.equal(5);
+			expect(engineValues.size()).to.equal(9);
 		}
 	});
 
