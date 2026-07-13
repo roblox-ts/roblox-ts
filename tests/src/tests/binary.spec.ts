@@ -131,6 +131,27 @@ export = () => {
 		expect(o.x).to.equal(8);
 	});
 
+	it("should support the result of assignment expressions", () => {
+		function myFunc() {}
+		const child = new Instance("BindableFunction");
+		// should return assigned value, not re-index which would error here
+		const a = (child.OnInvoke = myFunc);
+		expect(a).to.equal(myFunc);
+
+		let c = 0;
+		const b = (c = 1);
+		expect(b).to.equal(1);
+		expect(c).to.equal(1);
+
+		const r: Record<number, number> = {};
+		let foo = () => r;
+		let bar = 1;
+		const result = (foo()[bar++] = bar++);
+		expect(bar).to.equal(3);
+		expect(r[1]).to.equal(2);
+		expect(result).to.equal(2);
+	});
+
 	it("should support comma operator", () => {
 		let x = 0;
 		expect(
