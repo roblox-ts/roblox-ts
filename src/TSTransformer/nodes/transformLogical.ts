@@ -5,6 +5,7 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { createTruthinessChecks, willCreateTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
 import { binaryExpressionChain } from "TSTransformer/util/expressionChain";
 import { getKindName } from "TSTransformer/util/getKindName";
+import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfNode";
 import { isBooleanLiteralType, isPossiblyType } from "TSTransformer/util/types";
 import ts from "typescript";
 
@@ -45,7 +46,13 @@ function getLogicalChain(
 		const [expression, statements] = state.capture(() => transformExpression(state, node));
 		let inline = false;
 		if (enableInlining) {
-			const willWrap = index < array.length - 1 && willCreateTruthinessChecks(type);
+			const willWrap =
+				// Last item in chain is not tested for truthiness
+				index < array.length - 1 &&
+				// Not non-null, as that does not check truthiness
+				binaryOperatorKind !== ts.SyntaxKind.QuestionQuestionToken &&
+				// And will actually generate extra truthiness check(s)
+				willCreateTruthinessChecks(type);
 			inline = luau.list.isEmpty(statements) && !willWrap;
 		}
 		return { node, type, expression, statements, inline };
@@ -155,7 +162,27 @@ export function transformLogical(state: TransformState, node: ts.BinaryExpressio
 		);
 	} else if (node.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken) {
 		const conditionBuilder = (conditionId: luau.TemporaryIdentifier) => luau.binary(conditionId, "==", luau.nil());
-		if (!isPossiblyType(state.getType(node), isBooleanLiteralType(state, false))) {
+		let canInline = !isPossiblyType(state.getType(node.left), isBooleanLiteralType(state, false));
+		// Multiple consecutive expressions look like Bin(Bin(Bin(A, B), C), D)
+		// So check right sides for possibly `false` type
+		// Then recurse on left side to go down the tree
+		let checkNode = node.left;
+		while (canInline && ts.isBinaryExpression(checkNode)) {
+			const type = state.getType(checkNode.right);
+			const symbol = getOriginalSymbolOfNode(state.typeChecker, checkNode.right);
+			canInline &&= !isPossiblyType(
+				symbol && symbol.valueDeclaration
+					? // Get the type at the variable declaration
+					  // This avoids incorrect type narrowing, see #1868
+					  state.typeChecker.getTypeOfSymbolAtLocation(symbol, symbol.valueDeclaration)
+					: type,
+				isBooleanLiteralType(state, false),
+			);
+			checkNode = checkNode.left;
+		}
+		// Finally, check the inner-most expression, `A` in the above example
+		canInline &&= !isPossiblyType(state.getType(checkNode), isBooleanLiteralType(state, false));
+		if (canInline) {
 			return buildInlineConditionExpression(state, node, node.operatorToken.kind, "or", conditionBuilder);
 		}
 		const chain = getLogicalChain(state, node, ts.SyntaxKind.QuestionQuestionToken, false);
