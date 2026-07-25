@@ -1150,4 +1150,68 @@ export = () => {
 		expect(order[0]).to.equal("a");
 		expect(order[1]).to.equal("b");
 	});
+
+	// A compound assignment reads its target before the value is evaluated. When the value
+	// lowers to prerequisite statements, the read must be materialized ahead of them --
+	// checking only the residual value expression cannot see what those statements did.
+	it("should read a compound assignment target before the value's prereq statements", () => {
+		let n = 0;
+		function bump(): number {
+			n += 1;
+			return 4;
+		}
+		function digits(): number {
+			return `${n}`.size();
+		}
+		// the ternary lowers to an if-statement; its else branch runs bump(), which writes n
+		n += n > 4 ? digits() : n + bump();
+		expect(n).to.equal(4);
+	});
+
+	it("should read a compound assignment target before macro-lowered prereqs", () => {
+		let n = 0;
+		const arr = [1, 2, 3];
+		function bump(): number {
+			n += 1;
+			return 4;
+		}
+		// arr.pop() forces the ternary to lower to statements, and bump() runs inside them
+		n += (arr.pop() ?? 0) > 99 ? 1 : n + bump();
+		expect(n).to.equal(4);
+		expect(arr.size()).to.equal(2);
+	});
+
+	it("should read a compound assignment target before a value that reassigns it", () => {
+		let m = 0;
+		// TS reads m (0) first, then evaluates (m = 2), so the result is 0 + 2
+		m += m = 2;
+		expect(m).to.equal(2);
+	});
+
+	it("should read a compound assignment target before prereqs in expression position", () => {
+		let n = 0;
+		function bump(): number {
+			n += 1;
+			return 4;
+		}
+		function digits(): number {
+			return `${n}`.size();
+		}
+		const result = (n += n > 4 ? digits() : n + bump());
+		expect(result).to.equal(4);
+		expect(n).to.equal(4);
+	});
+
+	it("should read a compound assignment property target before the value's prereqs", () => {
+		const obj = { a: 0 };
+		const arr = [1, 2, 3];
+		function bump(): number {
+			obj.a += 1;
+			return 4;
+		}
+		// the popping branch forces statement lowering, and bump() writes obj.a inside it
+		obj.a += obj.a > 99 ? 1 : (arr.pop() ?? 0) + bump();
+		expect(obj.a).to.equal(7);
+		expect(arr.size()).to.equal(2);
+	});
 };

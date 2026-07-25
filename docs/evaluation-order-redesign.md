@@ -326,6 +326,17 @@ from Luau's compound operator to the split
 `local _readable = x; x = _readable * f()` form under the same test
 (`compoundReadNeedsMaterializing`).
 
+That last test is necessary but not sufficient on its own. It runs after the
+right side has been transformed and its prerequisite statements flushed, so it
+only ever sees the *residual* value expression — frequently a bare temporary
+whose summary is effect-free — and cannot observe what those hoisted statements
+did. A right side that lowers to statements (a ternary whose branch materializes
+a left operand, a `&&` chain, a macro) can therefore write the target before the
+compound operator reads it. Both compound call sites pass `readBeforeWrite` to
+`transformWritableAssignment`, which is prerequisite-aware: it materializes the
+read *before* flushing them, and the split form is then used whenever that
+materialization happened.
+
 **Locals and the copy boundary.** Engine APIs cannot read or write Luau
 locals directly — arguments are marshaled by copy — and the refined
 summaries above already say so (empty `readsLocals`/`writesLocals`). But two

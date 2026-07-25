@@ -199,16 +199,21 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 		const writableType = state.getType(node.left);
 		const valueType = state.getType(node.right);
 		const operator = getSimpleAssignmentOperator(writableType, operatorKind as ts.AssignmentOperator, valueType);
+		// see transformExpressionStatement: the target read must precede the value's prereqs
+		const isCompound = operatorKind !== ts.SyntaxKind.EqualsToken;
 		const { writable, readable, value } = transformWritableAssignment(
 			state,
 			node.left,
 			node.right,
 			true,
-			operator === undefined,
+			operator === undefined || isCompound,
 		);
 		if (operator !== undefined) {
-			if (operator !== "=" && compoundReadNeedsMaterializing(state, writable, node.left, value, node.right)) {
-				const readableTemp = state.pushToVar(writable, "readable");
+			if (
+				operator !== "=" &&
+				(readable !== writable || compoundReadNeedsMaterializing(state, writable, node.left, value, node.right))
+			) {
+				const readableTemp = readable !== writable ? readable : state.pushToVar(writable, "readable");
 				return createCompoundAssignmentExpression(
 					state,
 					node,

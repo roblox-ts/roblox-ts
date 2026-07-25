@@ -47,19 +47,24 @@ export function transformExpressionStatementInner(
 				operatorKind as ts.AssignmentOperator,
 				valueType,
 			);
+			// A compound assignment reads its target before the value is evaluated, so the
+			// read must be materialized ahead of the value's prereq statements -- not after
+			// them, which is all a check on the residual value expression could see.
+			const isCompound = operatorKind !== ts.SyntaxKind.EqualsToken;
 			const { writable, readable, value } = transformWritableAssignment(
 				state,
 				expression.left,
 				expression.right,
 				operator === undefined,
-				operator === undefined,
+				operator === undefined || isCompound,
 			);
 			if (operator !== undefined) {
 				if (
 					operator !== "=" &&
-					compoundReadNeedsMaterializing(state, writable, expression.left, value, expression.right)
+					(readable !== writable ||
+						compoundReadNeedsMaterializing(state, writable, expression.left, value, expression.right))
 				) {
-					const readableTemp = state.pushToVar(writable, "readable");
+					const readableTemp = readable !== writable ? readable : state.pushToVar(writable, "readable");
 					return luau.list.make(
 						createCompoundAssignmentStatement(
 							state,
