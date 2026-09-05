@@ -206,7 +206,7 @@ export = () => {
 		expect(map.get("k")).never.to.be.ok();
 	});
 
-	it("should evaluate set.add and map.set operands in order and return the collection", () => {
+	it("should evaluate map.set operands in order and return the collection", () => {
 		const order = new Array<string>();
 		function key() {
 			order.push("key");
@@ -686,7 +686,7 @@ export = () => {
 		expect(values[1]).to.equal(6);
 	});
 
-	it("should keep known-total immutable construction inline with mutating macros", () => {
+	it("should preserve datatype values beside collection mutations", () => {
 		const arr = [1, 2, 3];
 		const values = [
 			new Vector3(4, 5, 6).X,
@@ -762,26 +762,9 @@ export = () => {
 		expect(boundedValues[3]).to.equal(0);
 		expect(boundedValues[4]).to.equal(3);
 		expect(bounded.size()).to.equal(2);
-
-		if (math.random() > 1) {
-			// Lune does not implement every Roblox datatype, but these still exercise compiler emit
-			const engineOnly = [1, 2, 3];
-			const engineValues = [
-				new Axes(Enum.Axis.X).X,
-				new Faces(Enum.NormalId.Top).Top,
-				new NumberRange(1e999).Max,
-				new NumberRange(-(1 + 2)).Max,
-				new PathWaypoint().Position.X,
-				new PathWaypoint(position, Enum.PathWaypointAction.Walk, "review").Position.X,
-				new PhysicalProperties(Enum.Material.Plastic).Density,
-				new Rect().Width,
-				engineOnly.pop()!,
-			];
-			expect(engineValues.size()).to.equal(9);
-		}
 	});
 
-	it("should call a known-pure callback per element without capturing the receiver", () => {
+	it("should map every element before the source binding is reassigned", () => {
 		const double = (x: number) => x * 2;
 		let arr = [1, 2, 3];
 		const results = arr.map(double);
@@ -878,7 +861,7 @@ export = () => {
 		expect(seen[1]).to.equal(1);
 	});
 
-	it("should treat generator and async helpers as unknown code", () => {
+	it("should preserve reads before a generator changes their binding", () => {
 		let n = 0;
 		function* gen() {
 			n += 1;

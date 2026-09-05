@@ -193,9 +193,6 @@ for (const expression of [
 
 /** direct effect, excluding child evaluation. Unknown syntax fails closed. */
 export function getIntrinsicEffects(node: luau.Node): EvaluationEffects {
-	if (isConstantReference(node)) {
-		return NO_EFFECTS;
-	}
 	if (luau.isAnyIdentifier(node)) {
 		return { ...NO_EFFECTS, reads: new Set([getBinding(node)]) };
 	}
@@ -207,9 +204,6 @@ export function getIntrinsicEffects(node: luau.Node): EvaluationEffects {
 	}
 	if (luau.isMethodCallExpression(node)) {
 		return UNKNOWN_EFFECTS;
-	}
-	if (luau.isFunctionExpression(node)) {
-		return ALLOCATION;
 	}
 	if (luau.isTable(node)) {
 		return luau.isSet(node) ? { ...ALLOCATION, throws: true } : ALLOCATION;

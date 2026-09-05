@@ -1,6 +1,7 @@
 import luau from "@roblox-ts/luau-ast";
 import path from "path";
 import { RBXTS_SCOPE } from "Shared/constants";
+import { assert } from "Shared/util/assert";
 import { isPathDescendantOf } from "Shared/util/isPathDescendantOf";
 import { TransformState } from "TSTransformer";
 import { NO_EFFECTS } from "TSTransformer/util/evaluation/effects";
@@ -53,9 +54,12 @@ export function isBuiltinLibrary(state: TransformState, node: ts.Expression): no
 	if (!ts.isIdentifier(node) || !LIBRARIES.has(node.text)) {
 		return false;
 	}
-	const declarations = state.typeChecker.getSymbolAtLocation(node)?.declarations;
+	const symbol = state.typeChecker.getSymbolAtLocation(node);
+	assert(symbol);
+	const declarations = symbol.declarations;
+	assert(declarations);
 	return (
-		!!declarations?.length && declarations.every(d => ts.isModuleDeclaration(d) && isBuiltinDeclaration(state, d))
+		declarations.length > 0 && declarations.every(d => ts.isModuleDeclaration(d) && isBuiltinDeclaration(state, d))
 	);
 }
 

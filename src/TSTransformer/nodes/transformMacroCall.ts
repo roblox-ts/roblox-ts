@@ -29,7 +29,8 @@ export function transformMacroCall(
 			continue;
 		}
 		const signature = state.typeChecker.getResolvedSignature(node);
-		const parameter = signature?.parameters[signature.parameters.length - 1]?.valueDeclaration;
+		assert(signature);
+		const parameter = signature.parameters[signature.parameters.length - 1]?.valueDeclaration;
 		if (parameter && ts.isParameter(parameter) && parameter.dotDotDotToken) {
 			DiagnosticService.addDiagnostic(errors.noVarArgsMacroSpread(argument));
 			return luau.none();

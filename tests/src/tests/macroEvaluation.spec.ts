@@ -1,6 +1,196 @@
 /// <reference types="@rbxts/testez/globals" />
 
 export = () => {
+	it("should create a predicate once even when the collection is empty", () => {
+		let created = 0;
+		let invoked = 0;
+		function predicate() {
+			created++;
+			return () => {
+				invoked++;
+				return true;
+			};
+		}
+		expect(new Array<number>().some(predicate())).to.equal(false);
+		expect(created).to.equal(1);
+		expect(invoked).to.equal(0);
+	});
+
+	it("should share a freshly created callback across every mapped element", () => {
+		function counter() {
+			let count = 0;
+			return () => ++count;
+		}
+		const values = [10, 20, 30].map(counter());
+		expect(values[0]).to.equal(1);
+		expect(values[1]).to.equal(2);
+		expect(values[2]).to.equal(3);
+	});
+
+	it("should evaluate each argument occurrence once and in order", () => {
+		let calls = 0;
+		const values = new Array<number>();
+		function value() {
+			expect(values.size()).to.equal(0);
+			return ++calls;
+		}
+		values.push(value(), value());
+		expect(calls).to.equal(2);
+		expect(values[0]).to.equal(1);
+		expect(values[1]).to.equal(2);
+	});
+
+	it("should evaluate an assertion message before testing its condition", () => {
+		let calls = 0;
+		function message() {
+			calls++;
+			return "expected failure";
+		}
+		const [success, reason] = pcall(() => assert(false, message()));
+		expect(success).to.equal(false);
+		expect(tostring(reason).find("expected failure")[0]).never.to.equal(undefined);
+		expect(calls).to.equal(1);
+	});
+
+	it("should evaluate an empty tuple spread exactly once", () => {
+		const array = new Array<number>();
+		let calls = 0;
+		function empty(): [] {
+			calls++;
+			array.push(1);
+			return [];
+		}
+		expect(array.size(...empty())).to.equal(1);
+		expect(calls).to.equal(1);
+	});
+
+	it("should preserve bracket macro calls and builtin math lookups", () => {
+		const array = new Array<number>();
+		array["push"](3);
+		expect(array[0]).to.equal(3);
+		expect(math["floor"](1.5)).to.equal(1);
+		function round(mode: "floor" | "ceil") {
+			return math[mode](1.5);
+		}
+		expect(round("floor")).to.equal(1);
+		expect(round("ceil")).to.equal(2);
+	});
+
+	it("should keep clamp errors before later argument prerequisites", () => {
+		let visited = false;
+		const [success] = pcall(() => [
+			math.clamp(0, 2, 1),
+			[1].map(() => {
+				visited = true;
+				return 2;
+			})[0],
+		]);
+		expect(success).to.equal(false);
+		expect(visited).to.equal(false);
+	});
+
+	it("should preserve a computed callee's receiver before evaluating its key", () => {
+		let callbacks = [() => 1];
+		function index() {
+			callbacks = [() => 2];
+			return 0;
+		}
+		expect(callbacks[index()]()).to.equal(1);
+		expect(callbacks[0]()).to.equal(2);
+	});
+
+	it("should preserve a complex computed callee before key prerequisites", () => {
+		const holder = { callbacks: [() => 1] };
+		const result =
+			holder.callbacks[
+				[0].map(() => {
+					holder.callbacks = [() => 2];
+					return 0;
+				})[0]
+			]();
+		expect(result).to.equal(1);
+		expect(holder.callbacks[0]()).to.equal(2);
+	});
+
+	it("should preserve a callee before argument prerequisites reassign it", () => {
+		let callback = (value: number) => value;
+		const result = callback(
+			[1].map(() => {
+				callback = () => 9;
+				return 3;
+			})[0],
+		);
+		expect(result).to.equal(3);
+		expect(callback(0)).to.equal(9);
+	});
+
+	it("should preserve a computed read's receiver before evaluating its key", () => {
+		let array = [1];
+		function index() {
+			array = [2];
+			return 0;
+		}
+		expect(array[index()]).to.equal(1);
+		expect(array[0]).to.equal(2);
+	});
+
+	it("should preserve a tuple result before index prerequisites", () => {
+		let count = 0;
+		function values(): LuaTuple<[number, number]> {
+			count++;
+			return $tuple(count, count);
+		}
+		const result =
+			values()[
+				[1].map(() => {
+					count += 100;
+					return 0;
+				})[0]
+			];
+		expect(result).to.equal(1);
+		expect(count).to.equal(101);
+	});
+
+	it("should preserve a string assignment key before the value reassigns it", () => {
+		const object: { [key: string]: number } = {};
+		let key = "before";
+		function update() {
+			key = "after";
+			return 1;
+		}
+		object[key] = update();
+		expect(object.before).to.equal(1);
+		expect(object.after).to.equal(undefined);
+	});
+
+	it("should retain generator-expression effects when used inside a macro callback", () => {
+		let count = 0;
+		const generator = function* () {
+			count++;
+			yield count;
+		};
+		const values = [1, 2].map(() => {
+			let value = 0;
+			for (const yielded of generator()) {
+				value = yielded;
+			}
+			return value;
+		});
+		expect(values[0]).to.equal(1);
+		expect(values[1]).to.equal(2);
+		expect(count).to.equal(2);
+	});
+
+	it("should preserve distinct loop bindings captured by macro callbacks", () => {
+		const callbacks = new Array<() => number>();
+		for (let value = 0; value < 4; value += 2) {
+			callbacks.push(() => value);
+			value++;
+		}
+		expect(callbacks[0]()).to.equal(1);
+		expect(callbacks[1]()).to.equal(4);
+	});
+
 	it("should not move an empty math.min call past later argument effects", () => {
 		let changed = false;
 		const [success] = pcall(() => {
@@ -313,7 +503,7 @@ export = () => {
 		expect([1, 2].join(empty())).to.equal("1, 2");
 	});
 
-	it("should not retain a callee summary when a working temporary changes functions", () => {
+	it("should preserve reads before a conditionally selected callback changes their binding", () => {
 		let value = 1;
 		const pure = identity<(() => number) | undefined>(() => 2);
 		const change = () => {

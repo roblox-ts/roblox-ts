@@ -8,7 +8,6 @@ import {
 	getEffects,
 	joinEffects,
 	NO_EFFECTS,
-	UNKNOWN_EFFECTS,
 } from "TSTransformer/util/evaluation/effects";
 import { EvaluationReference, getEvaluationEvents } from "TSTransformer/util/evaluation/events";
 import { copyValueFacts } from "TSTransformer/util/evaluation/facts";
@@ -98,15 +97,10 @@ export function planEvaluation(
 				interveningEffects = joinEffects(interveningEffects, event.effects);
 			}
 		}
-		const deferred = positions.some(position => events[position].deferred);
-		if (deferred) {
-			interveningEffects = joinEffects(interveningEffects, UNKNOWN_EFFECTS);
-		}
 		captures[i] =
 			positions.length === 0
 				? !canDiscard(effects[i])
-				: (deferred && (effects[i].reads.size > 0 || effects[i].readsHeap)) ||
-					((positions.length > 1 || uncertain) && !canRepeat(effects[i])) ||
+				: ((positions.length > 1 || uncertain) && !canRepeat(effects[i])) ||
 					!effectsCommute(effects[i], interveningEffects);
 		if (captures[i]) {
 			hoistedEffects = joinEffects(effects[i], hoistedEffects);

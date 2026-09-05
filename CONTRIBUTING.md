@@ -53,9 +53,13 @@ It is not necessary to run the "devlink" script again.
 The tests run in two environments:
 
 - `tests/compiler/` contains Node/Jest tests for compiler behavior and exact Luau output.
-  Expected output is stored in Jest's `__snapshots__/` directories or inline snapshots.
+  Expected output is stored in Jest's `__snapshots__/` directories.
 - `tests/src/` is a tiny **roblox-ts** game containing runtime tests, diagnostic cases,
   and supporting fixtures. It has a separate TypeScript configuration from the Node tests.
+
+Prefer source-level runtime tests for behavior and diagnostic tests for invalid source.
+Use emit snapshots to verify output quality that runtime assertions cannot observe,
+such as unnecessary temporary variables. Avoid testing transformer internals in isolation.
 
 The testing process is as follows:
 

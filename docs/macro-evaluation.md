@@ -24,7 +24,8 @@ survive the AST library's shallow cloning.
   return no values are parenthesized to preserve one-argument arity.
 - `evaluation/events.ts` walks the expansion in Luau execution order, recording
   effects and operand uses. Conditional or repeated uses cannot assume an argument
-  is evaluated exactly once; deferred uses must preserve its value at call time.
+  is evaluated exactly once. Source callbacks remain opaque operands; the walker
+  only handles control flow introduced by macros, asserting unsupported shapes.
 - `evaluation/plan.ts` decides captures, emits prerequisites in source order, and
   substitutes the actual values. Substitution restores indexability and arithmetic
   folding that opaque references temporarily hide.
@@ -41,7 +42,6 @@ both this hoisted work and the operations before the operand's emitted uses.
 
 An unused operand still executes if it can write or fail. Repeated allocations
 need captures even without observable writes: two fresh tables are not one value.
-Deferred reads snapshot mutable state before a closure can observe later changes.
 General-purpose compiler temporaries are not assumed immutable.
 
 ## Luau evaluation order
@@ -81,11 +81,13 @@ ordering tests and exact-emit coverage.
 
 ## Verification
 
-`tests/compiler/evaluation.test.ts` covers effects and planning invariants.
 `tests/compiler/emit.test.ts` checks exact output, with named source cases in
 `tests/compiler/fixtures/macroEvaluation.ts` and Jest snapshots in `__snapshots__/`.
 `tests/src/tests/evaluationOrder.spec.ts` and `macroEvaluation.spec.ts` cover
 runtime ordering, errors, metamethods, mutation, arity, and allocation identity.
+Prefer these source-level tests to fabricated ASTs or mocked transformer state.
+Invalid source belongs in `tests/src/diagnostics/`; emit snapshots complement
+runtime assertions by checking that required captures stay and unnecessary ones do not.
 Run `npm test` for the compiler, Rojo build, and Lune runtime suite.
 
 This is a conservative structured analysis, not a general control-flow optimizer.

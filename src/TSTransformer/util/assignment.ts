@@ -37,7 +37,7 @@ export function createAssignmentStatement(
 	writable: luau.WritableExpression,
 	operator: luau.AssignmentOperator,
 	value: luau.Expression,
-	readable: luau.WritableExpression = writable,
+	readable: luau.WritableExpression,
 ) {
 	return luau.create(luau.SyntaxKind.Assignment, {
 		left: writable,
