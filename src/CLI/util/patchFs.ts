@@ -17,6 +17,7 @@ fs.pathExistsSync ??= () => false;
 // @ts-ignore
 fs.readdir ??= async () => [];
 fs.readdirSync ??= () => [];
+// @ts-ignore
 fs.readFileSync ??= () => Buffer.from("") as Buffer & string;
 // @ts-ignore
 fs.readJson ??= ASYNC_NOOP;
