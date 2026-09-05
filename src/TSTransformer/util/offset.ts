@@ -1,18 +1,5 @@
 import luau from "@roblox-ts/luau-ast";
-
-function getLiteralNumberValue(expression: luau.NumberLiteral): number;
-function getLiteralNumberValue(expression: luau.Expression): number | undefined;
-function getLiteralNumberValue(expression: luau.Expression): number | undefined {
-	if (luau.isNumberLiteral(expression)) {
-		return Number(expression.value);
-	} else if (luau.isUnaryExpression(expression) && expression.operator === "-") {
-		const innerValue = getLiteralNumberValue(expression.expression);
-		if (innerValue !== undefined) {
-			return -innerValue;
-		}
-	}
-	return undefined;
-}
+import { getLiteralNumberValue } from "TSTransformer/util/getLiteralNumberValue";
 
 export function offset(expression: luau.Expression, value: number) {
 	if (value === 0) {
