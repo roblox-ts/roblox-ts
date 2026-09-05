@@ -27,8 +27,10 @@ export function getParsedCommandLine(data: ProjectData) {
 	}
 
 	if ((globalThis as unknown as { RBXTSC_DEV: boolean }).RBXTSC_DEV || inspector.url() !== undefined) {
-		parsedCommandLine.options.incremental = false;
-		parsedCommandLine.options.tsBuildInfoFile = undefined;
+		if (!parsedCommandLine.options.composite) {
+			parsedCommandLine.options.incremental = false;
+			parsedCommandLine.options.tsBuildInfoFile = undefined;
+		}
 	}
 
 	validateCompilerOptions(parsedCommandLine.options, data.projectPath);

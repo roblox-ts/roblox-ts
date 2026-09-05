@@ -28,11 +28,22 @@ function createCompilerHost(data: ProjectData, compilerOptions: ts.CompilerOptio
 export function createProgramFactory(
 	data: ProjectData,
 	options: ts.CompilerOptions,
+	projectReferences?: ReadonlyArray<ts.ProjectReference>,
 ): ts.CreateProgram<ts.EmitAndSemanticDiagnosticsBuilderProgram> {
 	return (
 		rootNames: ReadonlyArray<string> | undefined,
 		compilerOptions: ts.CompilerOptions | undefined = options,
 		host = createCompilerHost(data, options),
 		oldProgram = ts.readBuilderProgram(options, createReadBuildProgramHost()),
-	) => ts.createEmitAndSemanticDiagnosticsBuilderProgram(rootNames, compilerOptions, host, oldProgram);
+		configFileParsingDiagnostics?: ReadonlyArray<ts.Diagnostic>,
+		refs: ReadonlyArray<ts.ProjectReference> | undefined = projectReferences,
+	) =>
+		ts.createEmitAndSemanticDiagnosticsBuilderProgram(
+			rootNames,
+			compilerOptions,
+			host,
+			oldProgram,
+			configFileParsingDiagnostics,
+			refs,
+		);
 }

@@ -6,9 +6,10 @@ import { compileFiles } from "Project/functions/compileFiles";
 import { copyFiles } from "Project/functions/copyFiles";
 import { copyInclude } from "Project/functions/copyInclude";
 import { createPathTranslator } from "Project/functions/createPathTranslator";
+import { createProgramFactory } from "Project/functions/createProgramFactory";
 import { createProjectData } from "Project/functions/createProjectData";
-import { createProjectProgram } from "Project/functions/createProjectProgram";
 import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
+import { getParsedCommandLine } from "Project/functions/getParsedCommandLine";
 import { DEFAULT_PROJECT_OPTIONS, PACKAGE_ROOT, TS_EXT, TSX_EXT } from "Shared/constants";
 import { DiagnosticFactory, errors, getDiagnosticId } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
@@ -27,8 +28,10 @@ describe("should compile tests project", () => {
 			optimizedLoops: true,
 		}),
 	);
-	const program = createProjectProgram(data);
-	const pathTranslator = createPathTranslator(program, data);
+	const { fileNames, options, projectReferences } = getParsedCommandLine(data);
+	const createProgram = createProgramFactory(data, options, projectReferences);
+	const program = createProgram(fileNames, options);
+	const pathTranslator = createPathTranslator(options, data);
 
 	// clean outDir between test runs
 	fs.removeSync(program.getCompilerOptions().outDir!);
@@ -53,7 +56,9 @@ describe("should compile tests project", () => {
 			const expectedId = (errors[diagnosticName] as DiagnosticFactory).id;
 			it(`should compile ${fileName} and report diagnostic ${diagnosticName}`, done => {
 				process.env.ROBLOX_TS_EXPECTED_DIAGNOSTIC_ID = String(expectedId);
-				const emitResult = compileFiles(program.getProgram(), data, pathTranslator, [sourceFile]);
+				const emitResult = compileFiles(program.getProgram(), data, pathTranslator, () => pathTranslator, [
+					sourceFile,
+				]);
 				delete process.env.ROBLOX_TS_EXPECTED_DIAGNOSTIC_ID;
 				if (
 					emitResult.diagnostics.length > 0 &&
@@ -68,7 +73,9 @@ describe("should compile tests project", () => {
 			});
 		} else {
 			it(`should compile ${fileName}`, done => {
-				const emitResult = compileFiles(program.getProgram(), data, pathTranslator, [sourceFile]);
+				const emitResult = compileFiles(program.getProgram(), data, pathTranslator, () => pathTranslator, [
+					sourceFile,
+				]);
 				if (emitResult.diagnostics.length > 0) {
 					done(new Error("\n" + formatDiagnostics(emitResult.diagnostics)));
 				} else {

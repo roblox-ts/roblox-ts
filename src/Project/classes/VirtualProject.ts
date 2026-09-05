@@ -48,6 +48,7 @@ export class VirtualProject {
 			projectPath: PROJECT_DIR,
 			rojoConfigPath: undefined,
 			tsConfigPath: "",
+			referencedProjects: [],
 		};
 
 		this.compilerOptions = {
@@ -138,6 +139,7 @@ export class VirtualProject {
 			runtimeLibRbxPath,
 			this.typeChecker,
 			projectType,
+			() => pathTranslator,
 			sourceFile,
 		);
 
