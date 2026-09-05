@@ -33,20 +33,29 @@ export function getSimpleAssignmentOperator(
 	return COMPOUND_OPERATOR_MAP.get(operatorKind);
 }
 
-export function createAssignmentExpression(
-	state: TransformState,
-	readable: luau.WritableExpression,
+export function createAssignmentStatement(
+	writable: luau.WritableExpression,
 	operator: luau.AssignmentOperator,
 	value: luau.Expression,
+	readable: luau.WritableExpression = writable,
 ) {
-	state.prereq(
-		luau.create(luau.SyntaxKind.Assignment, {
-			left: readable,
-			operator,
-			right: value,
-		}),
-	);
-	return readable;
+	return luau.create(luau.SyntaxKind.Assignment, {
+		left: writable,
+		operator: readable === writable ? operator : "=",
+		right:
+			readable === writable ? value : luau.binary(readable, operator.slice(0, -1) as luau.BinaryOperator, value),
+	});
+}
+
+export function createAssignmentExpression(
+	state: TransformState,
+	writable: luau.WritableExpression,
+	operator: luau.AssignmentOperator,
+	value: luau.Expression,
+	readable: luau.WritableExpression = writable,
+) {
+	state.prereq(createAssignmentStatement(writable, operator, value, readable));
+	return writable;
 }
 
 export function createCompoundAssignmentStatement(

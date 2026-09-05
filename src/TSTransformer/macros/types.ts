@@ -8,6 +8,8 @@ export type IdentifierMacro = (state: TransformState, node: ts.Identifier) => lu
 
 export type ConstructorMacro = (state: TransformState, node: ts.NewExpression) => luau.Expression;
 
+// operands are opaque values: assigning to them or transforming their source again
+// bypasses evaluation planning. Use pushToVar only for the macro's own working state.
 export type CallMacro = (
 	state: TransformState,
 	node: ts.CallExpression,

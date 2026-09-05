@@ -38,7 +38,9 @@ import {
 } from "TSTransformer/nodes/expressions/transformUnaryExpression";
 import { transformVoidExpression } from "TSTransformer/nodes/expressions/transformVoidExpression";
 import { transformYieldExpression } from "TSTransformer/nodes/expressions/transformYieldExpression";
+import { markPrimitiveValue } from "TSTransformer/util/evaluation/facts";
 import { getKindName } from "TSTransformer/util/getKindName";
+import { isBooleanType, isDefinitelyType, isNumberType, isStringType, isUndefinedType } from "TSTransformer/util/types";
 import ts from "typescript";
 
 const NO_EMIT = () => luau.none();
@@ -123,7 +125,11 @@ const TRANSFORMER_BY_KIND = createTransformerMap([
 export function transformExpression(state: TransformState, node: ts.Expression): luau.Expression {
 	const transformer = TRANSFORMER_BY_KIND.get(node.kind);
 	if (transformer) {
-		return transformer(state, node);
+		const expression = transformer(state, node);
+		if (isDefinitelyType(state.getType(node), isBooleanType, isNumberType, isStringType, isUndefinedType)) {
+			markPrimitiveValue(expression);
+		}
+		return expression;
 	}
 	assert(false, `Unknown expression: ${getKindName(node.kind)}`);
 }

@@ -5,6 +5,8 @@ import { transformOptionalChain } from "TSTransformer/nodes/transformOptionalCha
 import { addIndexDiagnostics } from "TSTransformer/util/addIndexDiagnostics";
 import { addOneIfArrayType } from "TSTransformer/util/addOneIfArrayType";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
+import { tryMarkBuiltinMember } from "TSTransformer/util/evaluation/builtins";
+import { effectsCommute, getEffects, isLateRead, joinEffects, NO_EFFECTS } from "TSTransformer/util/evaluation/effects";
 import { getConstantValueLiteral } from "TSTransformer/util/getConstantValueLiteral";
 import { offset } from "TSTransformer/util/offset";
 import { skipUpwards } from "TSTransformer/util/traversal";
@@ -28,15 +30,20 @@ export function transformElementAccessExpressionInner(
 
 	const [index, prereqs] = state.capture(() => transformExpression(state, argumentExpression));
 
-	if (!luau.list.isEmpty(prereqs)) {
+	if (
+		!effectsCommute(
+			getEffects(expression),
+			joinEffects(getEffects(prereqs), isLateRead(expression) ? getEffects(index) : NO_EFFECTS),
+		)
+	) {
 		// hack because wrapReturnIfLuaTuple will not wrap this, but now we need to!
 		if (isLuaTupleType(state)(expType)) {
 			expression = luau.array([expression]);
 		}
 
 		expression = state.pushToVar(expression, "exp");
-		state.prereqList(prereqs);
 	}
+	state.prereqList(prereqs);
 
 	// LuaTuple<T> checks
 	if (luau.isCall(expression) && isLuaTupleType(state)(expType)) {
@@ -62,10 +69,12 @@ export function transformElementAccessExpressionInner(
 		return luau.none();
 	}
 
-	return luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+	const access = luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 		expression: convertToIndexableExpression(expression),
 		index: addOneIfArrayType(state, expType, index),
 	});
+	tryMarkBuiltinMember(state, node, access);
+	return access;
 }
 
 export function transformElementAccessExpression(state: TransformState, node: ts.ElementAccessExpression) {

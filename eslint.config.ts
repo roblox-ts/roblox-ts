@@ -14,7 +14,12 @@ export default tseslint.config(
 			parserOptions: {
 				ecmaVersion: "latest",
 				sourceType: "module",
-				project: ["./tsconfig.json", "./tsconfig.eslint.json", "./src/*/tsconfig.json"],
+				project: [
+					"./tsconfig.json",
+					"./tsconfig.eslint.json",
+					"./src/*/tsconfig.json",
+					"./tests/compiler/tsconfig.json",
+				],
 				ecmaFeatures: { jsx: true },
 			},
 		},
@@ -58,6 +63,22 @@ export default tseslint.config(
 		},
 	},
 	{
-		ignores: ["node_modules/", "tests/", "out/", "coverage/", "devlink/", "jest.config.ts"],
+		files: ["tests/compiler/**/*.ts"],
+		rules: {
+			"no-restricted-imports": "off",
+		},
+	},
+	{
+		ignores: [
+			"node_modules/",
+			"tests/src/",
+			"tests/out/",
+			"tests/include/",
+			"tests/node_modules/",
+			"out/",
+			"coverage/",
+			"devlink/",
+			"jest.config.ts",
+		],
 	},
 );

@@ -1,9 +1,15 @@
+import type { BindingUsage } from "TSTransformer/util/evaluation/bindings";
+import type { EvaluationEffects } from "TSTransformer/util/evaluation/effects";
+import type { BindingKey } from "TSTransformer/util/evaluation/facts";
 import ts from "typescript";
 
 /**
  * MultiTransformState is state that lives only for a single compilation step.
  */
 export class MultiTransformState {
+	public readonly functionEffects = new Map<ts.Symbol, EvaluationEffects>();
+	public readonly bindingKeys = new Map<ts.Symbol, BindingKey>();
+	public readonly bindingUsageBySourceFile = new Map<ts.SourceFile, BindingUsage>();
 	public readonly isMethodCache = new Map<ts.Symbol, boolean>();
 	public readonly isDefinedAsLetCache = new Map<ts.Symbol, boolean>();
 	public readonly isReportedByNoAnyCache = new Set<ts.Symbol>();
