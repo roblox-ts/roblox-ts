@@ -10,6 +10,7 @@ import { getCanonicalFileName } from "Shared/util/getCanonicalFileName";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { MultiTransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
+import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
 import { TransformServices, TryUses } from "TSTransformer/types";
 import { createGetService } from "TSTransformer/util/createGetService";
 import { propertyAccessExpressionChain } from "TSTransformer/util/expressionChain";
@@ -313,14 +314,14 @@ export class TransformState {
 
 	public getModuleExportsAliasMap(moduleSymbol: ts.Symbol) {
 		return getOrSetDefault(this.multiTransformState.getModuleExportsAliasMapCache, moduleSymbol, () => {
-			const aliasMap = new Map<ts.Symbol, string>();
+			const aliasMap = new Map<ts.Symbol, luau.Expression>();
 			for (const exportSymbol of this.getModuleExports(moduleSymbol)) {
 				const originalSymbol = ts.skipAlias(exportSymbol, this.typeChecker);
 				const declaration = exportSymbol.getDeclarations()?.[0];
 				if (declaration && ts.isExportSpecifier(declaration)) {
-					aliasMap.set(originalSymbol, declaration.name.text);
+					aliasMap.set(originalSymbol, transformPropertyName(this, declaration.name));
 				} else {
-					aliasMap.set(originalSymbol, exportSymbol.name);
+					aliasMap.set(originalSymbol, luau.string(exportSymbol.name));
 				}
 			}
 			return aliasMap;
@@ -358,7 +359,10 @@ export class TransformState {
 			const moduleSymbol = this.getModuleSymbolFromNode(idSymbol.valueDeclaration);
 			const alias = this.getModuleExportsAliasMap(moduleSymbol).get(idSymbol);
 			if (alias) {
-				return luau.property(this.getModuleIdFromSymbol(moduleSymbol), alias);
+				return luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+					expression: this.getModuleIdFromSymbol(moduleSymbol),
+					index: alias,
+				});
 			}
 		}
 	}

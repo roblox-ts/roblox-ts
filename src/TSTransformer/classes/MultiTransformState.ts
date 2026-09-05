@@ -1,3 +1,4 @@
+import luau from "@roblox-ts/luau-ast";
 import ts from "typescript";
 
 /**
@@ -9,5 +10,5 @@ export class MultiTransformState {
 	public readonly isReportedByNoAnyCache = new Set<ts.Symbol>();
 	public readonly isReportedByMultipleDefinitionsCache = new Set<ts.Symbol>();
 	public readonly getModuleExportsCache = new Map<ts.Symbol, Array<ts.Symbol>>();
-	public readonly getModuleExportsAliasMapCache = new Map<ts.Symbol, Map<ts.Symbol, string>>();
+	public readonly getModuleExportsAliasMapCache = new Map<ts.Symbol, Map<ts.Symbol, luau.Expression>>();
 }
