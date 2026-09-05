@@ -3,7 +3,7 @@ import type { Config } from "jest";
 const config: Config = {
 	preset: "ts-jest",
 	testEnvironment: "node",
-	testRegex: "/src/CLI/test\\.ts$",
+	testMatch: ["<rootDir>/tests/compiler/**/*.test.ts"],
 	modulePathIgnorePatterns: ["<rootDir>/out/"],
 	moduleNameMapper: {
 		"^(Project|Shared|CLI|TSTransformer)/(.*)$": "<rootDir>/src/$1/$2",
@@ -22,7 +22,7 @@ const config: Config = {
 	coverageReporters: ["lcov", "text"],
 	verbose: true,
 	transform: {
-		"^.+\\.tsx?$": ["ts-jest", { tsconfig: "src/CLI/tsconfig.json" }],
+		"^.+\\.tsx?$": ["ts-jest", { tsconfig: "tests/compiler/tsconfig.json" }],
 	},
 };
 

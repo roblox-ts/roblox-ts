@@ -1,5 +1,3 @@
-/// <reference types="jest" />
-
 import fs from "fs-extra";
 import path from "path";
 import { compileFiles } from "Project/functions/compileFiles";
