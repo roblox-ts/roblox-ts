@@ -2,6 +2,7 @@ import luau from "@roblox-ts/luau-ast";
 import path from "path";
 import { RBXTS_SCOPE } from "Shared/constants";
 import { assert } from "Shared/util/assert";
+import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { isPathDescendantOf } from "Shared/util/isPathDescendantOf";
 import { TransformState } from "TSTransformer";
 import { NO_EFFECTS } from "TSTransformer/util/evaluation/effects";
@@ -84,7 +85,11 @@ export function isStableBuiltinMember(
 			? state.typeChecker.getNonNullableType(state.getType(expression))
 			: state.typeChecker.getNonOptionalType(state.getType(expression));
 	const type = lookupType(node.expression);
-	if (!isDefinitelyType(type, isRobloxType(state))) {
+	if (
+		!getOrSetDefault(state.multiTransformState.isRobloxTypeCache, type, () =>
+			isDefinitelyType(type, isRobloxType(state)),
+		)
+	) {
 		return false;
 	}
 	const declarations = lookupType(node).symbol?.declarations;

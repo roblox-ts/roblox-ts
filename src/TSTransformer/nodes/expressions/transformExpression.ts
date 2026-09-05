@@ -1,6 +1,7 @@
 import luau from "@roblox-ts/luau-ast";
 import { DiagnosticFactory, errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
+import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformArrayLiteralExpression } from "TSTransformer/nodes/expressions/transformArrayLiteralExpression";
@@ -126,7 +127,12 @@ export function transformExpression(state: TransformState, node: ts.Expression):
 	const transformer = TRANSFORMER_BY_KIND.get(node.kind);
 	if (transformer) {
 		const expression = transformer(state, node);
-		if (isDefinitelyType(state.getType(node), isBooleanType, isNumberType, isStringType, isUndefinedType)) {
+		const type = state.getType(node);
+		if (
+			getOrSetDefault(state.multiTransformState.isPrimitiveTypeCache, type, () =>
+				isDefinitelyType(type, isBooleanType, isNumberType, isStringType, isUndefinedType),
+			)
+		) {
 			markPrimitiveValue(expression);
 		}
 		return expression;

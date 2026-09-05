@@ -71,7 +71,7 @@ export function getFunctionEffects(parameters: luau.List<luau.AnyIdentifier>, st
 		if (luau.isForStatement(node)) {
 			luau.list.forEach(node.ids, id => locals.add(getBinding(id)));
 		}
-		getChildren(node).forEach(collect);
+		forEachChild(node, collect);
 	}
 	luau.list.forEach(statements, collect);
 	const effects = getEffects(statements);
@@ -83,21 +83,32 @@ export function getFunctionEffects(parameters: luau.List<luau.AnyIdentifier>, st
 }
 
 function unionBindings(a: Bindings, b: Bindings): Bindings {
+	if (a === b || b.size === 0) {
+		return a;
+	}
+	if (a.size === 0) {
+		return b;
+	}
 	return new Set([...a, ...b]);
 }
 
 export function joinEffects(...effects: ReadonlyArray<EvaluationEffects>): EvaluationEffects {
-	return effects.reduce(
-		(a, b) => ({
+	return effects.reduce((a, b) => {
+		if (a === NO_EFFECTS) {
+			return b;
+		}
+		if (b === NO_EFFECTS || a === b) {
+			return a;
+		}
+		return {
 			reads: unionBindings(a.reads, b.reads),
 			writes: unionBindings(a.writes, b.writes),
 			readsHeap: a.readsHeap || b.readsHeap,
 			writesHeap: a.writesHeap || b.writesHeap,
 			throws: a.throws || b.throws,
 			allocates: a.allocates || b.allocates,
-		}),
-		NO_EFFECTS,
-	);
+		};
+	}, NO_EFFECTS);
 }
 
 function isExposedBinding(key: Binding, wildcard: symbol) {
@@ -277,33 +288,64 @@ export function getIntrinsicEffects(node: luau.Node): EvaluationEffects {
 }
 
 // field order is sufficient for effect summaries, but not for evaluation planning
-export function getChildren(node: luau.Node): Array<luau.Node> {
-	const result = new Array<luau.Node>();
-	for (const [key, value] of Object.entries(node)) {
+export function forEachChild(node: luau.Node, callback: (child: luau.Node) => void) {
+	const fields = node as unknown as Record<string, unknown>;
+	for (const key of Object.keys(fields)) {
 		if (key === "parent") {
 			continue;
 		}
+		const value = fields[key];
 		if (luau.isNode(value)) {
-			result.push(value);
+			callback(value);
 		} else if (luau.list.isList(value)) {
-			luau.list.forEach(value, child => result.push(child));
+			luau.list.forEach(value, callback);
 		}
 	}
-	return result;
 }
 
 export function getEffects(node: luau.Node | luau.List<luau.Statement>): EvaluationEffects {
 	if (luau.list.isList(node)) {
-		return joinEffects(...luau.list.toArray(node).map(getEffects));
+		if (luau.list.isEmpty(node)) {
+			return NO_EFFECTS;
+		}
+	} else {
+		if (isConstantReference(node) || luau.isSimplePrimitive(node) || luau.isNone(node)) {
+			return NO_EFFECTS;
+		}
+		if (luau.isFunctionExpression(node)) {
+			return ALLOCATION;
+		}
 	}
-	if (isConstantReference(node)) {
-		return NO_EFFECTS;
+	// accumulate once per subtree instead of copying growing binding sets at every level
+	const result = { ...NO_EFFECTS, reads: new Set<Binding>(), writes: new Set<Binding>() };
+	function visit(node: luau.Node) {
+		if (isConstantReference(node)) {
+			return;
+		}
+		// creating a closure does not execute its body.
+		if (luau.isFunctionExpression(node)) {
+			result.allocates = true;
+			return;
+		}
+		const effects = getIntrinsicEffects(node);
+		for (const key of effects.reads) {
+			result.reads.add(key);
+		}
+		for (const key of effects.writes) {
+			result.writes.add(key);
+		}
+		result.readsHeap ||= effects.readsHeap;
+		result.writesHeap ||= effects.writesHeap;
+		result.throws ||= effects.throws;
+		result.allocates ||= effects.allocates;
+		forEachChild(node, visit);
 	}
-	// creating a closure does not execute its body.
-	if (luau.isFunctionExpression(node)) {
-		return ALLOCATION;
+	if (luau.list.isList(node)) {
+		luau.list.forEach(node, visit);
+	} else {
+		visit(node);
 	}
-	return joinEffects(getIntrinsicEffects(node), ...getChildren(node).map(getEffects));
+	return result;
 }
 
 /** luau can use a local's register directly until the consuming instruction. */

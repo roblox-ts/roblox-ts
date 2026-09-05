@@ -1,6 +1,11 @@
 import luau from "@roblox-ts/luau-ast";
 import { assert } from "Shared/util/assert";
-import { EvaluationEffects, getChildren, getIntrinsicEffects, isLateRead } from "TSTransformer/util/evaluation/effects";
+import {
+	EvaluationEffects,
+	forEachChild,
+	getIntrinsicEffects,
+	isLateRead,
+} from "TSTransformer/util/evaluation/effects";
 import { isConstantReference } from "TSTransformer/util/evaluation/facts";
 
 export interface EvaluationReference {
@@ -130,7 +135,7 @@ export function getEvaluationEvents(
 			visitExpression(node.end);
 			visitStatements(node.statements);
 		} else {
-			getChildren(node).forEach(visitExpression);
+			forEachChild(node, visitExpression);
 		}
 		if (luau.isBreakStatement(node)) {
 			mayExit = true;

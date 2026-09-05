@@ -7,6 +7,9 @@ import ts from "typescript";
  * MultiTransformState is state that lives only for a single compilation step.
  */
 export class MultiTransformState {
+	// type classifications stay valid for this compilation; emitted AST facts can still change
+	public readonly isPrimitiveTypeCache = new Map<ts.Type, boolean>();
+	public readonly isRobloxTypeCache = new Map<ts.Type, boolean>();
 	public readonly functionEffects = new Map<ts.Symbol, EvaluationEffects>();
 	public readonly bindingKeys = new Map<ts.Symbol, BindingKey>();
 	public readonly bindingUsageBySourceFile = new Map<ts.SourceFile, BindingUsage>();
