@@ -3,7 +3,7 @@ import path from "path";
 import { VirtualProject } from "Project/classes/VirtualProject";
 import { PACKAGE_ROOT } from "Shared/constants";
 
-/** Creates an isolated compiler project with the test suite's Roblox type declarations. */
+// creates an isolated compiler project with the test suite's Roblox type declarations
 export function createTestProject() {
 	const project = new VirtualProject();
 	const root = path.join(PACKAGE_ROOT, "tests/node_modules/@rbxts");
