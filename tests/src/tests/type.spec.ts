@@ -1,4 +1,30 @@
 export = () => {
+	it("should preserve array behavior through inherited interfaces and generic constraints", () => {
+		interface Values extends ReadonlyArray<number> {}
+		interface Left extends Values {}
+		interface Right extends Values {}
+		interface Combined extends Left, Right {}
+		interface Derived extends Combined {}
+
+		function sum<T extends Derived>(values: T) {
+			let total = 0;
+			for (const value of values) {
+				total += value;
+			}
+			return total;
+		}
+
+		function first(values: Derived | undefined) {
+			return values?.[0];
+		}
+
+		const values: Derived = [2, 3, 5];
+		expect(sum(values)).to.equal(10);
+		expect(first(values)).to.equal(2);
+		expect(first(undefined)).to.equal(undefined);
+		expect([...values][2]).to.equal(5);
+	});
+
 	it("should properly fetch types with parenthesis and nonNull assertions", () => {
 		function loop(array?: Array<number>) {
 			let i = 0;

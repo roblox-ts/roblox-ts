@@ -7,28 +7,14 @@ import { isTemplateLiteralType } from "TSTransformer/typeGuards";
 import ts from "typescript";
 type TypeCheck = (type: ts.Type) => boolean;
 
-function getRecursiveBaseTypesInner(result: Array<ts.Type>, type: ts.InterfaceType) {
-	for (const baseType of type.getBaseTypes() ?? []) {
-		result.push(baseType);
-		if (baseType.isClassOrInterface()) {
-			getRecursiveBaseTypesInner(result, baseType);
-		}
-	}
-}
-
-function getRecursiveBaseTypes(type: ts.InterfaceType) {
-	const result = new Array<ts.Type>();
-	getRecursiveBaseTypesInner(result, type);
-	return result;
-}
-
 function isDefinitelyTypeInner(type: ts.Type, callbacks: Array<TypeCheck>): boolean {
 	if (type.isUnion()) {
 		return type.types.every(t => isDefinitelyTypeInner(t, callbacks));
 	} else if (type.isIntersection()) {
 		return type.types.some(t => isDefinitelyTypeInner(t, callbacks));
 	} else {
-		if (type.isClassOrInterface() && getRecursiveBaseTypes(type).some(t => isDefinitelyTypeInner(t, callbacks))) {
+		// recursion already visits ancestors; flattening them here repeats entire inheritance chains
+		if (type.isClassOrInterface() && type.getBaseTypes()!.some(t => isDefinitelyTypeInner(t, callbacks))) {
 			return true;
 		}
 		return callbacks.some(cb => cb(type));
@@ -43,7 +29,7 @@ function isPossiblyTypeInner(type: ts.Type, callbacks: Array<TypeCheck>): boolea
 	if (type.isUnionOrIntersection()) {
 		return type.types.some(t => isPossiblyTypeInner(t, callbacks));
 	} else {
-		if (type.isClassOrInterface() && getRecursiveBaseTypes(type).some(t => isPossiblyTypeInner(t, callbacks))) {
+		if (type.isClassOrInterface() && type.getBaseTypes()!.some(t => isPossiblyTypeInner(t, callbacks))) {
 			return true;
 		}
 
