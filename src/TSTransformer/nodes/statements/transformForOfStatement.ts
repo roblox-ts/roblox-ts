@@ -430,7 +430,8 @@ function getLoopBuilder(state: TransformState, node: ts.Node, type: ts.Type): Lo
 		DiagnosticService.addDiagnostic(errors.noMacroUnion(node));
 		return () => luau.list.make();
 	} else {
-		assert(false, `ForOf iteration type not implemented: ${state.typeChecker.typeToString(type)}`);
+		DiagnosticService.addDiagnostic(errors.noUnsupportedForOfIteration(node));
+		return () => luau.list.make();
 	}
 }
 
