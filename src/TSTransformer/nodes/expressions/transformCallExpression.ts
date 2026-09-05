@@ -15,8 +15,17 @@ import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import { wrapReturnIfLuaTuple } from "TSTransformer/util/wrapReturnIfLuaTuple";
 import ts from "typescript";
 
-// native functions can distinguish a missing argument from nil; parentheses
-// force a possibly-empty return to supply exactly one value
+/**
+ * Some C functions like `tonumber()` will error if the given argument is a function that returns nothing.
+ * i.e.
+ * ```lua
+ * local function foo()
+ * end
+ * local x = tonumber(foo()) -- error!
+ * ```
+ *
+ * To protect against this, we can wrap possibly-undefined arguments with `()` to coerce the values to `nil`
+ */
 function fixVoidArgumentsForRobloxFunctions(
 	state: TransformState,
 	type: ts.Type,
