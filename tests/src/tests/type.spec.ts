@@ -25,6 +25,17 @@ export = () => {
 		expect([...values][2]).to.equal(5);
 	});
 
+	it("should preserve numeric keys when indexing object types", () => {
+		function read(values: { [index: number]: number }, index: number) {
+			return values[index];
+		}
+
+		const values = { 0: 2, 1: 3, 2: 5 };
+		expect(read(values, 0)).to.equal(2);
+		expect(read(values, 1)).to.equal(3);
+		expect(read(values, 2)).to.equal(5);
+	});
+
 	it("should properly fetch types with parenthesis and nonNull assertions", () => {
 		function loop(array?: Array<number>) {
 			let i = 0;
