@@ -14,6 +14,7 @@ function isDefinitelyTypeInner(type: ts.Type, callbacks: Array<TypeCheck>): bool
 		return type.types.some(t => isDefinitelyTypeInner(t, callbacks));
 	} else {
 		// recursion already visits ancestors; flattening them here repeats entire inheritance chains
+		// getBaseTypes() checks isClassOrInterface() internally
 		if (type.getBaseTypes()?.some(t => isDefinitelyTypeInner(t, callbacks))) {
 			return true;
 		}
@@ -29,6 +30,7 @@ function isPossiblyTypeInner(type: ts.Type, callbacks: Array<TypeCheck>): boolea
 	if (type.isUnionOrIntersection()) {
 		return type.types.some(t => isPossiblyTypeInner(t, callbacks));
 	} else {
+		// getBaseTypes() checks isClassOrInterface() internally
 		if (type.getBaseTypes()?.some(t => isPossiblyTypeInner(t, callbacks))) {
 			return true;
 		}
