@@ -119,16 +119,33 @@ function isExposedBinding(key: Binding, wildcard: symbol) {
 	return typeof key !== "number";
 }
 
-function intersects(a: Bindings, b: Bindings): boolean {
-	for (const wildcard of [USER_READS, USER_WRITES]) {
-		if (a.has(wildcard) && [...b].some(key => isExposedBinding(key, wildcard))) {
-			return true;
-		}
-		if (b.has(wildcard) && [...a].some(key => isExposedBinding(key, wildcard))) {
+function hasExposedBinding(bindings: Bindings, wildcard: symbol) {
+	for (const key of bindings) {
+		if (isExposedBinding(key, wildcard)) {
 			return true;
 		}
 	}
-	return [...a].some(key => b.has(key));
+	return false;
+}
+
+function intersects(a: Bindings, b: Bindings): boolean {
+	if (a.size === 0 || b.size === 0) {
+		return false;
+	}
+	for (const wildcard of [USER_READS, USER_WRITES]) {
+		if (a.has(wildcard) && hasExposedBinding(b, wildcard)) {
+			return true;
+		}
+		if (b.has(wildcard) && hasExposedBinding(a, wildcard)) {
+			return true;
+		}
+	}
+	for (const key of a) {
+		if (b.has(key)) {
+			return true;
+		}
+	}
+	return false;
 }
 
 function hasWrites(effects: EvaluationEffects) {
