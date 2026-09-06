@@ -95,6 +95,17 @@ const MapConstructor: ConstructorMacro = (state, node) => {
 	}
 };
 
+const WeakRefConstructor: ConstructorMacro = (state, node) => {
+	assert(node.arguments && node.arguments.length === 1);
+	const arg = node.arguments[0];
+	const transformed = transformExpression(state, arg);
+	return luau.call(luau.globals.setmetatable, [
+		luau.array([transformed]),
+		// TODO: Replace luau.string("v") with luau.strings.v when added to luau-ast
+		luau.map([[luau.strings.__mode, luau.string("v")]]),
+	]);
+};
+
 export const CONSTRUCTOR_MACROS: MacroList<ConstructorMacro> = {
 	ArrayConstructor,
 	SetConstructor,
@@ -103,4 +114,5 @@ export const CONSTRUCTOR_MACROS: MacroList<ConstructorMacro> = {
 	WeakMapConstructor: (state, node) => wrapWeak(state, node, MapConstructor),
 	ReadonlyMapConstructor: MapConstructor,
 	ReadonlySetConstructor: SetConstructor,
+	WeakRefConstructor,
 };

@@ -24,6 +24,7 @@ export const SYMBOL_NAMES = {
 	WeakMapConstructor: "WeakMapConstructor",
 	ReadonlyMapConstructor: "ReadonlyMapConstructor",
 	ReadonlySetConstructor: "ReadonlySetConstructor",
+	WeakRefConstructor: "WeakRefConstructor",
 
 	Array: "Array",
 	Generator: "Generator",
@@ -41,6 +42,7 @@ export const SYMBOL_NAMES = {
 	TemplateStringsArray: "TemplateStringsArray",
 	WeakMap: "WeakMap",
 	WeakSet: "WeakSet",
+	WeakRef: "WeakRef",
 
 	Iterable: "Iterable",
 
@@ -59,6 +61,7 @@ const MACRO_ONLY_CLASSES = new Set<string>([
 	SYMBOL_NAMES.ReadonlySet,
 	SYMBOL_NAMES.WeakSet,
 	SYMBOL_NAMES.Set,
+	SYMBOL_NAMES.WeakRef,
 	SYMBOL_NAMES.String,
 ]);
 
