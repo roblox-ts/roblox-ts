@@ -33,7 +33,6 @@ export class VirtualProject {
 	private readonly compilerHost: ts.CompilerHost;
 
 	private program: ts.Program | undefined;
-	private typeChecker: ts.TypeChecker | undefined;
 	private nodeModulesPathMapping = new Map<string, string>();
 
 	constructor() {
@@ -105,11 +104,11 @@ export class VirtualProject {
 
 		const rootNames = this.vfs
 			.getFilePaths()
-			.filter(v => v.endsWith(ts.Extension.Ts) || v.endsWith(ts.Extension.Tsx) || v.endsWith(ts.Extension.Dts));
+			.filter(v => v.endsWith(ts.Extension.Ts) || v.endsWith(ts.Extension.Tsx));
 		this.program = ts.createProgram(rootNames, this.compilerOptions, this.compilerHost, this.program);
-		this.typeChecker = this.program.getTypeChecker();
+		const typeChecker = this.program.getTypeChecker();
 
-		const services = createTransformServices(this.typeChecker);
+		const services = createTransformServices(typeChecker);
 		const pathTranslator = new PathTranslator(ROOT_DIR, OUT_DIR, undefined, false, this.data.projectOptions.luau);
 
 		const sourceFile = this.program.getSourceFile(PLAYGROUND_PATH);
@@ -136,7 +135,7 @@ export class VirtualProject {
 			this.pkgRojoResolvers,
 			this.nodeModulesPathMapping,
 			runtimeLibRbxPath,
-			this.typeChecker,
+			typeChecker,
 			projectType,
 			sourceFile,
 		);
