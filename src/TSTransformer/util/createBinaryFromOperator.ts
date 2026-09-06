@@ -2,6 +2,7 @@ import luau from "@roblox-ts/luau-ast";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import { createBitwiseCall, isBitwiseOperator } from "TSTransformer/util/bitwise";
+import { effectsCommute, getEffects, isLateRead } from "TSTransformer/util/evaluation/effects";
 import { getKindName } from "TSTransformer/util/getKindName";
 import { isDefinitelyType, isStringType } from "TSTransformer/util/types";
 import { wrapExpressionStatement } from "TSTransformer/util/wrapExpressionStatement";
@@ -47,6 +48,11 @@ export function createBinaryFromOperator(
 	right: luau.Expression,
 	rightType: ts.Type,
 ): luau.Expression {
+	// arithmetic and comparison instructions can read a local after the RHS call ran
+	if (isLateRead(left) && !effectsCommute(getEffects(left), getEffects(right))) {
+		left = state.pushToVar(left, "left");
+	}
+
 	// simple
 	const operator = OPERATOR_MAP.get(operatorKind);
 	if (operator !== undefined) {
