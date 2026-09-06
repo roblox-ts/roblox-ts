@@ -14,6 +14,82 @@ function difference<T>(set1: Set<T>, set2: Set<T>): Set<T> {
 }
 
 export = () => {
+	it("should support numeric separators in loop bounds and steps", () => {
+		const ascending = new Array<number>();
+		for (let i = 0x0_0; i < 3_0; i += 1_0) {
+			ascending.push(i);
+		}
+		expect(ascending.join(",")).to.equal("0,10,20");
+
+		const descending = new Array<number>();
+		for (let i = 3_0; i > 0x0_0; i -= 1_0) {
+			descending.push(i);
+		}
+		expect(descending.join(",")).to.equal("30,20,10");
+	});
+
+	it("should preserve negative zero in a loop initializer", () => {
+		for (let i = -0; i <= 0; i++) {
+			expect(1 / i).to.equal(-math.huge);
+		}
+	});
+
+	it("should support breaking from a loop with a zero step", () => {
+		let iterations = 0;
+		for (let i = 0; i < 1; i += 0) {
+			iterations++;
+			break;
+		}
+		expect(iterations).to.equal(1);
+	});
+
+	it("should reevaluate a changing array-size loop bound", () => {
+		const values = [1, 2, 3, 4];
+		let iterations = 0;
+		for (let i = 0; i < values.size(); i++) {
+			values.pop();
+			iterations++;
+		}
+		expect(iterations).to.equal(2);
+	});
+
+	it("should reevaluate calls with a numeric literal return type in loop conditions", () => {
+		let calls = 0;
+		function limit(): 2 {
+			calls++;
+			return 2;
+		}
+		for (let i = 0; i < limit(); i++) {}
+		expect(calls).to.equal(3);
+	});
+
+	it("should preserve loop conditions that compare a different variable", () => {
+		let condition = 2;
+		let iterations = 0;
+		for (let i = 0; condition < 3; i++) {
+			condition++;
+			iterations++;
+		}
+		expect(iterations).to.equal(1);
+	});
+
+	it("should preserve loop incrementors that decrement a different variable", () => {
+		let remaining = 3;
+		for (let i = 3; i > 0; remaining -= 1) {
+			if (remaining === 1) break;
+		}
+		expect(remaining).to.equal(1);
+	});
+
+	it("should preserve destructuring writes to the loop variable", () => {
+		let iterations = 0;
+		for (let i = 0; i < 3; i++) {
+			[i] = [5];
+			iterations++;
+		}
+		expect(iterations).to.equal(1);
+	});
+
 	it("should support numeric for loops", () => {
 		const hit = new Set<number>();
 		let sum = 10;

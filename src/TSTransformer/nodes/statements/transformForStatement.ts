@@ -14,9 +14,7 @@ import { transformStatementList } from "TSTransformer/nodes/transformStatementLi
 import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
 import { getDeclaredVariables } from "TSTransformer/util/getDeclaredVariables";
 import { getStatements } from "TSTransformer/util/getStatements";
-import { offset } from "TSTransformer/util/offset";
-import { getAncestor, isAncestorOf, skipDownwards, skipUpwards } from "TSTransformer/util/traversal";
-import { getFirstDefinedSymbol, isDefinitelyType } from "TSTransformer/util/types";
+import { getAncestor, isAncestorOf } from "TSTransformer/util/traversal";
 import ts from "typescript";
 
 function addFinalizersToIfStatement(node: luau.IfStatement, finalizers: luau.List<luau.Statement>) {
@@ -143,15 +141,9 @@ function transformForStatementFallback(state: TransformState, node: ts.ForStatem
 			}
 
 			for (const declaration of initializer.declarations) {
-				const [decStatements, decPrereqs] = state.capture(() => {
-					const result = luau.list.make<luau.Statement>();
-					const [decStatements, decPrereqs] = state.capture(() =>
-						transformVariableDeclaration(state, declaration),
-					);
-					luau.list.pushList(result, decPrereqs);
-					luau.list.pushList(result, decStatements);
-					return result;
-				});
+				const [decStatements, decPrereqs] = state.capture(() =>
+					transformVariableDeclaration(state, declaration),
+				);
 				luau.list.pushList(result, decPrereqs);
 				luau.list.pushList(result, decStatements);
 			}
@@ -296,53 +288,46 @@ function transformForStatementFallback(state: TransformState, node: ts.ForStatem
 		: luau.list.make(luau.create(luau.SyntaxKind.DoStatement, { statements: result }));
 }
 
+// Numeric for loops evaluate their bounds once. Only literal bounds can be
+// moved out of a TypeScript condition without analyzing reads and side effects.
+function getIntegerLiteral(expression: ts.Expression): number | undefined {
+	if (ts.isNumericLiteral(expression)) {
+		const value = Number(expression.text);
+		return Number.isSafeInteger(value) ? value : undefined;
+	}
+	if (ts.isPrefixUnaryExpression(expression) && expression.operator === ts.SyntaxKind.MinusToken) {
+		const value = getIntegerLiteral(expression.operand);
+		if (value !== undefined) {
+			return -value;
+		}
+	}
+}
+
 function getOptimizedIncrementorStepValue(state: TransformState, incrementor: ts.Expression, idSymbol: ts.Symbol) {
 	if (
 		ts.isBinaryExpression(incrementor) &&
 		ts.isIdentifier(incrementor.left) &&
-		state.typeChecker.getSymbolAtLocation(incrementor.left) === idSymbol &&
-		incrementor.operatorToken.kind === ts.SyntaxKind.PlusEqualsToken &&
-		ts.isNumericLiteral(incrementor.right) &&
-		isProbablyInteger(state, incrementor.right)
+		state.typeChecker.getSymbolAtLocation(incrementor.left) === idSymbol
 	) {
-		return Number(incrementor.right.getText());
-	} else if (
-		ts.isBinaryExpression(incrementor) &&
-		incrementor.operatorToken.kind === ts.SyntaxKind.MinusEqualsToken &&
-		ts.isNumericLiteral(incrementor.right) &&
-		isProbablyInteger(state, incrementor.right)
-	) {
-		return -Number(incrementor.right.getText());
-	} else if (
-		(ts.isPostfixUnaryExpression(incrementor) || ts.isPrefixUnaryExpression(incrementor)) &&
-		ts.isIdentifier(incrementor.operand) &&
-		state.typeChecker.getSymbolAtLocation(incrementor.operand) === idSymbol &&
-		incrementor.operator === ts.SyntaxKind.PlusPlusToken
-	) {
-		return 1;
-	} else if (
-		(ts.isPostfixUnaryExpression(incrementor) || ts.isPrefixUnaryExpression(incrementor)) &&
-		ts.isIdentifier(incrementor.operand) &&
-		state.typeChecker.getSymbolAtLocation(incrementor.operand) === idSymbol &&
-		incrementor.operator === ts.SyntaxKind.MinusMinusToken
-	) {
-		return -1;
-	}
-	return undefined;
-}
-
-function isSizeMacro(state: TransformState, expression: ts.Expression): boolean {
-	if (ts.isCallExpression(expression)) {
-		const expType = state.typeChecker.getNonOptionalType(state.getType(expression.expression));
-		const symbol = getFirstDefinedSymbol(state, expType);
-		if (symbol) {
-			const macro = state.services.macroManager.getPropertyCallMacro(symbol);
-			if (macro && symbol.name === "size") {
-				return true;
+		const value = getIntegerLiteral(incrementor.right);
+		if (value !== undefined) {
+			if (incrementor.operatorToken.kind === ts.SyntaxKind.PlusEqualsToken) {
+				return value;
+			} else if (incrementor.operatorToken.kind === ts.SyntaxKind.MinusEqualsToken) {
+				return -value;
 			}
 		}
+	} else if (
+		(ts.isPostfixUnaryExpression(incrementor) || ts.isPrefixUnaryExpression(incrementor)) &&
+		ts.isIdentifier(incrementor.operand) &&
+		state.typeChecker.getSymbolAtLocation(incrementor.operand) === idSymbol
+	) {
+		if (incrementor.operator === ts.SyntaxKind.PlusPlusToken) {
+			return 1;
+		} else if (incrementor.operator === ts.SyntaxKind.MinusMinusToken) {
+			return -1;
+		}
 	}
-	return false;
 }
 
 function isMutatedInBody(state: TransformState, identifier: ts.Identifier, body: ts.Statement): boolean {
@@ -351,52 +336,21 @@ function isMutatedInBody(state: TransformState, identifier: ts.Identifier, body:
 			identifier,
 			state.typeChecker,
 			identifier.getSourceFile(),
-			token => {
-				const parent = skipUpwards(token).parent;
-				if (ts.isAssignmentExpression(parent) && skipDownwards(parent.left) === token) {
-					return true;
-				} else if (ts.isUnaryExpressionWithWrite(parent) && skipDownwards(parent.operand) === token) {
-					return true;
-				}
-				return false;
-			},
+			ts.isWriteAccess,
 			body,
 		) === true
 	);
 }
 
-function isProbablyInteger(state: TransformState, expression: ts.Expression): boolean {
-	if (ts.isNumericLiteral(expression)) {
-		return Number.isInteger(Number(expression.getText()));
-	} else if (ts.isBinaryExpression(expression)) {
-		if (
-			expression.operatorToken.kind === ts.SyntaxKind.PlusToken ||
-			expression.operatorToken.kind === ts.SyntaxKind.MinusToken ||
-			expression.operatorToken.kind === ts.SyntaxKind.AsteriskToken ||
-			expression.operatorToken.kind === ts.SyntaxKind.AsteriskAsteriskToken
-		) {
-			return isProbablyInteger(state, expression.left) && isProbablyInteger(state, expression.right);
-		}
-	} else if (ts.isPrefixUnaryExpression(expression)) {
-		if (expression.operator === ts.SyntaxKind.PlusToken || expression.operator === ts.SyntaxKind.MinusToken) {
-			return isProbablyInteger(state, expression.operand);
-		}
-	} else if (isSizeMacro(state, expression)) {
-		return true;
-	} else if (isDefinitelyType(state.getType(expression), t => t.isNumberLiteral() && Number.isInteger(t.value))) {
-		return true;
-	}
-	return false;
-}
-
 function transformForStatementOptimized(state: TransformState, node: ts.ForStatement) {
 	const { initializer, condition, incrementor, statement } = node;
 
-	// this function is difficult to break up because it uses several type guard functions..
-
-	// validate initializer exists and is a single identifier `x` with a value that is _probably_ an integer
-
-	if (!initializer || !ts.isVariableDeclarationList(initializer) || initializer.declarations.length !== 1) {
+	if (
+		!initializer ||
+		!ts.isVariableDeclarationList(initializer) ||
+		!(initializer.flags & ts.NodeFlags.Let) ||
+		initializer.declarations.length !== 1
+	) {
 		return undefined;
 	}
 
@@ -410,24 +364,30 @@ function transformForStatementOptimized(state: TransformState, node: ts.ForState
 		return undefined;
 	}
 
-	if (!isProbablyInteger(state, decInit)) {
+	const startValue = getIntegerLiteral(decInit);
+	if (startValue === undefined) {
 		return undefined;
 	}
 
-	// validate incrementor exists and is _probably_ an integer change in `x`
+	// require a nonzero constant step that updates the declared loop variable
 
 	if (!incrementor) {
 		return undefined;
 	}
 
 	const stepValue = getOptimizedIncrementorStepValue(state, incrementor, idSymbol);
-	if (stepValue === undefined) {
+	if (stepValue === undefined || stepValue === 0) {
 		return undefined;
 	}
 
 	// validate condition exists and is a BinaryExpression with an operator that matches the incrementor
 
-	if (!condition || !ts.isBinaryExpression(condition)) {
+	if (
+		!condition ||
+		!ts.isBinaryExpression(condition) ||
+		!ts.isIdentifier(condition.left) ||
+		state.typeChecker.getSymbolAtLocation(condition.left) !== idSymbol
+	) {
 		return undefined;
 	}
 
@@ -454,7 +414,8 @@ function transformForStatementOptimized(state: TransformState, node: ts.ForState
 		return undefined;
 	}
 
-	if (!isProbablyInteger(state, condition.right)) {
+	const endValue = getIntegerLiteral(condition.right);
+	if (endValue === undefined) {
 		return undefined;
 	}
 
@@ -468,19 +429,16 @@ function transformForStatementOptimized(state: TransformState, node: ts.ForState
 
 	const id = transformIdentifierDefined(state, decName);
 
-	const [start, startPrereqs] = state.capture(() => transformExpression(state, decInit));
-	luau.list.pushList(result, startPrereqs);
-
-	let [end, endPrereqs] = state.capture(() => transformExpression(state, condition.right));
-	luau.list.pushList(result, endPrereqs);
+	const start = state.noPrereqs(() => transformExpression(state, decInit));
+	let end = state.noPrereqs(() => transformExpression(state, condition.right));
 
 	const step = luau.number(stepValue);
 	const statements = transformStatementList(state, statement, getStatements(statement));
 
 	if (condition.operatorToken.kind === ts.SyntaxKind.LessThanToken) {
-		end = offset(end, -1);
+		end = luau.number(endValue - 1);
 	} else if (condition.operatorToken.kind === ts.SyntaxKind.GreaterThanToken) {
-		end = offset(end, 1);
+		end = luau.number(endValue + 1);
 	}
 
 	luau.list.push(result, luau.create(luau.SyntaxKind.NumericForStatement, { id, start, end, step, statements }));

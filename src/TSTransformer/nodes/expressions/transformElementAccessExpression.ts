@@ -41,7 +41,7 @@ export function transformElementAccessExpressionInner(
 	// LuaTuple<T> checks
 	if (luau.isCall(expression) && isLuaTupleType(state)(expType)) {
 		// wrap in select() if it isn't the first value
-		if (!luau.isNumberLiteral(index) || Number(index.value) !== 0) {
+		if (!luau.isNumberLiteral(index) || Number(index.value.replace(/_/g, "")) !== 0) {
 			expression = luau.call(luau.globals.select, [offset(index, 1), expression]);
 		}
 		// parentheses to trim off the rest of the values
