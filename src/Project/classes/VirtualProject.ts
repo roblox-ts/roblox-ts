@@ -6,7 +6,7 @@ import { validateCompilerOptions } from "Project/functions/validateCompilerOptio
 import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagnostics";
 import { DEFAULT_PROJECT_OPTIONS, NODE_MODULES, ProjectType, RBXTS_SCOPE } from "Shared/constants";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
-import { ProjectData } from "Shared/types";
+import { ProjectData, ProjectOptions } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { hasErrors } from "Shared/util/hasErrors";
 import { MultiTransformState, transformSourceFile, TransformState } from "TSTransformer";
@@ -35,15 +35,17 @@ export class VirtualProject {
 	private program: ts.Program | undefined;
 	private nodeModulesPathMapping = new Map<string, string>();
 
-	constructor() {
+	constructor(projectOptions: Partial<ProjectOptions> = {}) {
 		this.data = {
 			isPackage: false,
 			nodeModulesPath: NODE_MODULES_PATH,
-			projectOptions: Object.assign({}, DEFAULT_PROJECT_OPTIONS, {
+			projectOptions: {
+				...DEFAULT_PROJECT_OPTIONS,
 				rojo: "",
 				type: ProjectType.Model,
 				optimizedLoops: true,
-			}),
+				...projectOptions,
+			},
 			projectPath: PROJECT_DIR,
 			rojoConfigPath: undefined,
 			tsConfigPath: "",

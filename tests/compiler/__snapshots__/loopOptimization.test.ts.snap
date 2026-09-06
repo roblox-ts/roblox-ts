@@ -1,0 +1,426 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`fallback arithmetic bound 1`] = `
+"do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i < 1 + 2) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+"
+`;
+
+exports[`fallback changing array-size bound 1`] = `
+"local values = { 1, 2, 3, 4 }
+do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i < #values) then
+			break
+		end
+		values[#values] = nil
+	end
+end
+return nil
+"
+`;
+
+exports[`fallback constant identifier bound 1`] = `
+"local limit = 3
+do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i < limit) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+"
+`;
+
+exports[`fallback destructuring write to induction variable 1`] = `
+"do
+	local _i = 0
+	local _shouldIncrement = false
+	while true do
+		local i = _i
+		if _shouldIncrement then
+			i += 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i < 3) then
+			break
+		end
+		i = 5
+		_i = i
+	end
+end
+return nil
+"
+`;
+
+exports[`fallback different condition variable 1`] = `
+"local condition = 2
+do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += 1
+		else
+			_shouldIncrement = true
+		end
+		if not (condition < 3) then
+			break
+		end
+		condition += 1
+		print(i)
+	end
+end
+return nil
+"
+`;
+
+exports[`fallback different decrement target 1`] = `
+"local remaining = 3
+do
+	local i = 3
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			remaining -= 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i > 0) then
+			break
+		end
+		if remaining == 1 then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+"
+`;
+
+exports[`fallback effectful bound with a literal return type 1`] = `
+"local function limit()
+	print("limit")
+	return 2
+end
+do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i < limit()) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+"
+`;
+
+exports[`fallback fractional initializer 1`] = `
+"do
+	local i = 0.5
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i < 3) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+"
+`;
+
+exports[`fallback unsafe integer bound 1`] = `
+"do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i < 9007199254740992) then
+			break
+		end
+		print(i)
+		break
+	end
+end
+return nil
+"
+`;
+
+exports[`fallback wrong step direction 1`] = `
+"do
+	local i = 3
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i -= 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i < 0) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+"
+`;
+
+exports[`fallback zero step 1`] = `
+"do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += 0
+		else
+			_shouldIncrement = true
+		end
+		if not (i < 1) then
+			break
+		end
+		print(i)
+		break
+	end
+end
+return nil
+"
+`;
+
+exports[`optimized ascending exclusive bound 1`] = `
+{
+  "optimized": "for i = 0, 2 do
+	print(i)
+end
+return nil
+",
+  "unoptimized": "do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i < 3) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+",
+}
+`;
+
+exports[`optimized ascending inclusive bound with a step 1`] = `
+{
+  "optimized": "for i = 0, 4, 2 do
+	print(i)
+end
+return nil
+",
+  "unoptimized": "do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += 2
+		else
+			_shouldIncrement = true
+		end
+		if not (i <= 4) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+",
+}
+`;
+
+exports[`optimized descending exclusive bound 1`] = `
+{
+  "optimized": "for i = 3, 1, -1 do
+	print(i)
+end
+return nil
+",
+  "unoptimized": "do
+	local i = 3
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i -= 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i > 0) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+",
+}
+`;
+
+exports[`optimized descending inclusive bound with a step 1`] = `
+{
+  "optimized": "for i = 4, 0, -2 do
+	print(i)
+end
+return nil
+",
+  "unoptimized": "do
+	local i = 4
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i -= 2
+		else
+			_shouldIncrement = true
+		end
+		if not (i >= 0) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+",
+}
+`;
+
+exports[`optimized literal spelling 1`] = `
+{
+  "optimized": "for i = 0x10, 19 do
+	print(i)
+end
+return nil
+",
+  "unoptimized": "do
+	local i = 0x10
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i < 2_0) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+",
+}
+`;
+
+exports[`optimized negative bounds 1`] = `
+{
+  "optimized": "for i = -1, -3, -1 do
+	print(i)
+end
+return nil
+",
+  "unoptimized": "do
+	local i = -1
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i -= 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i >= -3) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+",
+}
+`;
+
+exports[`optimized negative zero initializer 1`] = `
+{
+  "optimized": "for i = -0, 0 do
+	print(1 / i)
+end
+return nil
+",
+  "unoptimized": "do
+	local i = -0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i <= 0) then
+			break
+		end
+		print(1 / i)
+	end
+end
+return nil
+",
+}
+`;
