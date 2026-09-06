@@ -6,7 +6,7 @@ import { validateCompilerOptions } from "Project/functions/validateCompilerOptio
 import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagnostics";
 import { DEFAULT_PROJECT_OPTIONS, NODE_MODULES, ProjectType, RBXTS_SCOPE } from "Shared/constants";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
-import { ProjectData } from "Shared/types";
+import { ProjectData, ProjectOptions } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { hasErrors } from "Shared/util/hasErrors";
 import { MultiTransformState, transformSourceFile, TransformState } from "TSTransformer";
@@ -33,18 +33,19 @@ export class VirtualProject {
 	private readonly compilerHost: ts.CompilerHost;
 
 	private program: ts.Program | undefined;
-	private typeChecker: ts.TypeChecker | undefined;
 	private nodeModulesPathMapping = new Map<string, string>();
 
-	constructor() {
+	constructor(projectOptions: Partial<ProjectOptions> = {}) {
 		this.data = {
 			isPackage: false,
 			nodeModulesPath: NODE_MODULES_PATH,
-			projectOptions: Object.assign({}, DEFAULT_PROJECT_OPTIONS, {
+			projectOptions: {
+				...DEFAULT_PROJECT_OPTIONS,
 				rojo: "",
 				type: ProjectType.Model,
 				optimizedLoops: true,
-			}),
+				...projectOptions,
+			},
 			projectPath: PROJECT_DIR,
 			rojoConfigPath: undefined,
 			tsConfigPath: "",
@@ -105,11 +106,11 @@ export class VirtualProject {
 
 		const rootNames = this.vfs
 			.getFilePaths()
-			.filter(v => v.endsWith(ts.Extension.Ts) || v.endsWith(ts.Extension.Tsx) || v.endsWith(ts.Extension.Dts));
+			.filter(v => v.endsWith(ts.Extension.Ts) || v.endsWith(ts.Extension.Tsx));
 		this.program = ts.createProgram(rootNames, this.compilerOptions, this.compilerHost, this.program);
-		this.typeChecker = this.program.getTypeChecker();
+		const typeChecker = this.program.getTypeChecker();
 
-		const services = createTransformServices(this.typeChecker);
+		const services = createTransformServices(typeChecker);
 		const pathTranslator = new PathTranslator(ROOT_DIR, OUT_DIR, undefined, false, this.data.projectOptions.luau);
 
 		const sourceFile = this.program.getSourceFile(PLAYGROUND_PATH);
@@ -136,7 +137,7 @@ export class VirtualProject {
 			this.pkgRojoResolvers,
 			this.nodeModulesPathMapping,
 			runtimeLibRbxPath,
-			this.typeChecker,
+			typeChecker,
 			projectType,
 			sourceFile,
 		);
