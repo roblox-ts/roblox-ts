@@ -71,88 +71,58 @@ const addArray: AddIterableToArrayBuilder = (
 	return result;
 };
 
-const addString: AddIterableToArrayBuilder = (state, expression, arrayId, lengthId, amtElementsSinceUpdate) => {
-	const result = luau.list.make<luau.Statement>();
+function createForLoopArrayBuilder(
+	valueName: string,
+	getLoopExpression: (expression: luau.Expression) => luau.Expression = expression => expression,
+): AddIterableToArrayBuilder {
+	return (state, expression, arrayId, lengthId, amtElementsSinceUpdate) => {
+		const result = luau.list.make<luau.Statement>();
 
-	if (amtElementsSinceUpdate > 0) {
-		luau.list.push(
-			result,
-			luau.create(luau.SyntaxKind.Assignment, {
-				left: lengthId,
-				operator: "+=",
-				right: luau.number(amtElementsSinceUpdate),
-			}),
-		);
-	}
-
-	const valueId = luau.tempId("char");
-	luau.list.push(
-		result,
-		luau.create(luau.SyntaxKind.ForStatement, {
-			ids: luau.list.make(valueId),
-			expression: luau.call(luau.globals.string.gmatch, [expression, luau.globals.utf8.charpattern]),
-			statements: luau.list.make(
+		if (amtElementsSinceUpdate > 0) {
+			luau.list.push(
+				result,
 				luau.create(luau.SyntaxKind.Assignment, {
 					left: lengthId,
 					operator: "+=",
-					right: luau.number(1),
+					right: luau.number(amtElementsSinceUpdate),
 				}),
-				luau.create(luau.SyntaxKind.Assignment, {
-					left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-						expression: arrayId,
-						index: lengthId,
-					}),
-					operator: "=",
-					right: valueId,
-				}),
-			),
-		}),
-	);
+			);
+		}
 
-	return result;
-};
+		const valueId = luau.tempId(valueName);
 
-const addSet: AddIterableToArrayBuilder = (state, expression, arrayId, lengthId, amtElementsSinceUpdate) => {
-	const result = luau.list.make<luau.Statement>();
-
-	if (amtElementsSinceUpdate > 0) {
 		luau.list.push(
 			result,
-			luau.create(luau.SyntaxKind.Assignment, {
-				left: lengthId,
-				operator: "+=",
-				right: luau.number(amtElementsSinceUpdate),
+			luau.create(luau.SyntaxKind.ForStatement, {
+				ids: luau.list.make(valueId),
+				expression: getLoopExpression(expression),
+				statements: luau.list.make(
+					luau.create(luau.SyntaxKind.Assignment, {
+						left: lengthId,
+						operator: "+=",
+						right: luau.number(1),
+					}),
+					luau.create(luau.SyntaxKind.Assignment, {
+						left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+							expression: arrayId,
+							index: lengthId,
+						}),
+						operator: "=",
+						right: valueId,
+					}),
+				),
 			}),
 		);
-	}
 
-	const valueId = luau.tempId("v");
+		return result;
+	};
+}
 
-	luau.list.push(
-		result,
-		luau.create(luau.SyntaxKind.ForStatement, {
-			ids: luau.list.make(valueId),
-			expression,
-			statements: luau.list.make(
-				luau.create(luau.SyntaxKind.Assignment, {
-					left: lengthId,
-					operator: "+=",
-					right: luau.number(1),
-				}),
-				luau.create(luau.SyntaxKind.Assignment, {
-					left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-						expression: arrayId,
-						index: lengthId,
-					}),
-					operator: "=",
-					right: valueId,
-				}),
-			),
-		}),
-	);
-
-	return result;
-};
+const addString = createForLoopArrayBuilder("char", expression =>
+	luau.call(luau.globals.string.gmatch, [expression, luau.globals.utf8.charpattern]),
+);
+const addSet = createForLoopArrayBuilder("v");
+const addIterableFunction = createForLoopArrayBuilder("result");
 
 const addMap: AddIterableToArrayBuilder = (state, expression, arrayId, lengthId, amtElementsSinceUpdate) => {
 	const result = luau.list.make<luau.Statement>();
@@ -188,54 +158,6 @@ const addMap: AddIterableToArrayBuilder = (state, expression, arrayId, lengthId,
 					}),
 					operator: "=",
 					right: luau.array([keyId, valueId]),
-				}),
-			),
-		}),
-	);
-
-	return result;
-};
-
-const addIterableFunction: AddIterableToArrayBuilder = (
-	state,
-	expression,
-	arrayId,
-	lengthId,
-	amtElementsSinceUpdate,
-) => {
-	const result = luau.list.make<luau.Statement>();
-
-	if (amtElementsSinceUpdate > 0) {
-		luau.list.push(
-			result,
-			luau.create(luau.SyntaxKind.Assignment, {
-				left: lengthId,
-				operator: "+=",
-				right: luau.number(amtElementsSinceUpdate),
-			}),
-		);
-	}
-
-	const valueId = luau.tempId("result");
-
-	luau.list.push(
-		result,
-		luau.create(luau.SyntaxKind.ForStatement, {
-			ids: luau.list.make<luau.AnyIdentifier>(valueId),
-			expression,
-			statements: luau.list.make<luau.Statement>(
-				luau.create(luau.SyntaxKind.Assignment, {
-					left: lengthId,
-					operator: "+=",
-					right: luau.number(1),
-				}),
-				luau.create(luau.SyntaxKind.Assignment, {
-					left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-						expression: arrayId,
-						index: lengthId,
-					}),
-					operator: "=",
-					right: valueId,
 				}),
 			),
 		}),
