@@ -174,6 +174,68 @@ return nil
 "
 `;
 
+exports[`fallback multiplicative step 1`] = `
+"do
+	local i = 1
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i *= 2
+		else
+			_shouldIncrement = true
+		end
+		if not (i < 4) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+"
+`;
+
+exports[`fallback negated identifier bound 1`] = `
+"local limit = 3
+do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i -= 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i > -limit) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+"
+`;
+
+exports[`fallback nonmutating unary incrementor 1`] = `
+"do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			local _ = -i
+		else
+			_shouldIncrement = true
+		end
+		if not (i < 3) then
+			break
+		end
+		print(i)
+		break
+	end
+end
+return nil
+"
+`;
+
 exports[`fallback unsafe integer bound 1`] = `
 "do
 	local i = 0
