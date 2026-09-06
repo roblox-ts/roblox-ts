@@ -1,4 +1,12 @@
 export = () => {
+	it("should support numeric separators in tuple return indices", () => {
+		function values(): LuaTuple<[number, number]> {
+			return $tuple(123, 456);
+		}
+		expect(values()[0x0_0]).to.equal(123);
+		expect(values()[0x0_1]).to.equal(456);
+	});
+
 	it("should unpack function return tuples", () => {
 		function foo(): [number, number] {
 			return [101, 203];

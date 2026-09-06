@@ -90,6 +90,41 @@ export = () => {
 		}
 	});
 
+	it("should support numeric separators in element access", () => {
+		const values = new Array<number>();
+		values[10] = 123;
+		values[-10] = 456;
+		expect(values[1_0]).to.equal(123);
+		expect(values[0x0_A]).to.equal(123);
+		expect(values[0b1_010]).to.equal(123);
+		expect(values[0o1_2]).to.equal(123);
+		expect(values[1_0.0_0e0_0]).to.equal(123);
+		expect(values[-1_0]).to.equal(456);
+	});
+
+	it("should support numeric separators in index arithmetic", () => {
+		const values = new Array<number>();
+		values[1] = 123;
+		values[10] = 456;
+		values[21] = 789;
+		let index = 11;
+		expect(values[index + 1_0]).to.equal(789);
+		expect(values[index - 1_0]).to.equal(123);
+		expect(values[index + -1_0]).to.equal(123);
+		expect(values[index - 0x0_1]).to.equal(456);
+	});
+
+	it("should support numeric separators in array method indices", () => {
+		const values = [1, 2, 3, 2];
+		values.insert(0x0_1, 9);
+		expect(values.join(",")).to.equal("1,9,2,3,2");
+		expect(values.remove(0x0_1)).to.equal(9);
+		expect(values.includes(2, 0b1_0)).to.equal(true);
+		expect(values.indexOf(2, 0b1_0)).to.equal(3);
+		values.move(0x0_1, 0b1_0, 0x0_0);
+		expect(values.join(",")).to.equal("2,3,3,2");
+	});
+
 	it("should support.size()", () => {
 		expect([].size()).to.equal(0);
 		expect([1].size()).to.equal(1);

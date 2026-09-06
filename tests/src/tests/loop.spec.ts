@@ -14,6 +14,20 @@ function difference<T>(set1: Set<T>, set2: Set<T>): Set<T> {
 }
 
 export = () => {
+	it("should support numeric separators in loop bounds and steps", () => {
+		const ascending = new Array<number>();
+		for (let i = 0x0_0; i < 3_0; i += 1_0) {
+			ascending.push(i);
+		}
+		expect(ascending.join(",")).to.equal("0,10,20");
+
+		const descending = new Array<number>();
+		for (let i = 3_0; i > 0x0_0; i -= 1_0) {
+			descending.push(i);
+		}
+		expect(descending.join(",")).to.equal("30,20,10");
+	});
+
 	it("should support numeric for loops", () => {
 		const hit = new Set<number>();
 		let sum = 10;

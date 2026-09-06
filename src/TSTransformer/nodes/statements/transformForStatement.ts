@@ -305,14 +305,14 @@ function getOptimizedIncrementorStepValue(state: TransformState, incrementor: ts
 		ts.isNumericLiteral(incrementor.right) &&
 		isProbablyInteger(state, incrementor.right)
 	) {
-		return Number(incrementor.right.getText());
+		return Number(incrementor.right.text);
 	} else if (
 		ts.isBinaryExpression(incrementor) &&
 		incrementor.operatorToken.kind === ts.SyntaxKind.MinusEqualsToken &&
 		ts.isNumericLiteral(incrementor.right) &&
 		isProbablyInteger(state, incrementor.right)
 	) {
-		return -Number(incrementor.right.getText());
+		return -Number(incrementor.right.text);
 	} else if (
 		(ts.isPostfixUnaryExpression(incrementor) || ts.isPrefixUnaryExpression(incrementor)) &&
 		ts.isIdentifier(incrementor.operand) &&
@@ -367,7 +367,7 @@ function isMutatedInBody(state: TransformState, identifier: ts.Identifier, body:
 
 function isProbablyInteger(state: TransformState, expression: ts.Expression): boolean {
 	if (ts.isNumericLiteral(expression)) {
-		return Number.isInteger(Number(expression.getText()));
+		return Number.isInteger(Number(expression.text));
 	} else if (ts.isBinaryExpression(expression)) {
 		if (
 			expression.operatorToken.kind === ts.SyntaxKind.PlusToken ||
