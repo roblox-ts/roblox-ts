@@ -11,7 +11,8 @@ import { formatDiagnostics } from "Shared/util/formatDiagnostics";
 import ts from "typescript";
 
 export class ReferenceFixture {
-	public readonly directory = fs.mkdtempSync(path.join(os.tmpdir(), "rbxts-references-"));
+	// Windows short paths from TEMP can crash libuv's native filesystem watcher
+	public readonly directory = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "rbxts-references-")));
 	private readonly projects = new Set<string>();
 	private readonly builds = new Array<ProjectBuild>();
 
