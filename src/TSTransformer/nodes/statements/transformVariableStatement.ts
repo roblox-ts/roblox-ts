@@ -12,6 +12,7 @@ import { arrayBindingPatternContainsHoists } from "TSTransformer/util/arrayBindi
 import { arrayLikeExpressionContainsSpread } from "TSTransformer/util/arrayLikeExpressionContainsSpread";
 import { getTargetIdForBindingPattern } from "TSTransformer/util/binding/getTargetIdForBindingPattern";
 import { checkVariableHoist } from "TSTransformer/util/checkVariableHoist";
+import { copyValueFacts, getCallEffects, isConstantReference } from "TSTransformer/util/evaluation/facts";
 import { isSymbolMutable } from "TSTransformer/util/isSymbolMutable";
 import { isLuaTupleType } from "TSTransformer/util/types";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
@@ -42,6 +43,13 @@ export function transformVariable(state: TransformState, identifier: ts.Identifi
 	}
 
 	const left: luau.AnyIdentifier = transformIdentifierDefined(state, identifier);
+	if (right && isConstantReference(left)) {
+		const effects = getCallEffects(right);
+		if (effects) {
+			state.multiTransformState.functionEffects.set(symbol, effects);
+		}
+		copyValueFacts(right, left);
+	}
 
 	checkVariableHoist(state, identifier, symbol);
 	if (state.isHoisted.get(symbol) === true) {

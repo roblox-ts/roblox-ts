@@ -5,8 +5,13 @@ import { MacroList, PropertyCallMacro } from "TSTransformer/macros/types";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { offset } from "TSTransformer/util/offset";
-import { isDefinitelyType, isNumberType, isStringType } from "TSTransformer/util/types";
-import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
+import {
+	isDefinitelyType,
+	isNumberType,
+	isPossiblyType,
+	isStringType,
+	isUndefinedType,
+} from "TSTransformer/util/types";
 import ts from "typescript";
 
 function makeMathMethod(operator: luau.BinaryOperator): PropertyCallMacro {
@@ -69,10 +74,8 @@ function makeEveryOrSomeMethod(
 	initialState: boolean,
 ): PropertyCallMacro {
 	return (state, node, expression, args) => {
-		expression = state.pushToVarIfComplex(expression, "exp");
-
 		const resultId = state.pushToVar(luau.bool(initialState), "result");
-		const callbackId = state.pushToVarIfNonId(args[0], "callback");
+		const callbackId = convertToIndexableExpression(args[0]);
 
 		const keyId = luau.tempId("k");
 		const valueId = luau.tempId("v");
@@ -125,32 +128,25 @@ function makeSomeMethod(
 
 function argumentsWithDefaults(
 	state: TransformState,
+	node: ts.CallExpression,
 	args: Array<luau.Expression>,
 	defaults: Array<luau.Expression>,
 ): Array<luau.Expression> {
-	// potentially nil arguments
-	for (let i = 0; i < args.length; i++) {
-		if (!luau.isSimplePrimitive(args[i])) {
-			args[i] = state.pushToVar(args[i], valueToIdStr(args[i]) || `arg${i}`);
-			state.prereq(
-				luau.create(luau.SyntaxKind.IfStatement, {
-					condition: luau.binary(args[i], "==", luau.nil()),
-					statements: luau.list.make(
-						luau.create(luau.SyntaxKind.Assignment, {
-							left: args[i] as luau.TemporaryIdentifier,
-							operator: "=",
-							right: defaults[i],
-						}),
-					),
-					elseBody: luau.list.make(),
-				}),
-			);
+	for (let i = 0; i < defaults.length; i++) {
+		const argument = args[i];
+		const source = node.arguments[i];
+		if (argument === undefined || luau.isNilLiteral(argument)) {
+			args[i] = defaults[i];
+		} else if (
+			!luau.isSimplePrimitive(argument) &&
+			(!source || ts.isSpreadElement(source) || isPossiblyType(state.getType(source), isUndefinedType))
+		) {
+			args[i] = luau.create(luau.SyntaxKind.IfExpression, {
+				condition: luau.binary(argument, "==", luau.nil()),
+				expression: defaults[i],
+				alternative: argument,
+			});
 		}
-	}
-
-	// not specified
-	for (let j = args.length; j < defaults.length; j++) {
-		args[j] = defaults[j];
 	}
 
 	return args;
@@ -164,7 +160,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	isEmpty: (state, node, expression) => luau.binary(luau.unary("#", expression), "==", luau.number(0)),
 
 	join: (state, node, expression, args) => {
-		args = argumentsWithDefaults(state, args, [luau.strings[", "]]);
+		args = argumentsWithDefaults(state, node, args, [luau.strings[", "]]);
 		const indexType = state.typeChecker.getIndexTypeOfType(
 			state.getType(node.expression.expression),
 			ts.IndexKind.Number,
@@ -172,7 +168,6 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 		// table.concat only works on string and number types, so call tostring() otherwise
 		if (indexType && !isDefinitelyType(indexType, isStringType, isNumberType)) {
-			expression = state.pushToVarIfComplex(expression, "exp");
 			const id = state.pushToVar(luau.call(luau.globals.table.create, [luau.unary("#", expression)]), "result");
 			const keyId = luau.tempId("k");
 			const valueId = luau.tempId("v");
@@ -237,9 +232,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	some: makeSomeMethod((keyId, valueId, expression) => [valueId, offset(keyId, -1), expression]),
 
 	forEach: (state, node, expression, args) => {
-		expression = state.pushToVarIfComplex(expression, "exp");
-
-		const callbackId = state.pushToVarIfNonId(args[0], "callback");
+		const callbackId = convertToIndexableExpression(args[0]);
 		const keyId = luau.tempId("k");
 		const valueId = luau.tempId("v");
 		state.prereq(
@@ -258,12 +251,11 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	},
 
 	map: (state, node, expression, args) => {
-		expression = state.pushToVarIfComplex(expression, "exp");
 		const newValueId = state.pushToVar(
 			luau.call(luau.globals.table.create, [luau.unary("#", expression)]),
 			"newValue",
 		);
-		const callbackId = state.pushToVarIfNonId(args[0], "callback");
+		const callbackId = convertToIndexableExpression(args[0]);
 		const keyId = luau.tempId("k");
 		const valueId = luau.tempId("v");
 		state.prereq(
@@ -287,10 +279,8 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	},
 
 	mapFiltered: (state, node, expression, args) => {
-		expression = state.pushToVarIfComplex(expression, "exp");
-
 		const newValueId = state.pushToVar(luau.array(), "newValue");
-		const callbackId = state.pushToVarIfNonId(args[0], "callback");
+		const callbackId = convertToIndexableExpression(args[0]);
 		const lengthId = state.pushToVar(luau.number(0), "length");
 		const keyId = luau.tempId("k");
 		const valueId = luau.tempId("v");
@@ -331,8 +321,6 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	},
 
 	filterUndefined: (state, node, expression) => {
-		expression = state.pushToVarIfComplex(expression, "exp");
-
 		const lengthId = state.pushToVar(luau.number(0), "length");
 		const indexId1 = luau.tempId("i");
 		state.prereq(
@@ -401,10 +389,8 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	},
 
 	filter: (state, node, expression, args) => {
-		expression = state.pushToVarIfComplex(expression, "exp");
-
 		const newValueId = state.pushToVar(luau.array(), "newValue");
-		const callbackId = state.pushToVarIfNonId(args[0], "callback");
+		const callbackId = convertToIndexableExpression(args[0]);
 		const lengthId = state.pushToVar(luau.number(0), "length");
 		const keyId = luau.tempId("k");
 		const valueId = luau.tempId("v");
@@ -444,8 +430,6 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	},
 
 	reduce: (state, node, expression, args) => {
-		expression = state.pushToVarIfComplex(expression, "exp");
-
 		let start: luau.Expression = luau.number(1);
 		const end = luau.unary("#", expression);
 		const step = 1;
@@ -481,7 +465,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		} else {
 			resultId = state.pushToVar(args[1], "result");
 		}
-		const callbackId = state.pushToVar(args[0], "callback");
+		const callbackId = convertToIndexableExpression(args[0]);
 
 		const iteratorId = luau.tempId("i");
 		state.prereq(
@@ -512,9 +496,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	},
 
 	find: (state, node, expression, args) => {
-		expression = state.pushToVarIfComplex(expression, "exp");
-
-		const callbackId = state.pushToVarIfNonId(args[0], "callback");
+		const callbackId = convertToIndexableExpression(args[0]);
 		const loopId = luau.tempId("i");
 		const valueId = luau.tempId("v");
 		const resultId = state.pushToVar(undefined, "result");
@@ -548,9 +530,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	},
 
 	findIndex: (state, node, expression, args) => {
-		expression = state.pushToVarIfComplex(expression, "exp");
-
-		const callbackId = state.pushToVarIfNonId(args[0], "callback");
+		const callbackId = convertToIndexableExpression(args[0]);
 		const loopId = luau.tempId("i");
 		const valueId = luau.tempId("v");
 		const resultId = state.pushToVar(luau.number(-1), "result");
@@ -591,8 +571,6 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			return luau.unary("#", expression);
 		}
 
-		expression = state.pushToVarIfComplex(expression, "exp");
-
 		for (let i = 0; i < args.length; i++) {
 			state.prereq(
 				luau.create(luau.SyntaxKind.CallStatement, {
@@ -605,8 +583,6 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	},
 
 	pop: (state, node, expression) => {
-		expression = state.pushToVarIfComplex(expression, "exp");
-
 		let lengthExp: luau.Expression = luau.unary("#", expression);
 
 		const returnValueIsUsed = !isUsedAsStatement(node);
@@ -639,8 +615,6 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	shift: (state, node, expression) => luau.call(luau.globals.table.remove, [expression, luau.number(1)]),
 
 	unshift: (state, node, expression, args) => {
-		expression = state.pushToVarIfComplex(expression, "exp");
-
 		for (let i = args.length - 1; i >= 0; i--) {
 			const arg = args[i];
 			state.prereq(
@@ -661,8 +635,6 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 	unorderedRemove: (state, node, expression, args) => {
 		const indexExp = state.pushToVarIfComplex(offset(args[0], 1), "index");
-
-		expression = state.pushToVarIfComplex(expression, "exp");
 
 		const lengthId = state.pushToVar(luau.unary("#", expression), "length");
 
@@ -708,9 +680,6 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 	sort: (state, node, expression, args) => {
 		const valueIsUsed = !isUsedAsStatement(node);
-		if (valueIsUsed) {
-			expression = state.pushToVarIfComplex(expression, "exp");
-		}
 
 		args.unshift(expression);
 
@@ -765,15 +734,14 @@ const READONLY_SET_MAP_SHARED_METHODS: MacroList<PropertyCallMacro> = {
 
 const SET_MAP_SHARED_METHODS: MacroList<PropertyCallMacro> = {
 	delete: (state, node, expression, args) => {
-		const arg = state.pushToVarIfComplex(args[0], "value");
+		const arg = args[0];
 		const valueIsUsed = !isUsedAsStatement(node);
 		let valueExistedId: luau.TemporaryIdentifier;
 		if (valueIsUsed) {
-			expression = state.pushToVarIfNonId(expression, "exp");
 			valueExistedId = state.pushToVar(
 				luau.create(luau.SyntaxKind.BinaryExpression, {
 					left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-						expression,
+						expression: convertToIndexableExpression(expression),
 						index: arg,
 					}),
 					operator: "~=",
@@ -811,9 +779,7 @@ const READONLY_SET_METHODS: MacroList<PropertyCallMacro> = {
 	...READONLY_SET_MAP_SHARED_METHODS,
 
 	forEach: (state, node, expression, args) => {
-		expression = state.pushToVarIfComplex(expression, "exp");
-
-		const callbackId = state.pushToVarIfNonId(args[0], "callback");
+		const callbackId = convertToIndexableExpression(args[0]);
 		const valueId = luau.tempId("v");
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
@@ -836,9 +802,6 @@ const SET_METHODS: MacroList<PropertyCallMacro> = {
 
 	add: (state, node, expression, args) => {
 		const valueIsUsed = !isUsedAsStatement(node);
-		if (valueIsUsed) {
-			expression = state.pushToVarIfComplex(expression, "exp");
-		}
 		state.prereq(
 			luau.create(luau.SyntaxKind.Assignment, {
 				left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
@@ -857,9 +820,7 @@ const READONLY_MAP_METHODS: MacroList<PropertyCallMacro> = {
 	...READONLY_SET_MAP_SHARED_METHODS,
 
 	forEach: (state, node, expression, args) => {
-		expression = state.pushToVarIfComplex(expression, "exp");
-
-		const callbackId = state.pushToVarIfNonId(args[0], "callback");
+		const callbackId = convertToIndexableExpression(args[0]);
 		const keyId = luau.tempId("k");
 		const valueId = luau.tempId("v");
 		state.prereq(
@@ -890,9 +851,6 @@ const MAP_METHODS: MacroList<PropertyCallMacro> = {
 	set: (state, node, expression, args) => {
 		const [keyExp, valueExp] = args;
 		const valueIsUsed = !isUsedAsStatement(node);
-		if (valueIsUsed) {
-			expression = state.pushToVarIfComplex(expression, "exp");
-		}
 		state.prereq(
 			luau.create(luau.SyntaxKind.Assignment, {
 				left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
@@ -948,46 +906,13 @@ function footer(text: string) {
 	return luau.comment(` ▲ ${text} ▲`);
 }
 
-function wasExpressionPushed(statements: luau.List<luau.Statement>, expression: luau.Expression) {
-	if (luau.list.isNonEmpty(statements)) {
-		const firstStatement = statements.head.value;
-		if (luau.isVariableDeclaration(firstStatement)) {
-			if (!luau.list.isList(firstStatement.left) && luau.isTemporaryIdentifier(firstStatement.left)) {
-				if (firstStatement.right === expression) {
-					return true;
-				}
-			}
-		}
-	}
-	return false;
-}
-
 function wrapComments(methodName: string, callback: PropertyCallMacro): PropertyCallMacro {
 	return (state, callNode, callExp, args) => {
 		const [expression, prereqs] = state.capture(() => callback(state, callNode, callExp, args));
-
-		let size = luau.list.size(prereqs);
-		if (size > 0) {
-			// detect the case of `expression = state.pushToVarIfComplex(expression, "exp");` and put header after
-			const wasPushed = wasExpressionPushed(prereqs, callExp);
-			let pushStatement: luau.Statement | undefined;
-			if (wasPushed) {
-				pushStatement = luau.list.shift(prereqs);
-				size--;
-			}
-			if (size > 1) {
-				luau.list.unshift(prereqs, header(methodName));
-				if (wasPushed && pushStatement) {
-					luau.list.unshift(prereqs, pushStatement);
-				}
-				luau.list.push(prereqs, footer(methodName));
-			} else {
-				if (wasPushed && pushStatement) {
-					luau.list.unshift(prereqs, pushStatement);
-				}
-			}
+		if (luau.list.size(prereqs) > 1) {
+			luau.list.unshift(prereqs, header(methodName));
+			luau.list.push(prereqs, footer(methodName));
 		}
-
 		state.prereqList(prereqs);
 		return expression;
 	};

@@ -3,6 +3,7 @@ import { TransformState } from "TSTransformer";
 import { transformOptionalChain } from "TSTransformer/nodes/transformOptionalChain";
 import { addIndexDiagnostics } from "TSTransformer/util/addIndexDiagnostics";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
+import { tryMarkBuiltinMember } from "TSTransformer/util/evaluation/builtins";
 import { getConstantValueLiteral } from "TSTransformer/util/getConstantValueLiteral";
 import { skipUpwards } from "TSTransformer/util/traversal";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
@@ -30,7 +31,9 @@ export function transformPropertyAccessExpressionInner(
 		return luau.none();
 	}
 
-	return luau.property(convertToIndexableExpression(expression), name);
+	const property = luau.property(convertToIndexableExpression(expression), name);
+	tryMarkBuiltinMember(state, node, property);
+	return property;
 }
 
 export function transformPropertyAccessExpression(state: TransformState, node: ts.PropertyAccessExpression) {
