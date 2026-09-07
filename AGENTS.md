@@ -143,6 +143,11 @@ For an engine-specific issue, verify the actual API and use an appropriate Roblo
 - Follow `.prettierrc`, `.editorconfig`, and `eslint.config.ts`: tabs, double quotes, semicolons, trailing commas,
   and `Array<T>` / `ReadonlyArray<T>`. Source imports use project aliases such as `TSTransformer/...` and `Shared/...`;
   relative imports are allowed in `tests/compiler/`. Let the import sorter arrange imports.
+- Always use braces for `if`, `else`, and loop bodies, including single-line early returns and `continue` or `break`
+  statements. Keep ordinary `else if` chains without an extra enclosing block.
+- Use blank lines to separate logical segments within functions, such as setup, validation, traversal, and result
+  handling. Keep closely related statements together and comments adjacent to the code they explain. Apply the
+  same grouping to test setup, actions, and assertions; avoid both dense walls of code and a blank line after every statement.
 - New or edited comments start lowercase unless the first identifier is capitalized, and have no ending
   punctuation. Explain **why**, a non-obvious invariant, or a concrete edge case; avoid narrating obvious code.
 - Preserve useful existing explanations such as the zero-return `tonumber(foo())` example. Describe current
