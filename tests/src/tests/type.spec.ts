@@ -1,4 +1,21 @@
 export = () => {
+	it("should infer method callbacks that do not use this", () => {
+		function callIt<T>(callbacks: { consume(value: T): T; produce(value: number): T }): T {
+			return callbacks.consume(callbacks.produce(42));
+		}
+
+		const result = callIt({
+			consume(value) {
+				return value + 1;
+			},
+			produce(value: number) {
+				return value;
+			},
+		});
+
+		expect(result).to.equal(43);
+	});
+
 	it("should preserve array behavior through inherited interfaces and generic constraints", () => {
 		interface Values extends ReadonlyArray<number> {}
 		interface Left extends Values {}

@@ -53,12 +53,11 @@ export class VirtualProject {
 
 		this.compilerOptions = {
 			allowSyntheticDefaultImports: true,
-			downlevelIteration: true,
 			noLib: true,
 			strict: true,
 			target: ts.ScriptTarget.ESNext,
 			module: ts.ModuleKind.CommonJS,
-			moduleResolution: ts.ModuleResolutionKind.Node10,
+			moduleResolution: ts.ModuleResolutionKind.Bundler,
 			moduleDetection: ts.ModuleDetectionKind.Force,
 			typeRoots: [RBXTS_SCOPE_PATH],
 			resolveJsonModule: true,

@@ -1,0 +1,58 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`compiles map spread and iteration without downlevelIteration 1`] = `
+"local values = {
+	a = 1,
+}
+local _array = {}
+local _length = #_array
+for _k, _v in values do
+	_length += 1
+	_array[_length] = { _k, _v }
+end
+local copy = _array
+for _k, _v in values do
+	local value = { _k, _v }
+	print(value)
+end
+print(copy)
+return nil
+"
+`;
+
+exports[`compiles set spread and iteration without downlevelIteration 1`] = `
+"local values = {
+	[1] = true,
+	[2] = true,
+}
+local _array = {}
+local _length = #_array
+for _v in values do
+	_length += 1
+	_array[_length] = _v
+end
+local copy = _array
+for value in values do
+	print(value)
+end
+print(copy)
+return nil
+"
+`;
+
+exports[`compiles string spread and iteration without downlevelIteration 1`] = `
+"local values = "abc"
+local _array = {}
+local _length = #_array
+for _char in string.gmatch(values, utf8.charpattern) do
+	_length += 1
+	_array[_length] = _char
+end
+local copy = _array
+for value in string.gmatch(values, utf8.charpattern) do
+	print(value)
+end
+print(copy)
+return nil
+"
+`;

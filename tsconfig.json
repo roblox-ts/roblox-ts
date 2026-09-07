@@ -2,7 +2,6 @@
 	"files": [],
 	"compilerOptions": {
 		"composite": true,
-		"baseUrl": "src",
 		"outDir": "out"
 	},
 	"references": [
