@@ -206,7 +206,9 @@ export function getImportParts(state: TransformState, sourceFile: ts.SourceFile,
 			if (ts.isDeclarationFileName(virtualPath)) {
 				moduleOutPath =
 					virtualPath.slice(0, -".d.ts".length) + (state.data.projectOptions.luau ? ".luau" : ".lua");
-			} else if (ts.isJsonSourceFile(moduleFile)) {
+			} else {
+				// TypeScript rejects non-declaration source files outside rootDir before this transform
+				assert(ts.isJsonSourceFile(moduleFile));
 				moduleOutPath = virtualPath;
 			}
 		}

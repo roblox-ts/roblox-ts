@@ -7,6 +7,7 @@ import { copyInclude } from "Project/functions/copyInclude";
 import { createPathTranslator } from "Project/functions/createPathTranslator";
 import { createProjectProgram } from "Project/functions/createProjectProgram";
 import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
+import { getOutputRoots } from "Project/functions/getProjectOutputs";
 import { PACKAGE_ROOT, TS_EXT, TSX_EXT } from "Shared/constants";
 import { DiagnosticFactory, errors, getDiagnosticId } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
@@ -22,6 +23,16 @@ describe("should compile tests project", () => {
 		optimizedLoops: true,
 	});
 
+	// every coverage run must compile referenced sources, even when their previous outputs are still current
+	for (const project of build.graph.projects.values()) {
+		for (const root of getOutputRoots(project)) {
+			fs.removeSync(root);
+		}
+		if (project.pathTranslator?.buildInfoOutputPath) {
+			fs.removeSync(project.pathTranslator.buildInfoOutputPath);
+		}
+	}
+
 	const references = build.build(undefined, true);
 	if (references.emitSkipped) {
 		throw new Error(formatDiagnostics(references.diagnostics));
@@ -32,9 +43,6 @@ describe("should compile tests project", () => {
 
 	const program = createProjectProgram(data);
 	const pathTranslator = createPathTranslator(program, data);
-
-	// clean outDir between test runs
-	fs.removeSync(program.getCompilerOptions().outDir!);
 
 	it("should copy include files", () => copyInclude(data));
 

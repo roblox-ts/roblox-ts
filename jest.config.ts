@@ -12,7 +12,6 @@ const config: Config = {
 	collectCoverageFrom: [
 		"src/**/*.ts",
 		"!src/CLI/**",
-		"!src/Project/**",
 		"!src/Shared/classes/LogService.ts",
 		"!src/TSTransformer/util/getFlags.ts",
 		"!src/TSTransformer/util/getKindName.ts",

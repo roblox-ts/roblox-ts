@@ -4,6 +4,7 @@ import { ProjectGraph, ProjectNode, projectPathKey } from "Project/classes/Proje
 import { checkFileName } from "Project/functions/checkFileName";
 import { INCLUDE_PATH } from "Shared/constants";
 import { ProjectError } from "Shared/errors/ProjectError";
+import { assert } from "Shared/util/assert";
 import { getRootDirs } from "Shared/util/getRootDirs";
 import { isPathDescendantOf } from "Shared/util/isPathDescendantOf";
 import ts from "typescript";
@@ -82,9 +83,7 @@ export function getProjectOutputs(project: ProjectNode, graph: ProjectGraph): Pr
 	const assets = new Map<string, string>();
 
 	const translator = project.pathTranslator;
-	if (!translator) {
-		return { roots, files, assets };
-	}
+	assert(translator);
 
 	const addOutput = (output: string, input: string) => {
 		const key = projectPathKey(output);

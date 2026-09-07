@@ -14,6 +14,7 @@ import {
 import { LogService } from "Shared/classes/LogService";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { ProjectOptions } from "Shared/types";
+import { assert } from "Shared/util/assert";
 import { getRootDirs } from "Shared/util/getRootDirs";
 import { hasErrors } from "Shared/util/hasErrors";
 import { isPathDescendantOf } from "Shared/util/isPathDescendantOf";
@@ -61,12 +62,13 @@ export class ProjectBuild {
 
 		const states = new Map<string, ProjectBuildState>();
 		for (const [key, project] of graph.projects) {
+			assert(project.data.projectReferencePaths);
 			const signature = JSON.stringify({
 				options: { ...project.config.options, configFile: undefined },
 				files: project.config.fileNames,
 				references: project.dependencies,
 				projectOptions: project.data.projectOptions,
-				paths: Array.from(project.data.projectReferencePaths ?? []),
+				paths: Array.from(project.data.projectReferencePaths),
 			});
 
 			const previous = this.states.get(key);
@@ -169,7 +171,13 @@ export class ProjectBuild {
 
 		// the graph is in dependency order, so dirty prerequisites propagate before their consumers are visited
 		for (const state of this.states.values()) {
-			if (state.project.dependencies.some(key => this.states.get(key)?.dirty)) {
+			if (
+				state.project.dependencies.some(key => {
+					const dependency = this.states.get(key);
+					assert(dependency);
+					return dependency.dirty;
+				})
+			) {
 				state.dirty = true;
 			}
 		}
@@ -184,7 +192,8 @@ export class ProjectBuild {
 
 			state.blocked = state.project.dependencies.some(key => {
 				const dependency = this.states.get(key);
-				return dependency?.blocked || (dependency && hasErrors(dependency.diagnostics));
+				assert(dependency);
+				return dependency.blocked || hasErrors(dependency.diagnostics);
 			});
 			if (state.blocked || !state.dirty) {
 				continue;

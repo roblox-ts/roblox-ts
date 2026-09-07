@@ -71,6 +71,7 @@ export default defineConfig(
 	},
 	{
 		ignores: [
+			".local/",
 			"node_modules/",
 			"tests/src/",
 			"tests/projects/",

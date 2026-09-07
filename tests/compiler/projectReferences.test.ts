@@ -1,5 +1,6 @@
 import fs from "fs-extra";
 import path from "path";
+import { ProjectGraph } from "Project/classes/ProjectGraph";
 import { ProjectType } from "Shared/constants";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { formatDiagnostics } from "Shared/util/formatDiagnostics";
@@ -93,7 +94,9 @@ it("diagnoses circular references with the TypeScript build diagnostic", () => {
 	fixture.project("shared", ["game"]);
 	fixture.project("game", ["shared"], { composite: true });
 
-	expect(diagnosticCodes(() => fixture.createBuild())).toContain(6202);
+	expect(diagnosticCodes(() => new ProjectGraph(fixture.file("game/tsconfig.json"), fixture.options()))).toContain(
+		6202,
+	);
 });
 
 it("honors per-project extensions and an explicit CLI override", () => {
@@ -287,8 +290,10 @@ it("rebinds plugin output against current referenced declarations", () => {
 		'import { value } from "../../shared/src"; export const result = value; export const generated = PLACEHOLDER;',
 	);
 
-	const build = fixture.createBuild();
+	const build = fixture.createBuild({ writeTransformedFiles: true });
 	expectSuccess(build.build());
+
+	expect(fixture.read("out/game/index.transformed.ts")).toContain("generated = 1");
 
 	fixture.write("shared/src/index.ts", 'export const value = "changed";');
 
@@ -297,10 +302,10 @@ it("rebinds plugin output against current referenced declarations", () => {
 	expect(fixture.read("out/game/index.d.ts")).toContain('result = "changed"');
 });
 
-it("maps external JSON and handwritten declarations through Rojo", () => {
+it.each([false, true])("maps external JSON and handwritten declarations through Rojo (luau=%s)", luau => {
 	fixture.project("game", [], { resolveJsonModule: true });
 	fixture.json("external/config.json", { value: 4 });
-	fixture.write("external/helper.luau", "return { value = 5 }");
+	fixture.write(`external/helper.${luau ? "luau" : "lua"}`, "return { value = 5 }");
 	fixture.write("external/helper.d.ts", "export declare const value: number;");
 	fixture.rojo({ external: { $path: "external" } });
 	fixture.write(
@@ -308,10 +313,10 @@ it("maps external JSON and handwritten declarations through Rojo", () => {
 		'import config from "../../external/config.json"; import { value } from "../../external/helper"; export const result = config.value + value;',
 	);
 
-	expectSuccess(fixture.createBuild().build());
+	expectSuccess(fixture.createBuild({ luau }).build());
 
-	expect(fixture.read("out/game/init.luau")).toContain('"external", "config"');
-	expect(fixture.read("out/game/init.luau")).toContain('"external", "helper"');
+	expect(fixture.read(`out/game/init.${luau ? "luau" : "lua"}`)).toContain('"external", "config"');
+	expect(fixture.read(`out/game/init.${luau ? "luau" : "lua"}`)).toContain('"external", "helper"');
 });
 
 it("keeps server import restrictions across project references", () => {

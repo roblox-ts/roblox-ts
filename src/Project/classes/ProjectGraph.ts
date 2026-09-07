@@ -47,7 +47,9 @@ export class ProjectGraph {
 			const config = parseProjectConfig(configPath);
 			configs.set(projectPathKey(configPath), config);
 
-			for (const extendedPath of config.options.configFile?.extendedSourceFiles ?? []) {
+			const configFile = config.options.configFile;
+			assert(configFile);
+			for (const extendedPath of configFile.extendedSourceFiles ?? []) {
 				this.configPaths.add(path.normalize(extendedPath));
 			}
 

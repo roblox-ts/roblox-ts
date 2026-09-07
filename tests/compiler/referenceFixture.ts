@@ -3,7 +3,8 @@ import { once } from "events";
 import fs from "fs-extra";
 import os from "os";
 import path from "path";
-import { ProjectBuild } from "Project/classes/ProjectBuild";
+import { ProjectBuild } from "Project";
+import { setupProjectWatchProgram } from "Project/functions/setupProjectWatchProgram";
 import { PACKAGE_ROOT } from "Shared/constants";
 import { ProjectOptions } from "Shared/types";
 import { formatDiagnostics } from "Shared/util/formatDiagnostics";
@@ -111,50 +112,77 @@ export function expectSuccess(result: ts.EmitResult) {
 	}
 }
 
-export async function startWatch(fixture: ReferenceFixture, usePolling = false) {
-	const child = spawn(
-		process.execPath,
-		[
-			path.join(PACKAGE_ROOT, "out/CLI/cli.js"),
-			"-p",
-			fixture.file("game"),
-			"--rojo",
-			fixture.file("default.project.json"),
-			"--includePath",
-			fixture.file("include"),
-			"-w",
-			...(usePolling ? ["--usePolling"] : []),
-		],
-		{ cwd: fixture.directory, stdio: ["ignore", "pipe", "pipe"] },
-	);
-
+export async function startWatch(fixture: ReferenceFixture, usePolling = false, mode: "project" | "cli" = "project") {
 	let log = "";
 	let count = 0;
 	let lastOutput = 0;
 
-	const read = (chunk: Buffer) => {
+	const read = (chunk: Buffer | string) => {
 		log += chunk.toString();
 		count = (log.match(/Watching for file changes\./g) ?? []).length;
 		lastOutput = Date.now();
 	};
 
-	child.stdout.on("data", read);
-	child.stderr.on("data", read);
+	let child: ReturnType<typeof spawn> | undefined;
+	let close: () => Promise<void>;
+	if (mode === "project") {
+		// running the real watcher in Jest includes config reloads and filesystem events in coverage
+		const build = fixture.createBuild();
+		const write = jest.spyOn(ts.sys, "write").mockImplementation(read);
+		let watcher: ReturnType<typeof setupProjectWatchProgram>;
+		try {
+			watcher = setupProjectWatchProgram(build, usePolling);
+		} catch (error) {
+			write.mockRestore();
+			throw error;
+		}
+
+		close = async () => {
+			try {
+				await watcher.close();
+			} finally {
+				write.mockRestore();
+			}
+		};
+	} else {
+		child = spawn(
+			process.execPath,
+			[
+				path.join(PACKAGE_ROOT, "out/CLI/cli.js"),
+				"-p",
+				fixture.file("game"),
+				"--rojo",
+				fixture.file("default.project.json"),
+				"--includePath",
+				fixture.file("include"),
+				"-w",
+				...(usePolling ? ["--usePolling"] : []),
+			],
+			{ cwd: fixture.directory, stdio: ["ignore", "pipe", "pipe"] },
+		);
+
+		if (!child.stdout || !child.stderr) {
+			throw new Error("Watch process must expose stdout and stderr");
+		}
+
+		child.stdout.on("data", read);
+		child.stderr.on("data", read);
+		const watchProcess = child;
+		close = async () => {
+			const closed = once(watchProcess, "close");
+			watchProcess.kill();
+			await closed;
+		};
+	}
+
+	const exited = () => child !== undefined && child.exitCode !== null;
 
 	const wait = (previous: number) =>
 		new Promise<void>((resolve, reject) => {
-			const timeout = setTimeout(
-				() =>
-					finish(
-						new Error(
-							`Watch did not finish (pid=${child.pid}, exec=${process.execPath}, script=${PACKAGE_ROOT}):\n${log}`,
-						),
-					),
-				15000,
-			);
+			const timeout = setTimeout(() => finish(new Error(`Watch did not finish:\n${log}`)), 15000);
 
 			const interval = setInterval(() => {
-				if (child.exitCode !== null) {
+				if (exited()) {
 					finish(new Error(`Watch exited:\n${log}`));
 				} else if (
 					count > previous &&
@@ -180,7 +208,7 @@ export async function startWatch(fixture: ReferenceFixture, usePolling = false) 
 	try {
 		await wait(0);
 	} catch (error) {
-		child.kill();
+		await close();
 		throw error;
 	}
 
@@ -196,7 +224,7 @@ export async function startWatch(fixture: ReferenceFixture, usePolling = false) 
 			action();
 			await new Promise(resolve => setTimeout(resolve, 1250));
 
-			if (child.exitCode !== null || log.length !== previous) {
+			if (exited() || log.length !== previous) {
 				throw new Error(`Expected watch to remain idle:\n${log}`);
 			}
 		},
@@ -205,10 +233,6 @@ export async function startWatch(fixture: ReferenceFixture, usePolling = false) 
 			return log;
 		},
 
-		async close() {
-			const closed = once(child, "close");
-			child.kill();
-			await closed;
-		},
+		close,
 	};
 }

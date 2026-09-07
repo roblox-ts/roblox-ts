@@ -1,8 +1,16 @@
 import { add } from "../../projects/common/src/native";
+import config from "../../projects/external/config.json";
+import { add as addExternal } from "../../projects/external/helper";
 import { accumulate, common, Counter, NamedCounter } from "../../projects/shared/src";
 import type { Named } from "../../projects/shared/src";
 
 export = () => {
+	it("loads JSON and handwritten Luau outside the source roots through Rojo", () => {
+		expect(config.value).to.equal(4);
+		expect(addExternal(config.value)).to.equal(9);
+		expect(addFromReference(config.value)).to.equal(9);
+	});
+
 	it("runs a transitive project reference and preserves class identity", () => {
 		const counter = new NamedCounter();
 		const named: Named = counter;
@@ -25,3 +33,4 @@ export = () => {
 		expect(common.total).to.equal(before + 5);
 	});
 };
+import { add as addFromReference } from "../../projects/common/src/external";

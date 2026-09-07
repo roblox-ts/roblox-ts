@@ -1,7 +1,11 @@
 import { TransformerWatcher } from "Shared/types";
+import { assert } from "Shared/util/assert";
 import ts from "typescript";
 
 function createServiceHost(program: ts.Program) {
+	assert(ts.sys.createHash);
+	const createHash = ts.sys.createHash;
+
 	const rootFileNames = program.getRootFileNames().map(x => x);
 	const files = new Map<string, number>();
 
@@ -37,7 +41,7 @@ function createServiceHost(program: ts.Program) {
 		const version = files.get(fileName)?.toString();
 
 		// referenced declarations can change without passing through updateFile
-		return version ?? (ts.sys.createHash ?? ts.generateDjb2Hash)(ts.sys.readFile(fileName) ?? "");
+		return version ?? createHash(ts.sys.readFile(fileName) ?? "");
 	}
 
 	function getScriptSnapshot(fileName: string) {

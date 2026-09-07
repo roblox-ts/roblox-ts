@@ -131,7 +131,7 @@ it("preserves a failed dependency and matches a clean build after repair", () =>
 
 it.each([false, true])("matches a clean build after CLI watch edits and recovery (polling=%s)", async polling => {
 	createRepresentativeProject(fixture);
-	const watch = await startWatch(fixture, polling);
+	const watch = await startWatch(fixture, polling, "cli");
 	try {
 		expect(watch.log).toContain("Found 0 errors");
 		expectCleanEquivalent();
