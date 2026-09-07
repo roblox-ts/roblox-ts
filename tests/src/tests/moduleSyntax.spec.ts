@@ -1,3 +1,4 @@
+import * as directReExport from "./moduleSyntax/quotedDirectReExport";
 import {
 	"" as empty,
 	'a"b' as quote,
@@ -61,5 +62,15 @@ export = () => {
 		expect(mutable["a\\b"]).to.equal(21);
 		expect(mutable["a\\b'\"c"]).to.equal(31);
 		expect(mutable[""]).to.equal(41);
+	});
+
+	it("should preserve re-export names without renaming", () => {
+		const values: { [key: string]: number } = directReExport;
+		expect(values[""]).to.equal(5);
+		expect(values[string.char(97, 34, 98)]).to.equal(1);
+		expect(values[string.char(97, 92, 98)]).to.equal(2);
+		expect(values[string.char(97, 92, 98, 39, 34, 99)]).to.equal(4);
+		expect(values["end"]).to.equal(6);
+		expect(values["line" + string.char(10) + "break"]).to.equal(3);
 	});
 };
