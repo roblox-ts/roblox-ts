@@ -73,6 +73,7 @@ export default defineConfig(
 		ignores: [
 			"node_modules/",
 			"tests/src/",
+			"tests/projects/",
 			"tests/out/",
 			"tests/include/",
 			"tests/node_modules/",

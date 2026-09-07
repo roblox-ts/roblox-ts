@@ -8,11 +8,20 @@ on:
 
 jobs:
   unit-tests:
-    name: Unit Tests
-    runs-on: ubuntu-latest
+    name: Unit Tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
 
       - name: Install Rokit
         uses: roblox-ts/setup-rokit@v0.1.2
@@ -30,10 +39,11 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: test-output
+          name: test-output-${{ matrix.os }}
           path: tests/out
 
       - name: Upload coverage to Codecov
+        if: matrix.os == 'ubuntu-latest'
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}

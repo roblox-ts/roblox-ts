@@ -53,6 +53,7 @@ export function compileFiles(
 	sourceFiles: Array<ts.SourceFile>,
 ): ts.EmitResult {
 	const compilerOptions = program.getCompilerOptions();
+	const emitDeclarations = ts.getEmitDeclarations(compilerOptions);
 
 	const multiTransformState = new MultiTransformState();
 
@@ -184,12 +185,27 @@ export function compileFiles(
 
 	if (DiagnosticService.hasErrors()) return { emitSkipped: true, diagnostics: DiagnosticService.flush() };
 
+	// declaration errors must not leave Luau and declaration outputs from different builds
+	const declarationWrites = new Map<string, string>();
+	if (emitDeclarations) {
+		const afterDeclarations = [transformTypeReferenceDirectives, transformPathsTransformer(program, {})];
+		for (const { sourceFile } of fileWriteQueue) {
+			const result = proxyProgram.emit(
+				sourceFile,
+				(fileName, text) => declarationWrites.set(fileName, text),
+				undefined,
+				true,
+				{ afterDeclarations },
+			);
+			DiagnosticService.addDiagnostics(result.diagnostics);
+		}
+	}
+
+	if (DiagnosticService.hasErrors()) return { emitSkipped: true, diagnostics: DiagnosticService.flush() };
+
 	const emittedFiles = new Array<string>();
 	if (fileWriteQueue.length > 0) {
 		benchmarkIfVerbose("writing compiled files", () => {
-			const afterDeclarations = compilerOptions.declaration
-				? [transformTypeReferenceDirectives, transformPathsTransformer(program, {})]
-				: undefined;
 			for (const { sourceFile, source } of fileWriteQueue) {
 				const outPath = pathTranslator.getOutputPath(sourceFile.fileName);
 				if (
@@ -200,9 +216,10 @@ export function compileFiles(
 					fs.outputFileSync(outPath, source);
 					emittedFiles.push(outPath);
 				}
-				if (compilerOptions.declaration) {
-					proxyProgram.emit(sourceFile, ts.sys.writeFile, undefined, true, { afterDeclarations });
-				}
+			}
+
+			for (const [fileName, text] of declarationWrites) {
+				fs.outputFileSync(fileName, text);
 			}
 		});
 	}

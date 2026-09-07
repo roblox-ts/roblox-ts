@@ -30,11 +30,14 @@ function createServiceHost(program: ts.Program) {
 		getScriptVersion,
 		getScriptSnapshot,
 		readFile,
+		getProjectReferences: () => program.getProjectReferences(),
 	};
 
 	function getScriptVersion(fileName: string) {
 		const version = files.get(fileName)?.toString();
-		return version ?? "0";
+
+		// referenced declarations can change without passing through updateFile
+		return version ?? (ts.sys.createHash ?? ts.generateDjb2Hash)(ts.sys.readFile(fileName) ?? "");
 	}
 
 	function getScriptSnapshot(fileName: string) {

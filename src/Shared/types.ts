@@ -24,6 +24,7 @@ export interface ProjectData {
 	projectPath: string;
 	rojoConfigPath: string | undefined;
 	tsConfigPath: string;
+	projectReferencePaths?: ReadonlyMap<string, string>;
 	transformerWatcher?: TransformerWatcher;
 }
 

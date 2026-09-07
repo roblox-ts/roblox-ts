@@ -13,6 +13,15 @@ function createCompilerHost(data: ProjectData, compilerOptions: ts.CompilerOptio
 	contentsToHash += `type=${String(data.projectOptions.type)},`;
 	contentsToHash += `isPackage=${String(data.isPackage)},`;
 	contentsToHash += `plugins=${JSON.stringify(compilerOptions.plugins ?? [])},`;
+	contentsToHash += `options=${JSON.stringify({
+		...data.projectOptions,
+		watch: undefined,
+		usePolling: undefined,
+		verbose: undefined,
+		noInclude: undefined,
+		writeOnlyChanged: undefined,
+	})},`;
+	contentsToHash += `references=${JSON.stringify(Array.from(data.projectReferencePaths ?? []))},`;
 
 	if (data.rojoConfigPath && fs.existsSync(data.rojoConfigPath)) {
 		contentsToHash += fs.readFileSync(data.rojoConfigPath).toString();
@@ -28,11 +37,22 @@ function createCompilerHost(data: ProjectData, compilerOptions: ts.CompilerOptio
 export function createProgramFactory(
 	data: ProjectData,
 	options: ts.CompilerOptions,
+	projectReferences?: ReadonlyArray<ts.ProjectReference>,
 ): ts.CreateProgram<ts.EmitAndSemanticDiagnosticsBuilderProgram> {
 	return (
 		rootNames: ReadonlyArray<string> | undefined,
 		compilerOptions: ts.CompilerOptions | undefined = options,
 		host = createCompilerHost(data, options),
 		oldProgram = ts.readBuilderProgram(options, createReadBuildProgramHost()),
-	) => ts.createEmitAndSemanticDiagnosticsBuilderProgram(rootNames, compilerOptions, host, oldProgram);
+		configFileParsingDiagnostics?: ReadonlyArray<ts.Diagnostic>,
+		refs = projectReferences,
+	) =>
+		ts.createEmitAndSemanticDiagnosticsBuilderProgram(
+			rootNames,
+			compilerOptions,
+			host,
+			oldProgram,
+			configFileParsingDiagnostics,
+			refs,
+		);
 }

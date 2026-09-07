@@ -1,5 +1,6 @@
 {
 	"include": ["src"],
+	"references": [{ "path": "projects/shared" }],
 	"compilerOptions": {
 		// required
 		"allowSyntheticDefaultImports": true,
