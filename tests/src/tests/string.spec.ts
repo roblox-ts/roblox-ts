@@ -139,4 +139,48 @@ export = () => {
 		const str2 = `A string with a " and ' ending in a ]] ]=`;
 		expect(str2.size()).to.equal(41);
 	});
+
+	it("should preserve escapes in strings containing both quote characters", () => {
+		expect("a\\b'\"c").to.equal(string.char(97, 92, 98, 39, 34, 99));
+		expect("a\u005cb'\"c").to.equal(string.char(97, 92, 98, 39, 34, 99));
+		expect("a'\"123").to.equal(string.char(97, 39, 34, 49, 50, 51));
+		// prettier-ignore
+		expect("a\
+b'\"c").to.equal(string.char(97, 98, 39, 34, 99));
+		// prettier-ignore
+		expect('a\\b\'"c').to.equal(string.char(97, 92, 98, 39, 34, 99));
+		expect("a\nb'\"c").to.equal(string.char(97, 10, 98, 39, 34, 99));
+		expect("a\r\nb'\"c").to.equal(string.char(97, 13, 10, 98, 39, 34, 99));
+		expect("a\0b'\"c").to.equal(string.char(97, 0, 98, 39, 34, 99));
+		expect("a\x01b'\"c").to.equal(string.char(97, 1, 98, 39, 34, 99));
+		expect("a\\\"'b").to.equal(string.char(97, 92, 34, 39, 98));
+	});
+
+	it("should preserve escaped strings in table keys and set members", () => {
+		const key = string.char(97, 92, 98, 39, 34, 99);
+		const object: { [key: string]: number } = { "a\\b'\"c": 1 };
+		expect(object[key]).to.equal(1);
+		expect(object["a\\b'\"c"]).to.equal(1);
+		expect(new Set(["a\\b'\"c"]).has(key)).to.equal(true);
+	});
+
+	it("should preserve decoded strings from tagged templates and enum constants", () => {
+		function tag(strings: TemplateStringsArray) {
+			return strings[0];
+		}
+		const enum Strings {
+			Mixed = "a\\b'\"c",
+		}
+		const expected = string.char(97, 92, 98, 39, 34, 99);
+		expect(tag`a\\b'"c`).to.equal(expected);
+		expect(Strings.Mixed).to.equal(expected);
+	});
+
+	it("should translate TypeScript-only escapes without changing their values", () => {
+		expect("\uD83D\uDE00").to.equal("😀");
+		expect("\\uD83D\\uDE00").to.equal(string.char(92) + "uD83D" + string.char(92) + "uDE00");
+		expect("\u{00000041}").to.equal("A");
+		// prettier-ignore
+		expect("\a\z\/\$\`\{\}").to.equal("az/$`{}");
+	});
 };
