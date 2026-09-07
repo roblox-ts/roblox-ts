@@ -1,7 +1,7 @@
+import luau from "@roblox-ts/luau-ast";
 import type { BindingUsage } from "TSTransformer/util/evaluation/bindings";
 import type { EvaluationEffects } from "TSTransformer/util/evaluation/effects";
 import type { BindingKey } from "TSTransformer/util/evaluation/facts";
-import luau from "@roblox-ts/luau-ast";
 import ts from "typescript";
 
 /**
