@@ -3,6 +3,7 @@ import { Lazy } from "Shared/classes/Lazy";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformVariable } from "TSTransformer/nodes/statements/transformVariableStatement";
+import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
 import { cleanModuleName } from "TSTransformer/util/cleanModuleName";
 import { createImportExpression } from "TSTransformer/util/createImportExpression";
 import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfNode";
@@ -111,7 +112,10 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 								transformVariable(
 									state,
 									element.name,
-									luau.property(importExp.get(), (element.propertyName ?? element.name).text),
+									luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+										expression: importExp.get(),
+										index: transformPropertyName(state, element.propertyName ?? element.name),
+									}),
 								),
 							),
 						);

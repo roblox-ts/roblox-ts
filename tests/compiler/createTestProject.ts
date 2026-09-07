@@ -2,10 +2,11 @@ import fs from "fs-extra";
 import path from "path";
 import { VirtualProject } from "Project/classes/VirtualProject";
 import { PACKAGE_ROOT } from "Shared/constants";
+import { ProjectOptions } from "Shared/types";
 
 // creates an isolated compiler project with the test suite's Roblox type declarations
-export function createTestProject() {
-	const project = new VirtualProject();
+export function createTestProject(projectOptions?: Partial<ProjectOptions>) {
+	const project = new VirtualProject(projectOptions);
 	const root = path.join(PACKAGE_ROOT, "tests/node_modules/@rbxts");
 	function load(directory: string) {
 		for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {

@@ -1,6 +1,7 @@
 import type { BindingUsage } from "TSTransformer/util/evaluation/bindings";
 import type { EvaluationEffects } from "TSTransformer/util/evaluation/effects";
 import type { BindingKey } from "TSTransformer/util/evaluation/facts";
+import luau from "@roblox-ts/luau-ast";
 import ts from "typescript";
 
 /**
@@ -15,8 +16,9 @@ export class MultiTransformState {
 	public readonly bindingUsageBySourceFile = new Map<ts.SourceFile, BindingUsage>();
 	public readonly isMethodCache = new Map<ts.Symbol, boolean>();
 	public readonly isDefinedAsLetCache = new Map<ts.Symbol, boolean>();
+	public readonly isAnyOrAnyArrayCache = new Map<ts.Type, boolean>();
 	public readonly isReportedByNoAnyCache = new Set<ts.Symbol>();
 	public readonly isReportedByMultipleDefinitionsCache = new Set<ts.Symbol>();
 	public readonly getModuleExportsCache = new Map<ts.Symbol, Array<ts.Symbol>>();
-	public readonly getModuleExportsAliasMapCache = new Map<ts.Symbol, Map<ts.Symbol, string>>();
+	public readonly getModuleExportsAliasMapCache = new Map<ts.Symbol, Map<ts.Symbol, luau.Expression>>();
 }
