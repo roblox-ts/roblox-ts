@@ -20,10 +20,12 @@ function y(str: string) {
 	return kleur.yellow(str);
 }
 
-function validateTypeRoots(nodeModulesPath: string, typeRoots: Array<string>) {
-	const typesPath = path.resolve(nodeModulesPath);
+function validateTypeRoots(typeRoots: Array<string>) {
 	for (const typeRoot of typeRoots) {
-		if (path.resolve(typeRoot) === typesPath) {
+		const resolvedPath = path.resolve(typeRoot);
+
+		// allow hoisted dependencies without requiring VirtualProject's directories to exist on disk
+		if (path.basename(resolvedPath) === RBXTS_SCOPE && path.basename(path.dirname(resolvedPath)) === NODE_MODULES) {
 			return true;
 		}
 	}
@@ -63,8 +65,8 @@ export function validateCompilerOptions(opts: ts.CompilerOptions, projectPath: s
 	}
 
 	const rbxtsModules = path.join(projectPath, NODE_MODULES, RBXTS_SCOPE);
-	if (opts.typeRoots === undefined || !validateTypeRoots(rbxtsModules, opts.typeRoots)) {
-		errors.push(`${y(`"typeRoots"`)} must contain ${y(rbxtsModules)}`);
+	if (opts.typeRoots === undefined || !validateTypeRoots(opts.typeRoots)) {
+		errors.push(`${y(`"typeRoots"`)} must contain a node_modules/@rbxts directory, such as ${y(rbxtsModules)}`);
 	}
 
 	for (const typesLocation of opts.types ?? []) {

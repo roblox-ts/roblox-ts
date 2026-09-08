@@ -5,6 +5,7 @@ import { NODE_MODULES, PARENT_FIELD, ProjectType } from "Shared/constants";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { getCanonicalFileName } from "Shared/util/getCanonicalFileName";
+import { isPathDescendantOf } from "Shared/util/isPathDescendantOf";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { createGetService } from "TSTransformer/util/createGetService";
@@ -189,15 +190,29 @@ export function getImportParts(state: TransformState, sourceFile: ts.SourceFile,
 	}
 
 	const virtualPath = state.guessVirtualPath(moduleFile.fileName) || moduleFile.fileName;
+	const referencePath = state.data.projectReferencePaths?.get(getCanonicalFileName(path.normalize(virtualPath)));
 
-	if (ts.isInsideNodeModules(virtualPath)) {
+	if (referencePath === undefined && ts.isInsideNodeModules(virtualPath)) {
 		const moduleOutPath = state.pathTranslator.getImportPath(
 			state.nodeModulesPathMapping.get(getCanonicalFileName(path.normalize(virtualPath))) ?? virtualPath,
 			/* isNodeModule */ true,
 		);
 		return getNodeModulesImportParts(state, sourceFile, moduleSpecifier, moduleOutPath);
 	} else {
-		const moduleOutPath = state.pathTranslator.getImportPath(virtualPath);
+		let moduleOutPath = referencePath ?? state.pathTranslator.getImportPath(virtualPath);
+
+		if (referencePath === undefined && !isPathDescendantOf(virtualPath, state.pathTranslator.rootDir)) {
+			// hand-written declarations and JSON outside the source roots describe files mapped directly by Rojo
+			if (ts.isDeclarationFileName(virtualPath)) {
+				moduleOutPath =
+					virtualPath.slice(0, -".d.ts".length) + (state.data.projectOptions.luau ? ".luau" : ".lua");
+			} else {
+				// TypeScript rejects non-declaration source files outside rootDir before this transform
+				assert(ts.isJsonSourceFile(moduleFile));
+				moduleOutPath = virtualPath;
+			}
+		}
+
 		const moduleRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
 		if (!moduleRbxPath) {
 			DiagnosticService.addDiagnostic(
@@ -205,6 +220,7 @@ export function getImportParts(state: TransformState, sourceFile: ts.SourceFile,
 			);
 			return [luau.none()];
 		}
+
 		return getProjectImportParts(state, sourceFile, moduleSpecifier, moduleOutPath, moduleRbxPath);
 	}
 }

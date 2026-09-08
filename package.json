@@ -3,6 +3,7 @@
 	"version": "3.0.0",
 	"description": "A TypeScript-to-Luau Compiler for Roblox",
 	"main": "out/CLI/index.js",
+	"browser": "out/CLI/browser.js",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/roblox-ts/roblox-ts.git"
