@@ -23,12 +23,16 @@ function simplifyUnpackOfArray(expression: luau.Expression) {
 export function transformSpreadElement(state: TransformState, node: ts.SpreadElement) {
 	validateNotAnyType(state, node.expression);
 
-	// array literal is caught and handled separately in transformArrayLiteralExpression.ts
-	assert(!ts.isArrayLiteralExpression(node.parent) && node.parent.arguments);
-	if (node.parent.arguments[node.parent.arguments.length - 1] !== node) {
+	const list = ts.isArrayLiteralExpression(node.parent) ? node.parent.elements : node.parent.arguments;
+	assert(list);
+	if (list[list.length - 1] !== node) {
 		DiagnosticService.addDiagnostic(errors.noPrecedingSpreadElement(node));
 	}
 
+	return transformSpreadElementNoCheck(state, node);
+}
+
+export function transformSpreadElementNoCheck(state: TransformState, node: ts.SpreadElement) {
 	const expression = transformExpression(state, node.expression);
 
 	const type = state.getType(node.expression);

@@ -1,12 +1,12 @@
 export = () => {
-	it("should not fail to process various optimizable variadic argument functions", () => {
-		function addAll(...n: Array<number>) {
-			let sum = 0;
-			for (const value of n) {
-				sum += value;
-			}
-			return sum;
+	function addAll(...n: Array<number>) {
+		let sum = 0;
+		for (const value of n) {
+			sum += value;
 		}
+		return sum;
+	}
+	it("should not fail to process various optimizable variadic argument functions", () => {
 		expect(addAll(1, 2, 3)).to.equal(6);
 
 		function sizeUsages(...args: Array<number>) {
@@ -201,5 +201,44 @@ export = () => {
 		}
 		expect(type(unsafeReturnArgs(1, 2, 3))).to.equal("table");
 		expect(unsafeReturnArgs(1, 2, 3)[0]).to.equal(1);
+	});
+	it("should handle arrayLiteralSpread usages", () => {
+		function simple(...args: Array<number>) {
+			return $tuple(...[1, ...args]);
+		}
+		expect(addAll(...simple(2, 3))).to.equal(6);
+
+		function valuesAfter(...args: Array<number>) {
+			return $tuple(...[10, ...args, 20, 30]);
+		}
+		expect(addAll(...valuesAfter(1, 2))).to.equal(63);
+
+		function nested(...args: Array<number>) {
+			const outer = [10, ...args];
+			// Note: expected compilation is: {1, unpack(args)}
+			function inner(...innerArgs: Array<number>) {
+				return $tuple(...[100, ...args, ...innerArgs, 200]);
+			}
+			return $tuple(...inner(...outer));
+		}
+		expect(addAll(...nested(1, 2))).to.equal(316);
+
+		function nested2(...args: Array<number>) {
+			const outer = [10, ...args];
+			function inner(...innerArgs: Array<number>) {
+				return $tuple(...[100, ...innerArgs, ...args, 200]);
+			}
+			return $tuple(...inner(...outer));
+		}
+		expect(addAll(...nested2(1, 2))).to.equal(316);
+
+		function nested3(...args: Array<number>) {
+			const outer = [10, ...args];
+			function inner(...innerArgs: Array<number>) {
+				return $tuple(...[100, ...innerArgs, ...args]);
+			}
+			return $tuple(...inner(...outer));
+		}
+		expect(addAll(...nested3(1, 2))).to.equal(116);
 	});
 };

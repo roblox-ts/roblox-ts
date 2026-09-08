@@ -23,8 +23,8 @@ export function analyzeVarArgsOptimization(
 	// If the parent is a generator function, it is never safe
 	// (Note: technically body.parent won't always be a FunctionDeclaration)
 	if ((body.parent as ts.FunctionDeclaration).asteriskToken !== undefined) return;
-	// Track whether the var args parameter is being shadowed by a nested function's parameters
-	// Note that we don't need to track variables defined in inner scopes because we only analyze parameters
+	/** Track whether the var args parameter is being shadowed by a nested function's parameters.
+	 * Note that we don't need to track variables defined in inner scopes because we only analyze parameters. */
 	let numShadows = 0;
 	const shadowedStack = new Array<boolean>();
 	function pushVarArgs(name: string) {
@@ -40,7 +40,7 @@ export function analyzeVarArgsOptimization(
 		if (shadowed) numShadows--;
 	}
 	let tryDepth = 0;
-	/** Check to see if the identifier refers to a var args of the top-level function that we're analyzing - but also returns false if it's unsafe (due to being an upvalue). */
+	/** Check to see if the identifier refers to a var args of the top-level function that we're analyzing */
 	function isIdentifierVarArgs(identifier: ts.Identifier) {
 		// Filter out non-parameters
 		const symbol = state.typeChecker.getSymbolAtLocation(identifier);
@@ -53,12 +53,19 @@ export function analyzeVarArgsOptimization(
 		if (numShadows > 0) {
 			return false; // this variable belongs to a nested function
 		}
-		if (shadowedStack.length > 0 || tryDepth > 0) {
+		return true;
+	}
+	/** Returns true if safe, otherwise sets unsafe and returns false */
+	function isSafe_modify() {
+		if ((shadowedStack.length > 0 && numShadows === 0) || tryDepth > 0) {
 			// our varArgs is being accessed as an upvalue
 			unsafe = true;
 			return false;
 		}
 		return true;
+	}
+	function isIdentifierSafeVarArgs(identifier: ts.Identifier) {
+		return isIdentifierVarArgs(identifier) && isSafe_modify();
 	}
 
 	let sizeAccesses = 0;
@@ -67,7 +74,7 @@ export function analyzeVarArgsOptimization(
 	function visit(node: Node) {
 		if (unsafe) return;
 		if (ts.isIdentifier(node)) {
-			if (!isIdentifierVarArgs(node)) {
+			if (!isIdentifierSafeVarArgs(node)) {
 				return;
 			}
 			// note: in `(args as number[]) = 5`, the identifier isn't considered an assignment target (unlike in `args = [5]`), hence the `skipUpwards(node)` in the next line
@@ -116,7 +123,7 @@ export function analyzeVarArgsOptimization(
 		} else if (ts.isPropertyAccessExpression(node)) {
 			// if it's not `args.___`, ignore it
 			const expression = skipDownwards(node.expression);
-			if (!ts.isIdentifier(expression) || !isIdentifierVarArgs(expression)) {
+			if (!ts.isIdentifier(expression) || !isIdentifierSafeVarArgs(expression)) {
 				node.forEachChild(visit); // args could be inside a nested expression
 				return;
 			}
@@ -135,7 +142,7 @@ export function analyzeVarArgsOptimization(
 		} else if (ts.isElementAccessExpression(node)) {
 			// if it's not `args[]`, ignore it
 			const expression = skipDownwards(node.expression);
-			if (!ts.isIdentifier(expression) || !isIdentifierVarArgs(expression)) {
+			if (!ts.isIdentifier(expression) || !isIdentifierSafeVarArgs(expression)) {
 				node.forEachChild(visit); // args could be inside a nested expression
 				return;
 			}
@@ -165,6 +172,22 @@ export function analyzeVarArgsOptimization(
 			tryDepth++;
 			node.forEachChild(visit);
 			tryDepth--;
+		} else if (ts.isArrayLiteralExpression(node)) {
+			// If our varArgs follows another spread, its length will be used at least twice (see addOptimizableSpread)
+			let seenSpread = false;
+			for (const e of node.elements) {
+				if (ts.isSpreadElement(e)) {
+					const expression = skipDownwards(e.expression);
+					if (ts.isIdentifier(expression) && isIdentifierVarArgs(expression)) {
+						if (!isSafe_modify()) return;
+						if (!seenSpread) {
+							seenSpread = true;
+						} else {
+							sizeAccesses++;
+						}
+					}
+				}
+			}
 		} else {
 			node.forEachChild(visit);
 		}
@@ -179,7 +202,7 @@ export function analyzeVarArgsOptimization(
 }
 
 // Declare some commonly used lua fragments
-const varArgsLiteral = luau.create(luau.SyntaxKind.VarArgsLiteral, {});
+export const varArgsLiteral = luau.create(luau.SyntaxKind.VarArgsLiteral, {});
 export const selectLengthCall = luau.call(luau.globals.select, [luau.string("#"), varArgsLiteral]);
 const selectArg0 = luau.create(luau.SyntaxKind.ParenthesizedExpression, {
 	expression: varArgsLiteral,
