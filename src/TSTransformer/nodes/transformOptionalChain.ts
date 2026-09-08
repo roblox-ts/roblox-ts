@@ -32,7 +32,6 @@ interface OptionalChainItem<T extends OptionalChainItemKind, U extends ts.Expres
 	kind: T;
 	node: U;
 	optional: boolean;
-	type: ts.Type;
 }
 
 interface PropertyAccessItem
@@ -52,7 +51,6 @@ interface PropertyCallItem extends OptionalChainItem<OptionalChainItemKind.Prope
 	expression: ts.PropertyAccessExpression;
 	name: string;
 	callOptional: boolean;
-	callType: ts.Type;
 	args: ReadonlyArray<ts.Expression>;
 }
 
@@ -60,42 +58,37 @@ interface ElementCallItem extends OptionalChainItem<OptionalChainItemKind.Elemen
 	expression: ts.ElementAccessExpression;
 	argumentExpression: ts.Expression;
 	callOptional: boolean;
-	callType: ts.Type;
 	args: ReadonlyArray<ts.Expression>;
 }
 
-function createPropertyAccessItem(state: TransformState, node: ts.PropertyAccessExpression): PropertyAccessItem {
+function createPropertyAccessItem(node: ts.PropertyAccessExpression): PropertyAccessItem {
 	return {
 		node,
 		kind: OptionalChainItemKind.PropertyAccess,
 		optional: node.questionDotToken !== undefined,
-		type: state.getType(node.expression),
 		name: node.name.text,
 	};
 }
 
-function createElementAccessItem(state: TransformState, node: ts.ElementAccessExpression): ElementAccessItem {
+function createElementAccessItem(node: ts.ElementAccessExpression): ElementAccessItem {
 	return {
 		node,
 		kind: OptionalChainItemKind.ElementAccess,
 		optional: node.questionDotToken !== undefined,
-		type: state.getType(node.expression),
 		expression: node.argumentExpression,
 	};
 }
 
-function createCallItem(state: TransformState, node: ts.CallExpression): CallItem {
+function createCallItem(node: ts.CallExpression): CallItem {
 	return {
 		node,
 		kind: OptionalChainItemKind.Call,
 		optional: node.questionDotToken !== undefined,
-		type: state.getType(node.expression),
 		args: node.arguments,
 	};
 }
 
 function createPropertyCallItem(
-	state: TransformState,
 	node: PropertyCallItem["node"],
 	expression: PropertyCallItem["expression"],
 ): PropertyCallItem {
@@ -104,16 +97,13 @@ function createPropertyCallItem(
 		expression,
 		kind: OptionalChainItemKind.PropertyCall,
 		optional: expression.questionDotToken !== undefined,
-		type: state.getType(node.expression),
 		name: expression.name.text,
-		callType: state.getType(node),
 		callOptional: node.questionDotToken !== undefined,
 		args: node.arguments,
 	};
 }
 
 function createElementCallItem(
-	state: TransformState,
 	node: ElementCallItem["node"],
 	expression: ElementCallItem["expression"],
 ): ElementCallItem {
@@ -122,9 +112,7 @@ function createElementCallItem(
 		expression,
 		kind: OptionalChainItemKind.ElementCall,
 		optional: expression.questionDotToken !== undefined,
-		type: state.getType(expression),
 		argumentExpression: expression.argumentExpression,
-		callType: state.getType(node),
 		callOptional: node.questionDotToken !== undefined,
 		args: node.arguments,
 	};
@@ -132,26 +120,26 @@ function createElementCallItem(
 
 type ChainItem = PropertyAccessItem | ElementAccessItem | CallItem | PropertyCallItem | ElementCallItem;
 
-export function flattenOptionalChain(state: TransformState, expression: ts.Expression) {
+export function flattenOptionalChain(expression: ts.Expression) {
 	const chain = new Array<ChainItem>();
 	while (true) {
 		if (ts.isPropertyAccessExpression(expression)) {
-			chain.unshift(createPropertyAccessItem(state, expression));
+			chain.unshift(createPropertyAccessItem(expression));
 			expression = expression.expression;
 		} else if (ts.isElementAccessExpression(expression)) {
-			chain.unshift(createElementAccessItem(state, expression));
+			chain.unshift(createElementAccessItem(expression));
 			expression = expression.expression;
 		} else if (ts.isCallExpression(expression)) {
 			// this is a bit of a mess..
 			const subExp = skipDownwards(expression.expression);
 			if (ts.isPropertyAccessExpression(subExp)) {
-				chain.unshift(createPropertyCallItem(state, expression, subExp));
+				chain.unshift(createPropertyCallItem(expression, subExp));
 				expression = subExp.expression;
 			} else if (ts.isElementAccessExpression(subExp)) {
-				chain.unshift(createElementCallItem(state, expression, subExp));
+				chain.unshift(createElementCallItem(expression, subExp));
 				expression = subExp.expression;
 			} else {
-				chain.unshift(createCallItem(state, expression));
+				chain.unshift(createCallItem(expression));
 				expression = subExp;
 			}
 		} else {
@@ -351,6 +339,6 @@ export function transformOptionalChain(
 	state: TransformState,
 	node: ts.PropertyAccessExpression | ts.ElementAccessExpression | ts.CallExpression,
 ): luau.Expression {
-	const { chain, expression } = flattenOptionalChain(state, node);
+	const { chain, expression } = flattenOptionalChain(node);
 	return transformOptionalChainInner(state, chain, transformExpression(state, expression));
 }

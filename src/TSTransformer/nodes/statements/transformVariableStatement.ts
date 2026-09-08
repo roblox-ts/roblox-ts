@@ -9,7 +9,10 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { arrayBindingPatternContainsHoists } from "TSTransformer/util/arrayBindingPatternContainsHoists";
+import { arrayLikeExpressionContainsSpread } from "TSTransformer/util/arrayLikeExpressionContainsSpread";
+import { getTargetIdForBindingPattern } from "TSTransformer/util/binding/getTargetIdForBindingPattern";
 import { checkVariableHoist } from "TSTransformer/util/checkVariableHoist";
+import { copyValueFacts, getCallEffects, isConstantReference } from "TSTransformer/util/evaluation/facts";
 import { isSymbolMutable } from "TSTransformer/util/isSymbolMutable";
 import { isLuaTupleType } from "TSTransformer/util/types";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
@@ -40,6 +43,13 @@ export function transformVariable(state: TransformState, identifier: ts.Identifi
 	}
 
 	const left: luau.AnyIdentifier = transformIdentifierDefined(state, identifier);
+	if (right && isConstantReference(left)) {
+		const effects = getCallEffects(right);
+		if (effects) {
+			state.multiTransformState.functionEffects.set(symbol, effects);
+		}
+		copyValueFacts(right, left);
+	}
 
 	checkVariableHoist(state, identifier, symbol);
 	if (state.isHoisted.get(symbol) === true) {
@@ -66,10 +76,6 @@ function transformOptimizedArrayBindingPattern(
 				if (ts.isOmittedExpression(element)) {
 					luau.list.push(ids, luau.tempId());
 				} else {
-					if (element.dotDotDotToken) {
-						DiagnosticService.addDiagnostic(errors.noSpreadDestructuring(element));
-						return;
-					}
 					if (ts.isIdentifier(element.name)) {
 						validateIdentifier(state, element.name);
 						const id = transformIdentifierDefined(state, element.name);
@@ -135,21 +141,23 @@ export function transformVariableDeclaration(
 			if (
 				luau.isCall(value) &&
 				isLuaTupleType(state)(state.getType(node.initializer)) &&
-				!arrayBindingPatternContainsHoists(state, name)
+				!arrayBindingPatternContainsHoists(state, name) &&
+				!arrayLikeExpressionContainsSpread(name)
 			) {
 				luau.list.pushList(statements, transformOptimizedArrayBindingPattern(state, name, value));
 			} else if (
 				luau.isArray(value) &&
 				!luau.list.isEmpty(value.members) &&
 				// we can't localize multiple variables at the same time if any of them are hoisted
-				!arrayBindingPatternContainsHoists(state, name)
+				!arrayBindingPatternContainsHoists(state, name) &&
+				!arrayLikeExpressionContainsSpread(name)
 			) {
 				luau.list.pushList(statements, transformOptimizedArrayBindingPattern(state, name, value.members));
 			} else {
 				luau.list.pushList(
 					statements,
 					state.capturePrereqs(() =>
-						transformArrayBindingPattern(state, name, state.pushToVar(value, "binding")),
+						transformArrayBindingPattern(state, name, getTargetIdForBindingPattern(state, name, value!)),
 					),
 				);
 			}
@@ -157,7 +165,7 @@ export function transformVariableDeclaration(
 			luau.list.pushList(
 				statements,
 				state.capturePrereqs(() =>
-					transformObjectBindingPattern(state, name, state.pushToVar(value, "binding")),
+					transformObjectBindingPattern(state, name, getTargetIdForBindingPattern(state, name, value!)),
 				),
 			);
 		}

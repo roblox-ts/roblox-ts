@@ -1,4 +1,12 @@
 export = () => {
+	it("should support numeric separators in tuple return indices", () => {
+		function values(): LuaTuple<[number, number]> {
+			return $tuple(123, 456);
+		}
+		expect(values()[0x0_0]).to.equal(123);
+		expect(values()[0x0_1]).to.equal(456);
+	});
+
 	it("should unpack function return tuples", () => {
 		function foo(): [number, number] {
 			return [101, 203];
@@ -227,6 +235,30 @@ export = () => {
 		expect(hasRun1).to.equal(true);
 	});
 
+	it("should support indexing nullable LuaTuple elements", () => {
+		function foo(): LuaTuple<[number, string]> | undefined {
+			return [1, "2"] as LuaTuple<[number, string]>;
+		}
+
+		function bar(): LuaTuple<[number, string]> | undefined {
+			return undefined;
+		}
+
+		function fnTuple(): LuaTuple<[number, () => LuaTuple<[string, () => number]>]> | undefined {
+			return $tuple(1, () => $tuple("2", () => 3));
+		}
+
+		expect(foo()?.[1]).to.equal("2");
+		expect(bar()?.[1]).to.equal(undefined);
+		expect(fnTuple()?.[1]?.()?.[0]).to.equal("2");
+		expect(fnTuple()?.[1]?.()?.[1]?.()).to.equal(3);
+
+		expect(foo?.()?.[1]).to.equal("2");
+		expect(bar?.()?.[1]).to.equal(undefined);
+		expect(fnTuple?.()?.[1]?.()?.[0]).to.equal("2");
+		expect(fnTuple?.()?.[1]?.()?.[1]?.()).to.equal(3);
+	});
+
 	it("should support $tuple macro", () => {
 		function luaTupleMacroReturn() {
 			return $tuple(123, "abc", true);
@@ -265,5 +297,14 @@ export = () => {
 		expect(a).to.equal(123);
 		expect(b).to.equal("abc");
 		expect(c).to.equal(true);
+	});
+
+	it("should support $tuple macro with type assertion", () => {
+		function test() {
+			return $tuple(1) as LuaTuple<[number]>;
+		}
+		const [value] = test();
+		expect(value).to.equal(1);
+		expect(test()[0]).to.equal(1);
 	});
 };
