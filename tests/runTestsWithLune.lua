@@ -61,6 +61,7 @@ function SharedTable.new()
 end
 
 local robloxRequire
+local vectorConstructor = vector
 
 local function runRobloxScript(script: LuaSourceContainer)
 	local callableFn = luau.load(luau.compile(script.Source), {
@@ -72,6 +73,7 @@ local function runRobloxScript(script: LuaSourceContainer)
 			tick = tick,
 			task = task,
 			SharedTable = SharedTable,
+			vector = { create = vectorConstructor },
 		}),
 	})
 
