@@ -1,6 +1,7 @@
 import fs from "fs-extra";
 import path from "path";
 import { ProjectBuild } from "Project/classes/ProjectBuild";
+import { readProjectOptions } from "Project/functions/readProjectOptions";
 import { LogService } from "Shared/classes/LogService";
 
 import { expectSuccess, ReferenceFixture } from "./referenceFixture";
@@ -179,4 +180,65 @@ it("warns about unknown and CLI-only rbxts options without applying them", () =>
 	} finally {
 		warn.mockRestore();
 	}
+});
+
+it.each(["./missing.json", "@config/missing"])("reports unresolved inherited rbxts options from %s", extended => {
+	fixture.json("options.json", { extends: extended });
+
+	expect(() => readProjectOptions(fixture.file("options.json"), { extends: extended })).toThrow("not found");
+});
+
+it("reports malformed inherited rbxts configuration", () => {
+	fixture.write("broken.json", "{");
+
+	expect(() => readProjectOptions(fixture.file("options.json"), { extends: "./broken.json" })).toThrow();
+});
+
+it("preserves empty inherited paths for default discovery", () => {
+	fixture.project("game");
+	const config = fs.readJsonSync(fixture.file("game/tsconfig.json"));
+	fixture.json("game/tsconfig.json", { ...config, rbxts: { rojo: "", includePath: "" } });
+	const rojo = fs.readJsonSync(fixture.file("default.project.json"));
+	rojo.tree.ReplicatedStorage.game.$path = "../out/game";
+	fixture.json("game/default.project.json", rojo);
+	const build = fixture.createBuild({ rojo: undefined, includePath: undefined });
+
+	expectSuccess(build.build());
+	expect(build.graph.root.data.rojoConfigPath).toBe(fixture.file("game/default.project.json"));
+	expect(build.graph.root.data.projectOptions.includePath).toBe(fixture.file("game/include"));
+});
+
+it("reports an unmapped module in a reference's owned Rojo context", () => {
+	fixture.project("shared");
+	fixture.project("game", ["shared"]);
+	const owner = fs.readJsonSync(fixture.file("default.project.json"));
+	delete owner.tree.ReplicatedStorage.shared;
+	fixture.json("owner.project.json", owner);
+	const config = fs.readJsonSync(fixture.file("shared/tsconfig.json"));
+	fixture.json("shared/tsconfig.json", { ...config, rbxts: { rojo: "../owner.project.json" } });
+
+	expect(() => fixture.createBuild()).toThrow("(unmapped)");
+});
+
+it("rejects a consumer without the reference's owned Rojo mounts", () => {
+	fixture.project("shared");
+	fixture.project("game", ["shared"]);
+	const config = fs.readJsonSync(fixture.file("shared/tsconfig.json"));
+	fixture.json("shared/tsconfig.json", { ...config, rbxts: { rojo: "../owner.json" } });
+	fs.renameSync(fixture.file("default.project.json"), fixture.file("owner.json"));
+
+	expect(() => fixture.createBuild({ rojo: undefined })).toThrow("same Roblox path");
+});
+
+it("builds and classifies watch paths without a Rojo project", () => {
+	fixture.project("shared");
+	fixture.project("game", ["shared"]);
+	fixture.json("package.json", { name: "@rbxts/reference-fixture", version: "1.0.0" });
+	fs.removeSync(fixture.file("default.project.json"));
+	const build = fixture.createBuild({ rojo: undefined });
+
+	expectSuccess(build.build());
+	expect(build.isConfigPath(fixture.file("unrelated.json"))).toBe(false);
+	expect(build.isRojoConfigDirectory(fixture.directory)).toBe(false);
+	expect(fixture.read("out/game/init.luau")).toContain("value = 1");
 });

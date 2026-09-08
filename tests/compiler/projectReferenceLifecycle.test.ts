@@ -4,7 +4,9 @@ import path from "path";
 import { createProjectProgram } from "Project";
 import { compileFiles } from "Project/functions/compileFiles";
 import { createPathTranslator } from "Project/functions/createPathTranslator";
+import { createProgramFactory } from "Project/functions/createProgramFactory";
 import * as constants from "Shared/constants";
+import ts from "typescript";
 
 import { expectSuccess, ReferenceFixture } from "./referenceFixture";
 
@@ -175,4 +177,57 @@ it("preserves output when emitting one file discovers a declaration error in ano
 	expect(result.diagnostics.map(diagnostic => diagnostic.code)).toContain(4094);
 	expect(fixture.read("out/game/init.luau")).toBe(output);
 	expect(fixture.read("out/game/index.d.ts")).toBe(declaration);
+});
+
+it("preserves a supplied host's resolution invalidation hook across rebuilds", () => {
+	fixture.project("game");
+	fixture.write("external/types.d.ts", "export interface Options { value: number; }");
+	fixture.write(
+		"game/src/index.ts",
+		'import type { Options } from "../../external/types"; export const value: Options = { value: 1 };',
+	);
+	const { data, config } = fixture.createBuild().graph.root;
+	const host = ts.createIncrementalCompilerHost(config.options);
+	const invalidate = jest.fn(() => true);
+	host.hasInvalidatedResolutions = invalidate;
+	const getSourceFile = host.getSourceFile;
+	const create = createProgramFactory(data, config.options);
+	const before = create(config.fileNames, config.options, host);
+	expect(before.getSemanticDiagnostics()).toEqual([]);
+
+	fixture.write("external/types.d.ts", "export interface Options { value: string; }");
+	const after = create(config.fileNames, config.options, host, before);
+
+	expect(after.getSemanticDiagnostics().map(diagnostic => diagnostic.code)).toContain(2322);
+	expect(invalidate).toHaveBeenCalled();
+	expect(host.hasInvalidatedResolutions).toBe(invalidate);
+	expect(host.getSourceFile).toBe(getSourceFile);
+});
+
+it("reuses redirected declarations for duplicate package installations", () => {
+	fixture.project("game");
+	for (const name of ["left", "right"]) {
+		const root = `node_modules/@rbxts/${name}`;
+		fixture.json(`${root}/package.json`, { name: `@rbxts/${name}`, version: "1.0.0", types: "index.d.ts" });
+		fixture.write(`${root}/index.d.ts`, 'export { Value } from "@rbxts/duplicate";');
+		fixture.json(`${root}/node_modules/@rbxts/duplicate/package.json`, {
+			name: "@rbxts/duplicate",
+			version: "1.0.0",
+			types: "index.d.ts",
+		});
+		fixture.write(
+			`${root}/node_modules/@rbxts/duplicate/index.d.ts`,
+			"export declare class Value { private identity: unknown; }",
+		);
+	}
+	const source =
+		'import type { Value as Left } from "@rbxts/left"; import type { Value as Right } from "@rbxts/right"; export function convert(value: Left): Right { return value; }';
+	fixture.write("game/src/index.ts", source);
+	const build = fixture.createBuild();
+	expectSuccess(build.build());
+
+	fixture.write("game/src/index.ts", `${source}\nexport const changed = true;`);
+
+	expectSuccess(build.build([fixture.file("game/src/index.ts")]));
+	expect(fixture.read("out/game/init.luau")).toContain("changed = true");
 });

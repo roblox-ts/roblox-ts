@@ -1,4 +1,8 @@
 import fs from "fs-extra";
+import { createProjectProgram } from "Project";
+import { compileFiles } from "Project/functions/compileFiles";
+import { createPathTranslator } from "Project/functions/createPathTranslator";
+import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
 
 import { expectSuccess, ReferenceFixture } from "./referenceFixture";
 
@@ -170,4 +174,22 @@ it("updates external declaration types when their modification time is unchanged
 	fs.utimesSync(file, times.atime, times.mtime);
 
 	expectSuccess(build.build([file]));
+});
+
+it("transforms imported source files outside the root file list", () => {
+	fixture.project("game", [], { plugins: [{ transform: "../identity.cjs" }] });
+	fixture.write("identity.cjs", "module.exports = () => () => source => source;");
+	const config = fs.readJsonSync(fixture.file("game/tsconfig.json"));
+	delete config.include;
+	fixture.json("game/tsconfig.json", { ...config, files: ["src/index.ts"] });
+	fixture.write("game/src/helper.ts", "export const value = 42;");
+	fixture.write("game/src/index.ts", 'export { value } from "./helper";');
+
+	const data = fixture.createBuild().graph.root.data;
+	const builder = createProjectProgram(data);
+	expectSuccess(
+		compileFiles(builder.getProgram(), data, createPathTranslator(builder, data), getChangedSourceFiles(builder)),
+	);
+	expect(fixture.read("out/game/helper.luau")).toContain("value = 42");
+	expect(fixture.read("out/game/init.luau")).toContain('"helper"');
 });

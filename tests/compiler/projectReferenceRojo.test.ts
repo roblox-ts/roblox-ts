@@ -208,3 +208,50 @@ it.each([false, true])(
 		}
 	},
 );
+
+it.each([null, { name: "invalid", tree: { $path: null } }])(
+	"preserves output when a Rojo project has no usable tree: %j",
+	config => {
+		expectSuccess(fixture.createBuild().build());
+		const before = fixture.read("out/game/init.luau");
+		fixture.json("default.project.json", config);
+		const warn = jest.spyOn(LogService, "warn").mockImplementation(() => {});
+		try {
+			expect(fixture.createBuild().build().emitSkipped).toBe(true);
+			expect(fixture.read("out/game/init.luau")).toBe(before);
+		} finally {
+			warn.mockRestore();
+		}
+	},
+);
+
+it("reports an invalid optional Rojo path", () => {
+	fixture.json("default.project.json", { name: "invalid", tree: { $path: {} } });
+
+	expect(() => fixture.createBuild()).toThrow("Unable to read Rojo project");
+});
+
+it("reports a recursive Rojo project without replacing output", () => {
+	expectSuccess(fixture.createBuild().build());
+	const before = fixture.read("out/game/init.luau");
+	fixture.rojo({ recursive: { $path: "." } });
+
+	expect(() => fixture.createBuild()).toThrow("Unable to read Rojo project");
+	expect(fixture.read("out/game/init.luau")).toBe(before);
+});
+
+it("refreshes consumer mounts after a package without Rojo copies a nested project", () => {
+	fixture.json("package.json", { name: "@rbxts/reference-fixture", version: "1.0.0" });
+	for (const [name, rojo] of [
+		["game", "../default.project.json"],
+		["shared", ""],
+	]) {
+		const config = fs.readJsonSync(fixture.file(`${name}/tsconfig.json`));
+		fixture.json(`${name}/tsconfig.json`, { ...config, rbxts: { rojo } });
+	}
+	fixture.json("shared/src/default.project.json", { name: "nested", tree: { current: { $path: "init.luau" } } });
+	const build = fixture.createBuild({ rojo: undefined });
+
+	expectSuccess(build.build());
+	expect(fixture.read("out/game/init.luau")).toContain('"shared", "current"');
+});

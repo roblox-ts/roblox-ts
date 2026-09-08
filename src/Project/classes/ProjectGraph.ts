@@ -171,7 +171,8 @@ export class ProjectGraph {
 					continue;
 				}
 
-				const paths = new Set(reference.data.projectReferencePaths?.values());
+				assert(reference.data.projectReferencePaths);
+				const paths = new Set(reference.data.projectReferencePaths.values());
 				for (const fileName of reference.config.fileNames) {
 					if (
 						ts.isDeclarationFileName(fileName) &&
