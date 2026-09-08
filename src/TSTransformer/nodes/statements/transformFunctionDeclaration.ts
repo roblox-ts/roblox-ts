@@ -6,6 +6,7 @@ import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformParameters } from "TSTransformer/nodes/transformParameters";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
+import { getFunctionEffects } from "TSTransformer/util/evaluation/effects";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import { wrapStatementsAsGenerator } from "TSTransformer/util/wrapStatementsAsGenerator";
 import ts from "typescript";
@@ -36,6 +37,11 @@ export function transformFunctionDeclaration(state: TransformState, node: ts.Fun
 	}
 
 	const isAsync = ts.hasSyntacticModifier(node, ts.ModifierFlags.Async);
+	if (node.name && !isAsync && !node.asteriskToken) {
+		const symbol = state.typeChecker.getSymbolAtLocation(node.name);
+		assert(symbol);
+		state.multiTransformState.functionEffects.set(symbol, getFunctionEffects(parameters, statements));
+	}
 
 	if (node.asteriskToken) {
 		if (isAsync) {

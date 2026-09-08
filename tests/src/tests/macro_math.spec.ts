@@ -279,6 +279,86 @@ export = () => {
 		expect(c.Z).to.equal(3);
 	});
 
+	it("should support vector + vector = vector", () => {
+		const a = vector.create(1, 2, 3);
+		const b = vector.create(4, 5, 6);
+		const c = a.add(b);
+		expect(typeIs(c, "vector")).to.equal(true);
+		expect(c.x).to.equal(5);
+		expect(c.y).to.equal(7);
+		expect(c.z).to.equal(9);
+	});
+
+	it("should support vector - vector = vector", () => {
+		const a = vector.create(1, 2, 3);
+		const b = vector.create(4, 5, 6);
+		const c = a.sub(b);
+		expect(typeIs(c, "vector")).to.equal(true);
+		expect(c.x).to.equal(-3);
+		expect(c.y).to.equal(-3);
+		expect(c.z).to.equal(-3);
+	});
+
+	it("should support vector * vector = vector", () => {
+		const a = vector.create(1, 2, 3);
+		const b = vector.create(4, 5, 6);
+		const c = a.mul(b);
+		expect(typeIs(c, "vector")).to.equal(true);
+		expect(c.x).to.equal(4);
+		expect(c.y).to.equal(10);
+		expect(c.z).to.equal(18);
+	});
+
+	it("should support vector * number = vector", () => {
+		const a = vector.create(1, 2, 3);
+		const b = 2;
+		const c = a.mul(b);
+		expect(typeIs(c, "vector")).to.equal(true);
+		expect(c.x).to.equal(2);
+		expect(c.y).to.equal(4);
+		expect(c.z).to.equal(6);
+	});
+
+	it("should support vector / vector = vector", () => {
+		const a = vector.create(4, 6, 8);
+		const b = vector.create(2, 2, 2);
+		const c = a.div(b);
+		expect(typeIs(c, "vector")).to.equal(true);
+		expect(c.x).to.equal(2);
+		expect(c.y).to.equal(3);
+		expect(c.z).to.equal(4);
+	});
+
+	it("should support vector / number = vector", () => {
+		const a = vector.create(2, 4, 6);
+		const b = 2;
+		const c = a.div(b);
+		expect(typeIs(c, "vector")).to.equal(true);
+		expect(c.x).to.equal(1);
+		expect(c.y).to.equal(2);
+		expect(c.z).to.equal(3);
+	});
+
+	it("should support vector // vector = vector", () => {
+		const a = vector.create(7, -7, 5);
+		const b = vector.create(2, 2, 2);
+		const c = a.idiv(b);
+		expect(typeIs(c, "vector")).to.equal(true);
+		expect(c.x).to.equal(3);
+		expect(c.y).to.equal(-4);
+		expect(c.z).to.equal(2);
+	});
+
+	it("should support vector // number = vector", () => {
+		const a = vector.create(7, -7, 5);
+		const b = 2;
+		const c = a.idiv(b);
+		expect(typeIs(c, "vector")).to.equal(true);
+		expect(c.x).to.equal(3);
+		expect(c.y).to.equal(-4);
+		expect(c.z).to.equal(2);
+	});
+
 	it("should properly support roblox math macros with binary expressions", () => {
 		const a = new Vector2(1, 2).mul(1 + 3);
 		expect(a.X).to.equal(4);

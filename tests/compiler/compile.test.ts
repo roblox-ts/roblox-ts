@@ -1,15 +1,14 @@
-/// <reference types="jest" />
-
 import fs from "fs-extra";
 import path from "path";
+import { ProjectBuild } from "Project/classes/ProjectBuild";
 import { compileFiles } from "Project/functions/compileFiles";
 import { copyFiles } from "Project/functions/copyFiles";
 import { copyInclude } from "Project/functions/copyInclude";
 import { createPathTranslator } from "Project/functions/createPathTranslator";
-import { createProjectData } from "Project/functions/createProjectData";
 import { createProjectProgram } from "Project/functions/createProjectProgram";
 import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
-import { DEFAULT_PROJECT_OPTIONS, PACKAGE_ROOT, TS_EXT, TSX_EXT } from "Shared/constants";
+import { getOutputRoots } from "Project/functions/getProjectOutputs";
+import { PACKAGE_ROOT, TS_EXT, TSX_EXT } from "Shared/constants";
 import { DiagnosticFactory, errors, getDiagnosticId } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { formatDiagnostics } from "Shared/util/formatDiagnostics";
@@ -19,19 +18,31 @@ import { isPathDescendantOf } from "Shared/util/isPathDescendantOf";
 const DIAGNOSTIC_TEST_NAME_REGEX = /^(\w+)(?:\.\d+)?$/;
 
 describe("should compile tests project", () => {
-	const data = createProjectData(
-		path.join(PACKAGE_ROOT, "tests", "tsconfig.json"),
-		Object.assign({}, DEFAULT_PROJECT_OPTIONS, {
-			project: "",
-			allowCommentDirectives: true,
-			optimizedLoops: true,
-		}),
-	);
+	const build = new ProjectBuild(path.join(PACKAGE_ROOT, "tests", "tsconfig.json"), {
+		allowCommentDirectives: true,
+		optimizedLoops: true,
+	});
+
+	// every coverage run must compile referenced sources, even when their previous outputs are still current
+	for (const project of build.graph.projects.values()) {
+		for (const root of getOutputRoots(project)) {
+			fs.removeSync(root);
+		}
+		if (project.pathTranslator?.buildInfoOutputPath) {
+			fs.removeSync(project.pathTranslator.buildInfoOutputPath);
+		}
+	}
+
+	const references = build.build(undefined, true);
+	if (references.emitSkipped) {
+		throw new Error(formatDiagnostics(references.diagnostics));
+	}
+
+	const data = build.graph.root.data;
+	afterAll(() => build.close());
+
 	const program = createProjectProgram(data);
 	const pathTranslator = createPathTranslator(program, data);
-
-	// clean outDir between test runs
-	fs.removeSync(program.getCompilerOptions().outDir!);
 
 	it("should copy include files", () => copyInclude(data));
 

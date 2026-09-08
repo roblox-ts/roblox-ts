@@ -10,7 +10,9 @@ import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/tran
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { arrayBindingPatternContainsHoists } from "TSTransformer/util/arrayBindingPatternContainsHoists";
 import { arrayLikeExpressionContainsSpread } from "TSTransformer/util/arrayLikeExpressionContainsSpread";
+import { getTargetIdForBindingPattern } from "TSTransformer/util/binding/getTargetIdForBindingPattern";
 import { checkVariableHoist } from "TSTransformer/util/checkVariableHoist";
+import { copyValueFacts, getCallEffects, isConstantReference } from "TSTransformer/util/evaluation/facts";
 import { isSymbolMutable } from "TSTransformer/util/isSymbolMutable";
 import { isLuaTupleType } from "TSTransformer/util/types";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
@@ -41,6 +43,13 @@ export function transformVariable(state: TransformState, identifier: ts.Identifi
 	}
 
 	const left: luau.AnyIdentifier = transformIdentifierDefined(state, identifier);
+	if (right && isConstantReference(left)) {
+		const effects = getCallEffects(right);
+		if (effects) {
+			state.multiTransformState.functionEffects.set(symbol, effects);
+		}
+		copyValueFacts(right, left);
+	}
 
 	checkVariableHoist(state, identifier, symbol);
 	if (state.isHoisted.get(symbol) === true) {
@@ -148,7 +157,7 @@ export function transformVariableDeclaration(
 				luau.list.pushList(
 					statements,
 					state.capturePrereqs(() =>
-						transformArrayBindingPattern(state, name, state.pushToVar(value, "binding")),
+						transformArrayBindingPattern(state, name, getTargetIdForBindingPattern(state, name, value!)),
 					),
 				);
 			}
@@ -156,7 +165,7 @@ export function transformVariableDeclaration(
 			luau.list.pushList(
 				statements,
 				state.capturePrereqs(() =>
-					transformObjectBindingPattern(state, name, state.pushToVar(value, "binding")),
+					transformObjectBindingPattern(state, name, getTargetIdForBindingPattern(state, name, value!)),
 				),
 			);
 		}

@@ -1,0 +1,29 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`dynamic identifier retains fallback 1`] = `
+"for i = 3, 1, step or 1 do
+end
+return nil
+"
+`;
+
+exports[`dynamic negation retains fallback 1`] = `
+"for i = 3, 1, -step or 1 do
+end
+return nil
+"
+`;
+
+exports[`negative literal omits fallback 1`] = `
+"for i = 3, 1, -1 do
+end
+return nil
+"
+`;
+
+exports[`parenthesized negative literal omits fallback 1`] = `
+"for i = 3, 1, (-1) do
+end
+return nil
+"
+`;

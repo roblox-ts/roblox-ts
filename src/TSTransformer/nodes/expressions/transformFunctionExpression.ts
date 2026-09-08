@@ -5,6 +5,8 @@ import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformReturnStatementInner } from "TSTransformer/nodes/statements/transformReturnStatement";
 import { transformParameters } from "TSTransformer/nodes/transformParameters";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
+import { getFunctionEffects } from "TSTransformer/util/evaluation/effects";
+import { setCallEffects } from "TSTransformer/util/evaluation/facts";
 import { wrapStatementsAsGenerator } from "TSTransformer/util/wrapStatementsAsGenerator";
 import ts from "typescript";
 
@@ -41,6 +43,8 @@ export function transformFunctionExpression(state: TransformState, node: ts.Func
 
 	if (isAsync) {
 		expression = luau.call(state.TS(node, "async"), [expression]);
+	} else if (!node.asteriskToken) {
+		setCallEffects(expression, getFunctionEffects(parameters, statements));
 	}
 
 	return expression;
