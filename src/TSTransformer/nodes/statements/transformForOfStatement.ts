@@ -309,7 +309,7 @@ const buildIterableFunctionLuaTupleLoop: (type: ts.Type) => LoopBuilder =
 		if (
 			ts.isVariableDeclarationList(initializer) &&
 			state.typeChecker.isTupleType(tupleArgType) &&
-			!((tupleArgType as ts.TupleTypeReference).target.combinedFlags & ts.ElementFlags.Rest)
+			!((tupleArgType as ts.TupleTypeReference).target.combinedFlags & ts.ElementFlags.Variable)
 		) {
 			const tupleType = (tupleArgType as ts.TupleTypeReference).target;
 			for (let i = 0; i < tupleType.elementFlags.length; i++) {

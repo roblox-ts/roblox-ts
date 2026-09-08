@@ -495,6 +495,52 @@ export = () => {
 		}
 	});
 
+	it("should support iterator function with rest tuple elements when indexing as array", () => {
+		let callCount = 0;
+		const restIterator: IterableFunction<LuaTuple<[number, ...number[]]>> = (() => {
+			callCount++;
+			if (callCount === 1) {
+				return [10, 20, 30] as unknown as LuaTuple<[number, ...number[]]>;
+			}
+			return undefined as unknown as LuaTuple<[number, ...number[]]>;
+		}) as never;
+
+		for (const tuple of restIterator) {
+			expect(tuple.size()).to.equal(3);
+			expect(tuple[0]).to.equal(10);
+			expect(tuple[1]).to.equal(20);
+			expect(tuple[2]).to.equal(30);
+			break;
+		}
+	});
+
+	it("should support iterator function with variadic tuple elements when indexing as array", () => {
+		function collectFirst<T extends unknown[]>(
+			iter: IterableFunction<LuaTuple<[number, ...T]>>,
+		): Array<unknown> | undefined {
+			for (const entry of iter) {
+				return entry as unknown as Array<unknown>;
+			}
+			return undefined;
+		}
+
+		let callCount = 0;
+		const iter: IterableFunction<LuaTuple<[number, number, number]>> = (() => {
+			callCount++;
+			if (callCount === 1) {
+				return [10, 20, 30] as LuaTuple<[number, number, number]>;
+			}
+			return undefined as unknown as LuaTuple<[number, number, number]>;
+		}) as never;
+
+		const result = collectFirst<[number, number]>(iter);
+		expect(result).to.be.ok();
+		expect(result!.size()).to.equal(3);
+		expect(result![0]).to.equal(10);
+		expect(result![1]).to.equal(20);
+		expect(result![2]).to.equal(30);
+	});
+
 	it("should support the $range macro without step", () => {
 		const hit = new Set<number>();
 		let sum = 10;
