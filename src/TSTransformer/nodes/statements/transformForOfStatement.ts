@@ -13,8 +13,8 @@ import { transformWritableExpression } from "TSTransformer/nodes/transformWritab
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { getKindName } from "TSTransformer/util/getKindName";
+import { getLiteralNumberValue } from "TSTransformer/util/getLiteralNumberValue";
 import { getStatements } from "TSTransformer/util/getStatements";
-import { getLiteralNumberValue } from "TSTransformer/util/offset";
 import { skipDownwards } from "TSTransformer/util/traversal";
 import {
 	getFirstDefinedSymbol,
@@ -466,8 +466,8 @@ export function transformForOfRangeMacro(
 			id,
 			start,
 			end,
-			// a numeric for loop throws on a nil step, so a dynamic step falls back to 1;
-			// a literal step (including unary-minus literals like `-1`) can never be nil
+			// a numeric for loop throws on a nil step, so dynamic steps fall back to 1
+			// literal steps, including unary-minus literals like `-1`, can never be nil
 			step:
 				step === undefined || getLiteralNumberValue(step) !== undefined
 					? step

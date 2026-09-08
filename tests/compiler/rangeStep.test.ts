@@ -1,14 +1,16 @@
 import { createTestProject } from "./createTestProject";
 
-it("emits a constant $range step without the `or 1` guard", () => {
-	const project = createTestProject();
-	const output = project.compileSource("for (const i of $range(3, 1, -1)) {}");
-	expect(output).toContain("for i = 3, 1, -1 do");
-	expect(output).not.toContain("or 1");
-});
+function compileRange(source: string) {
+	return createTestProject()
+		.compileSource(source)
+		.replace(/^-- Compiled with.*\n/, "");
+}
 
-it("guards a dynamic $range step with `or 1`", () => {
-	const project = createTestProject();
-	const output = project.compileSource("declare const step: number; for (const i of $range(3, 1, step)) {}");
-	expect(output).toContain("for i = 3, 1, step or 1 do");
+it.each([
+	["dynamic identifier retains fallback", "declare const step: number; for (const i of $range(3, 1, step)) {}"],
+	["dynamic negation retains fallback", "declare const step: number; for (const i of $range(3, 1, -step)) {}"],
+	["negative literal omits fallback", "for (const i of $range(3, 1, -1)) {}"],
+	["parenthesized negative literal omits fallback", "for (const i of $range(3, 1, (-1))) {}"],
+])("%s", (_name, source) => {
+	expect(compileRange(source)).toMatchSnapshot();
 });
