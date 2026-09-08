@@ -202,7 +202,7 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 			node.left,
 			node.right,
 			true,
-			operator === undefined,
+			operator !== "=",
 		);
 		if (operator !== undefined) {
 			return createAssignmentExpression(
@@ -210,6 +210,7 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 				writable,
 				operator,
 				getAssignableValue(operator, value, valueType),
+				readable,
 			);
 		} else {
 			return createCompoundAssignmentExpression(

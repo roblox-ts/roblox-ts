@@ -7,6 +7,7 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { addOneIfArrayType } from "TSTransformer/util/addOneIfArrayType";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
+import { effectsCommute, getEffects, isLateRead, joinEffects, NO_EFFECTS } from "TSTransformer/util/evaluation/effects";
 import { skipDownwards } from "TSTransformer/util/traversal";
 import ts from "typescript";
 
@@ -25,7 +26,10 @@ export function transformWritableExpression(
 			node.name.text,
 		);
 	} else if (ts.isElementAccessExpression(node)) {
-		const [expression, index] = ensureTransformOrder(state, [node.expression, node.argumentExpression]);
+		let [expression, index] = ensureTransformOrder(state, [node.expression, node.argumentExpression]);
+		if (isLateRead(expression) && !effectsCommute(getEffects(expression), getEffects(index))) {
+			expression = state.pushToVar(expression, "exp");
+		}
 		const indexExp = addOneIfArrayType(state, state.getType(node.expression), index);
 		return luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 			expression: readAfterWrite
@@ -47,11 +51,35 @@ export function transformWritableAssignment(
 	readAfterWrite = false,
 	readBeforeWrite = false,
 ) {
-	const writable = transformWritableExpression(state, writeNode, readAfterWrite);
+	let writable = transformWritableExpression(state, writeNode, readAfterWrite);
 	const [value, prereqs] = state.capture(() => transformExpression(state, valueNode));
-
-	// if !readBeforeWrite, readable won't be used anyways
-	const readable = !readBeforeWrite || luau.list.isEmpty(prereqs) ? writable : state.pushToVar(writable, "readable");
+	const prereqEffects = getEffects(prereqs);
+	const valueEffects = getEffects(value);
+	const effects = joinEffects(prereqEffects, valueEffects);
+	// Luau evaluates complex bases and keys before an inline RHS, but can read
+	// locals at the store instruction. Hoisted prerequisites precede both.
+	const intervening = (expression: luau.Expression) =>
+		joinEffects(prereqEffects, isLateRead(expression) ? valueEffects : NO_EFFECTS);
+	// the assignment target and its old value may need separate snapshots
+	if (!luau.isAnyIdentifier(writable)) {
+		const base = writable.expression;
+		const index = luau.isComputedIndexExpression(writable) ? writable.index : undefined;
+		const captureIndex = index !== undefined && !effectsCommute(getEffects(index), intervening(index));
+		const baseEffects = captureIndex ? joinEffects(intervening(base), getEffects(index)) : intervening(base);
+		const stableBase = !effectsCommute(getEffects(base), baseEffects) ? state.pushToVar(base, "exp") : base;
+		if (luau.isComputedIndexExpression(writable)) {
+			writable = luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+				expression: stableBase,
+				index: captureIndex ? state.pushToVar(writable.index, "index") : writable.index,
+			});
+		} else {
+			writable = luau.property(stableBase, writable.name);
+		}
+	}
+	const readable =
+		readBeforeWrite && !effectsCommute(getEffects(writable), effects)
+			? state.pushToVar(writable, "readable")
+			: writable;
 	state.prereqList(prereqs);
 
 	return { writable, readable, value };

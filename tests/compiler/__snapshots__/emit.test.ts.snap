@@ -1,0 +1,9 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`emits a module export 1`] = `
+"local message = "hello"
+return {
+	message = message,
+}
+"
+`;

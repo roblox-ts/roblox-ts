@@ -1,0 +1,28 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`preserves string literal spelling 1`] = `
+"local backslash = "a\\\\b"
+local unicodeBackslash = "a\\u{005c}b"
+local literalEscapeText = "a\\\\u005cb"
+local mixedQuotes = "a\\\\b'\\"c"
+-- prettier-ignore
+local singleQuotes = 'a\\\\b\\'"c'
+local controls = "\\n\\r\\t\\0\\x01"
+local unicodeBraces = "\\u{0041}"
+local separator = "X"
+local template = \`a\\u{005c}b{separator}c\\\\d{separator}e\\u{005c}f\`
+local literalTemplateEscape = \`\\\\u\\{0041\\}{separator}\\\\n\`
+return {
+	backslash = backslash,
+	unicodeBackslash = unicodeBackslash,
+	literalEscapeText = literalEscapeText,
+	mixedQuotes = mixedQuotes,
+	singleQuotes = singleQuotes,
+	controls = controls,
+	unicodeBraces = unicodeBraces,
+	separator = separator,
+	template = template,
+	literalTemplateEscape = literalTemplateEscape,
+}
+"
+`;

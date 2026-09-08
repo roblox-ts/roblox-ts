@@ -1,0 +1,13 @@
+{
+	"extends": "../../tsconfig.json",
+	"include": ["src"],
+	"references": [{ "path": "../common" }],
+	"compilerOptions": {
+		"composite": true,
+		"rootDir": "src",
+		"outDir": "out",
+		"declarationDir": "out/types",
+		"declarationMap": true,
+		"tsBuildInfoFile": "out/build.tsbuildinfo"
+	}
+}

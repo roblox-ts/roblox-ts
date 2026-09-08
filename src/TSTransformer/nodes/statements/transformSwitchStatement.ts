@@ -3,6 +3,7 @@ import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { createHoistDeclaration } from "TSTransformer/util/createHoistDeclaration";
+import { expressionMightMutate } from "TSTransformer/util/expressionMightMutate";
 import ts from "typescript";
 
 function transformCaseClauseExpression(
@@ -12,11 +13,25 @@ function transformCaseClauseExpression(
 	fallThroughFlagId: luau.TemporaryIdentifier,
 	canFallThroughTo: boolean,
 ) {
+	const caseValueId = luau.tempId("caseValue");
 	let [expression, prereqStatements] = state.capture(() => transformExpression(state, caseClauseExpression));
+	const caseValueMightMutate = expressionMightMutate(state, expression, caseClauseExpression);
 
-	expression = luau.create(luau.SyntaxKind.ParenthesizedExpression, { expression });
+	if (caseValueMightMutate) {
+		luau.list.push(
+			prereqStatements,
+			luau.create(luau.SyntaxKind.VariableDeclaration, {
+				left: caseValueId,
+				right: expression,
+			}),
+		);
+	}
 
-	let condition: luau.Expression = luau.binary(switchExpression, "==", expression);
+	let condition: luau.Expression = luau.binary(
+		switchExpression,
+		"==",
+		caseValueMightMutate ? caseValueId : expression,
+	);
 
 	if (canFallThroughTo) {
 		if (!luau.list.isEmpty(prereqStatements)) {
@@ -110,7 +125,10 @@ function transformCaseClause(
 }
 
 export function transformSwitchStatement(state: TransformState, node: ts.SwitchStatement) {
-	const expression = state.pushToVarIfComplex(transformExpression(state, node.expression), "exp");
+	const switchExpression = transformExpression(state, node.expression);
+	const expression = expressionMightMutate(state, switchExpression, node.expression)
+		? state.pushToVar(switchExpression, "exp")
+		: state.pushToVarIfComplex(switchExpression, "exp");
 	const fallThroughFlagId = luau.tempId("fallthrough");
 
 	let isFallThroughFlagNeeded = false;

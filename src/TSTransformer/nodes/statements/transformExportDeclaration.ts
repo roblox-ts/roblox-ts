@@ -1,6 +1,7 @@
 import luau from "@roblox-ts/luau-ast";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
+import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
 import { cleanModuleName } from "TSTransformer/util/cleanModuleName";
 import { createImportExpression } from "TSTransformer/util/createImportExpression";
 import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
@@ -74,9 +75,15 @@ function transformExportFrom(state: TransformState, node: ts.ExportDeclaration) 
 					luau.list.push(
 						statements,
 						luau.create(luau.SyntaxKind.Assignment, {
-							left: luau.property(moduleId, element.name.text),
+							left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+								expression: moduleId,
+								index: transformPropertyName(state, element.name),
+							}),
 							operator: "=",
-							right: luau.property(importExp, (element.propertyName ?? element.name).text),
+							right: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+								expression: importExp,
+								index: transformPropertyName(state, element.propertyName ?? element.name),
+							}),
 						}),
 					);
 				}
@@ -86,7 +93,10 @@ function transformExportFrom(state: TransformState, node: ts.ExportDeclaration) 
 			luau.list.push(
 				statements,
 				luau.create(luau.SyntaxKind.Assignment, {
-					left: luau.property(moduleId, exportClause.name.text),
+					left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+						expression: moduleId,
+						index: transformPropertyName(state, exportClause.name),
+					}),
 					operator: "=",
 					right: importExp,
 				}),
