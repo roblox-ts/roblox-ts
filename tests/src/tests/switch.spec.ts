@@ -47,6 +47,45 @@ export = () => {
 		expect(bar("d")).to.equal(4);
 	});
 
+	it("should evaluate each case expression once", () => {
+		let evaluations = 0;
+		function getCase(value: number) {
+			evaluations++;
+			return value;
+		}
+
+		switch (3) {
+			case getCase(1):
+			case getCase(2):
+			case getCase(3):
+				break;
+			case getCase(4):
+				break;
+		}
+
+		expect(evaluations).to.equal(3);
+	});
+
+	it("should evaluate the switch expression only once", () => {
+		let a = 1;
+		let matchedAfterMutation = false;
+
+		function increaseA() {
+			a++;
+			return 0;
+		}
+
+		switch (a) {
+			case increaseA():
+				break;
+			case 2:
+				matchedAfterMutation = true;
+				break;
+		}
+
+		expect(matchedAfterMutation).to.equal(false);
+	});
+
 	it("should support switch statements with remaining empty conditions", () => {
 		function bar(s: string) {
 			switch (s) {
