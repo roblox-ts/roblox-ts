@@ -466,8 +466,8 @@ export function transformForOfRangeMacro(
 			id,
 			start,
 			end,
-			// a literal step (including unary-minus literals like `-1`) is a known constant;
-			// only a dynamic step needs the `or 1` guard against a runtime `0`
+			// a numeric for loop throws on a nil step, so a dynamic step falls back to 1;
+			// a literal step (including unary-minus literals like `-1`) can never be nil
 			step:
 				step === undefined || getLiteralNumberValue(step) !== undefined
 					? step
