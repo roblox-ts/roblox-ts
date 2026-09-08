@@ -121,7 +121,7 @@ export class ProjectBuild {
 			for (const input of state.inputs) {
 				if (
 					this.isOutputPath(input) ||
-					roots.some(root => isPathDescendantOf(input, root)) ||
+					roots.some(root => isPathDescendantOf(input, projectPathKey(root))) ||
 					input.split(path.sep).some(part => part === "node_modules" || part === ".git")
 				) {
 					continue;
@@ -149,8 +149,9 @@ export class ProjectBuild {
 	}
 
 	public isRojoConfigDirectory(directory: string) {
+		const key = projectPathKey(directory);
 		return [...this.graph.projects.values()].some(({ data }) =>
-			data.rojoConfigDirectories?.some(root => isPathDescendantOf(directory, root)),
+			data.rojoConfigDirectories?.some(root => isPathDescendantOf(key, projectPathKey(root))),
 		);
 	}
 
@@ -297,8 +298,8 @@ export class ProjectBuild {
 		if (!result.emitSkipped) {
 			syncProjectOutputs(outputs, data.projectOptions.writeOnlyChanged);
 			if (
-				[...outputs.assets].some(
-					([output, input]) =>
+				[...outputs.assets.values()].some(
+					({ output, input }) =>
 						this.isConfigPath(output) &&
 						data.rojoConfigFiles?.get(output) !== fs.readFileSync(input, "utf8"),
 				)

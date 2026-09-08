@@ -15,6 +15,14 @@ beforeEach(() => {
 });
 afterEach(() => fixture.close());
 
+it("preserves filename casing when copying project assets", () => {
+	fixture.json("shared/src/MixedCase.project.json", { name: "nested", tree: {} });
+
+	expectSuccess(fixture.createBuild().build());
+
+	expect(fs.readdirSync(fixture.file("out/shared"))).toContain("MixedCase.project.json");
+});
+
 it("does not treat a JSON module with an empty project name as a project config", () => {
 	fixture.json("assets/.project.json", { value: 1 });
 	fixture.rojo({ assets: { $path: "assets" } });

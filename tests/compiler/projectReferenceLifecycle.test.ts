@@ -1,4 +1,6 @@
+import { execFileSync } from "child_process";
 import fs from "fs-extra";
+import path from "path";
 import { createProjectProgram } from "Project";
 import { compileFiles } from "Project/functions/compileFiles";
 import { createPathTranslator } from "Project/functions/createPathTranslator";
@@ -11,6 +13,55 @@ beforeEach(() => {
 	fixture = new ReferenceFixture();
 });
 afterEach(() => fixture.close());
+
+it("releases replaced programs while retaining the current builder", () => {
+	fixture.project("game");
+
+	// a subprocess enables collection without changing the Jest process or its compiler instances
+	const output = execFileSync(
+		process.execPath,
+		[
+			"--expose-gc",
+			"-e",
+			`const assert = require("assert");
+const fs = require("fs");
+const { setImmediate } = require("timers/promises");
+const { createProgramFactory } = require(process.argv[1]);
+const { ProjectBuild } = require(process.argv[2]);
+const build = new ProjectBuild(process.argv[3], JSON.parse(process.argv[4]));
+const sourceFile = process.argv[5];
+(async () => {
+	try {
+		const { data, config } = build.graph.root;
+		const create = createProgramFactory(data, config.options);
+		let builder = create(config.fileNames, config.options);
+		assert.equal(builder.getSemanticDiagnostics().length, 0);
+		const previous = new WeakRef(builder.getProgram());
+		fs.writeFileSync(sourceFile, "export const value = 2;");
+		builder = create(config.fileNames, config.options, undefined, builder);
+		assert.equal(builder.getSemanticDiagnostics().length, 0);
+		for (let attempt = 0; attempt < 3; attempt++) {
+			await setImmediate();
+			global.gc();
+		}
+		assert.equal(previous.deref() === undefined, true, "previous program remains reachable");
+		assert.equal(builder.getProgram().getSourceFile(sourceFile).text, "export const value = 2;");
+		console.log("previous program released");
+	} finally {
+		build.close();
+	}
+})();`,
+			path.join(constants.PACKAGE_ROOT, "out/Project/functions/createProgramFactory.js"),
+			path.join(constants.PACKAGE_ROOT, "out/Project/classes/ProjectBuild.js"),
+			fixture.file("game/tsconfig.json"),
+			JSON.stringify(fixture.options()),
+			fixture.file("game/src/index.ts"),
+		],
+		{ encoding: "utf8" },
+	);
+
+	expect(output.trim()).toBe("previous program released");
+});
 
 it("preserves nested bundled runtime files while cleaning generated output", () => {
 	fixture.project("game");

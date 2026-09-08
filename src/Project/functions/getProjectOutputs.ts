@@ -12,7 +12,7 @@ import ts from "typescript";
 export interface ProjectOutputs {
 	roots: Array<string>;
 	files: Map<string, string | undefined>;
-	assets: Map<string, string>;
+	assets: Map<string, { input: string; output: string }>;
 }
 
 export function getOutputRoots(project: ProjectNode) {
@@ -82,7 +82,7 @@ export function validateProjectOutputs(graph: ProjectGraph) {
 export function getProjectOutputs(project: ProjectNode, graph: ProjectGraph): ProjectOutputs {
 	const roots = getOutputRoots(project);
 	const files = new Map<string, string | undefined>();
-	const assets = new Map<string, string>();
+	const assets = new Map<string, { input: string; output: string }>();
 
 	const translator = project.pathTranslator;
 	assert(translator);
@@ -151,7 +151,7 @@ export function getProjectOutputs(project: ProjectNode, graph: ProjectGraph): Pr
 
 			const output = translator.getOutputPath(input);
 			addOutput(output, input);
-			assets.set(projectPathKey(output), input);
+			assets.set(projectPathKey(output), { input, output });
 		}
 	};
 
@@ -195,7 +195,7 @@ export function getProjectOutputs(project: ProjectNode, graph: ProjectGraph): Pr
 }
 
 export function syncProjectOutputs(outputs: ProjectOutputs, writeOnlyChanged: boolean) {
-	for (const [output, input] of outputs.assets) {
+	for (const { output, input } of outputs.assets.values()) {
 		if (writeOnlyChanged && fs.existsSync(output) && fs.readFileSync(output).equals(fs.readFileSync(input))) {
 			continue;
 		}

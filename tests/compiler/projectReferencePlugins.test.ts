@@ -10,6 +10,18 @@ beforeEach(() => {
 });
 afterEach(() => fixture.close());
 
+it("preserves filename casing when rebinding plugin output", () => {
+	fixture.project("game", [], { plugins: [{ transform: "../identity.cjs" }] });
+	fixture.write("identity.cjs", "module.exports = () => () => source => source;");
+	fixture.write("game/src/MixedCase.ts", "export const value = 1;");
+	fixture.write("game/src/index.ts", 'export { value } from "./MixedCase";');
+
+	expectSuccess(fixture.createBuild().build());
+
+	expect(fs.readdirSync(fixture.file("out/game"))).toContain("MixedCase.luau");
+	expect(fixture.read("out/game/init.luau")).toContain('"MixedCase"');
+});
+
 it("refreshes declarations imported only by transformed source", () => {
 	fixture.project("game", [], { plugins: [{ transform: "../replace.cjs" }] });
 	fixture.write(

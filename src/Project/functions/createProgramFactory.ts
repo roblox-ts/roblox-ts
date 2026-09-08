@@ -50,11 +50,13 @@ export function createProgramFactory(
 		refs = projectReferences,
 	) => {
 		const previousProgram = oldProgram?.getProgramOrUndefined();
+		const getSourceFile = host.getSourceFile;
+		const hasInvalidatedResolutions = host.hasInvalidatedResolutions;
 		if (previousProgram) {
 			// a fresh host cannot validate the previous program's cached module resolutions
-			host.hasInvalidatedResolutions ??= () => true;
+			// TypeScript retains this callback, so it must not capture the previous program's scope
+			host.hasInvalidatedResolutions ??= ts.returnTrue;
 
-			const getSourceFile = host.getSourceFile;
 			host.getSourceFile = (fileName, languageVersion, onError, shouldCreateNewSourceFile) => {
 				const previous = previousProgram.getSourceFile(fileName);
 				const sourceFile = previous?.redirectInfo?.unredirected ?? previous;
@@ -80,13 +82,19 @@ export function createProgramFactory(
 			};
 		}
 
-		return ts.createEmitAndSemanticDiagnosticsBuilderProgram(
-			rootNames,
-			compilerOptions,
-			host,
-			oldProgram,
-			configFileParsingDiagnostics,
-			refs,
-		);
+		try {
+			return ts.createEmitAndSemanticDiagnosticsBuilderProgram(
+				rootNames,
+				compilerOptions,
+				host,
+				oldProgram,
+				configFileParsingDiagnostics,
+				refs,
+			);
+		} finally {
+			// keeping the reuse closure would retain every previous program through its compiler host
+			host.getSourceFile = getSourceFile;
+			host.hasInvalidatedResolutions = hasInvalidatedResolutions;
+		}
 	};
 }
