@@ -8,7 +8,7 @@ import { DEFAULT_PROJECT_OPTIONS } from "Shared/constants";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { formatDiagnostics } from "Shared/util/formatDiagnostics";
 
-import { expectSuccess, ReferenceFixture } from "./referenceFixture";
+import { expectSuccess, ReferenceFixture } from "../referenceFixture";
 
 let fixture: ReferenceFixture;
 beforeEach(() => {

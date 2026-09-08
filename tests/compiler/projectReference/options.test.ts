@@ -4,7 +4,7 @@ import { ProjectBuild } from "Project/classes/ProjectBuild";
 import { readProjectOptions } from "Project/functions/readProjectOptions";
 import { LogService } from "Shared/classes/LogService";
 
-import { expectSuccess, ReferenceFixture } from "./referenceFixture";
+import { expectSuccess, ReferenceFixture } from "../referenceFixture";
 
 jest.setTimeout(30000);
 

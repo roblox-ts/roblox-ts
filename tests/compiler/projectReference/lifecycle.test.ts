@@ -8,7 +8,7 @@ import { createProgramFactory } from "Project/functions/createProgramFactory";
 import * as constants from "Shared/constants";
 import ts from "typescript";
 
-import { expectSuccess, ReferenceFixture } from "./referenceFixture";
+import { expectSuccess, ReferenceFixture } from "../referenceFixture";
 
 let fixture: ReferenceFixture;
 beforeEach(() => {

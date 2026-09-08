@@ -2,7 +2,7 @@ import fs from "fs-extra";
 import { projectPathKey } from "Project/classes/ProjectGraph";
 import { LogService } from "Shared/classes/LogService";
 
-import { expectSuccess, ReferenceFixture, startWatch } from "./referenceFixture";
+import { expectSuccess, ReferenceFixture, startWatch } from "../referenceFixture";
 
 jest.setTimeout(30000);
 

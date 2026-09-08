@@ -5,7 +5,7 @@ import { ProjectType } from "Shared/constants";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { formatDiagnostics } from "Shared/util/formatDiagnostics";
 
-import { expectSuccess, ReferenceFixture, startWatch } from "./referenceFixture";
+import { expectSuccess, ReferenceFixture, startWatch } from "../referenceFixture";
 
 jest.setTimeout(30000);
 

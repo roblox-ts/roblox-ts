@@ -4,7 +4,7 @@ import { compileFiles } from "Project/functions/compileFiles";
 import { createPathTranslator } from "Project/functions/createPathTranslator";
 import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
 
-import { expectSuccess, ReferenceFixture } from "./referenceFixture";
+import { expectSuccess, ReferenceFixture } from "../referenceFixture";
 
 jest.setTimeout(30000);
 

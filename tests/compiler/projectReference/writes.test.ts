@@ -1,6 +1,6 @@
 import fs from "fs-extra";
 
-import { expectSuccess, ReferenceFixture } from "./referenceFixture";
+import { expectSuccess, ReferenceFixture } from "../referenceFixture";
 
 it("preserves unchanged declaration and map files when writeOnlyChanged is enabled", () => {
 	const fixture = new ReferenceFixture();

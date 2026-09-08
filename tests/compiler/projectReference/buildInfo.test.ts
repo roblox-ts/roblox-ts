@@ -4,7 +4,7 @@ import path from "path";
 import { PACKAGE_ROOT } from "Shared/constants";
 import { assert } from "Shared/util/assert";
 
-import { expectSuccess, ReferenceFixture } from "./referenceFixture";
+import { expectSuccess, ReferenceFixture } from "../referenceFixture";
 
 let fixture: ReferenceFixture;
 beforeEach(() => {

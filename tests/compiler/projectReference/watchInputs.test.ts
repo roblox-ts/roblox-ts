@@ -1,7 +1,7 @@
 import path from "path";
 import { projectPathKey } from "Project/classes/ProjectGraph";
 
-import { expectSuccess, ReferenceFixture, startWatch } from "./referenceFixture";
+import { expectSuccess, ReferenceFixture, startWatch } from "../referenceFixture";
 
 let fixture: ReferenceFixture;
 beforeEach(() => {
