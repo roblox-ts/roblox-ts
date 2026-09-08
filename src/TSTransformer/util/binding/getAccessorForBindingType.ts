@@ -13,6 +13,7 @@ import {
 	isMapType,
 	isObjectType,
 	isSetType,
+	isSharedTableType,
 	isStringType,
 } from "TSTransformer/util/types";
 import ts from "typescript";
@@ -147,7 +148,7 @@ export function getAccessorForBindingType(state: TransformState, node: ts.Node, 
 		return stringAccessor;
 	} else if (isDefinitelyType(type, isSetType(state))) {
 		return setAccessor;
-	} else if (isDefinitelyType(type, isMapType(state))) {
+	} else if (isDefinitelyType(type, isMapType(state)) || isDefinitelyType(type, isSharedTableType(state))) {
 		return mapAccessor;
 	} else if (isDefinitelyType(type, isIterableFunctionLuaTupleType(state))) {
 		return iterableFunctionLuaTupleAccessor;

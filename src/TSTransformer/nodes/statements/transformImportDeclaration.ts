@@ -3,6 +3,7 @@ import { Lazy } from "Shared/classes/Lazy";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformVariable } from "TSTransformer/nodes/statements/transformVariableStatement";
+import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
 import { cleanModuleName } from "TSTransformer/util/cleanModuleName";
 import { createImportExpression } from "TSTransformer/util/createImportExpression";
 import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfNode";
@@ -39,7 +40,9 @@ function countImportExpUses(state: TransformState, importClause: ts.ImportClause
 export function transformImportDeclaration(state: TransformState, node: ts.ImportDeclaration) {
 	// no emit for type only
 	const importClause = node.importClause;
-	if (importClause && importClause.isTypeOnly) return luau.list.make<luau.Statement>();
+	if (importClause && importClause.phaseModifier === ts.SyntaxKind.TypeKeyword) {
+		return luau.list.make<luau.Statement>();
+	}
 
 	const statements = luau.list.make<luau.Statement>();
 
@@ -109,7 +112,10 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 								transformVariable(
 									state,
 									element.name,
-									luau.property(importExp.get(), (element.propertyName ?? element.name).text),
+									luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+										expression: importExp.get(),
+										index: transformPropertyName(state, element.propertyName ?? element.name),
+									}),
 								),
 							),
 						);

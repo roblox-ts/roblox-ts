@@ -1,5 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
+import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
@@ -16,6 +17,10 @@ export const objectAccessor = (
 ): luau.Expression => {
 	addIndexDiagnostics(state, name, state.getType(name));
 
+	// NoSubstitutionTemplateLiteral is part of ts.PropertyName but TS rejects it as a binding key
+	// (TS1180/TS1136), so it can never reach here
+	assert(!ts.isNoSubstitutionTemplateLiteral(name));
+
 	if (ts.isIdentifier(name)) {
 		return luau.property(parentId, name.text);
 	} else if (ts.isComputedPropertyName(name)) {
@@ -23,7 +28,7 @@ export const objectAccessor = (
 			expression: parentId,
 			index: addOneIfArrayType(state, type, transformExpression(state, name.expression)),
 		});
-	} else if (ts.isNumericLiteral(name) || ts.isStringLiteral(name) || ts.isNoSubstitutionTemplateLiteral(name)) {
+	} else if (ts.isNumericLiteral(name) || ts.isStringLiteral(name) || ts.isBigIntLiteral(name)) {
 		return luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 			expression: parentId,
 			index: transformExpression(state, name),

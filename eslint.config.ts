@@ -1,10 +1,11 @@
 import eslint from "@eslint/js";
 import comments from "@eslint-community/eslint-plugin-eslint-comments";
+import { defineConfig } from "eslint/config";
 import prettier from "eslint-plugin-prettier/recommended";
 import simpleImportSort from "eslint-plugin-simple-import-sort";
 import tseslint from "typescript-eslint";
 
-export default tseslint.config(
+export default defineConfig(
 	eslint.configs.recommended,
 	...tseslint.configs.recommended,
 	prettier,
@@ -14,7 +15,12 @@ export default tseslint.config(
 			parserOptions: {
 				ecmaVersion: "latest",
 				sourceType: "module",
-				project: ["./tsconfig.json", "./tsconfig.eslint.json", "./src/*/tsconfig.json"],
+				project: [
+					"./tsconfig.json",
+					"./tsconfig.eslint.json",
+					"./src/*/tsconfig.json",
+					"./tests/compiler/tsconfig.json",
+				],
 				ecmaFeatures: { jsx: true },
 			},
 		},
@@ -58,6 +64,22 @@ export default tseslint.config(
 		},
 	},
 	{
-		ignores: ["node_modules/", "tests/", "out/", "coverage/", "devlink/"],
+		files: ["tests/compiler/**/*.ts"],
+		rules: {
+			"no-restricted-imports": "off",
+		},
+	},
+	{
+		ignores: [
+			"node_modules/",
+			"tests/src/",
+			"tests/out/",
+			"tests/include/",
+			"tests/node_modules/",
+			"out/",
+			"coverage/",
+			"devlink/",
+			"jest.config.ts",
+		],
 	},
 );

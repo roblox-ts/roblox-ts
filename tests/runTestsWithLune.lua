@@ -42,6 +42,24 @@ roblox.implementProperty("RunService", "Heartbeat", function()
 	return {}
 end, function() end)
 
+local SharedTable = {}
+
+function SharedTable.new()
+	return setmetatable({
+		items = {},
+	}, {
+		__index = function(self, key)
+			return self.items[key]
+		end,
+		__newindex = function(self, key, value)
+			self.items[key] = value
+		end,
+		__iter = function(self)
+			return next, self.items
+		end,
+	})
+end
+
 local robloxRequire
 
 local function runRobloxScript(script: LuaSourceContainer)
@@ -53,6 +71,7 @@ local function runRobloxScript(script: LuaSourceContainer)
 			require = robloxRequire,
 			tick = tick,
 			task = task,
+			SharedTable = SharedTable,
 		}),
 	})
 
