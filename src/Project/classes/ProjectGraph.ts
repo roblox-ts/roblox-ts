@@ -2,11 +2,13 @@ import { PathTranslator } from "@roblox-ts/path-translator";
 import path from "path";
 import { createProjectData } from "Project/functions/createProjectData";
 import { getParsedCommandLine } from "Project/functions/getParsedCommandLine";
+import { getRojoProject } from "Project/functions/getRojoProject";
 import { parseProjectConfig } from "Project/functions/parseProjectConfig";
 import { DEFAULT_PROJECT_OPTIONS } from "Shared/constants";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { ProjectData, ProjectOptions } from "Shared/types";
 import { assert } from "Shared/util/assert";
+import { createTextDiagnostic } from "Shared/util/createTextDiagnostic";
 import { findAncestorDir } from "Shared/util/findAncestorDir";
 import { getCanonicalFileName } from "Shared/util/getCanonicalFileName";
 import { getRootDirs } from "Shared/util/getRootDirs";
@@ -22,6 +24,7 @@ export interface ProjectNode {
 	config: ts.ParsedCommandLine;
 	dependencies: Array<string>;
 	pathTranslator: PathTranslator | undefined;
+	tsBuildInfoPath: string | undefined;
 }
 
 export class ProjectGraph {
@@ -40,11 +43,21 @@ export class ProjectGraph {
 		}
 
 		const configs = new Map<string, ts.ParsedCommandLine>();
+		const tsBuildInfoPaths = new Map<string, string>();
 		const host = ts.createSolutionBuilderHost();
 		host.getParsedCommandLine = configPath => {
 			this.configPaths.add(path.normalize(configPath));
 
 			const config = parseProjectConfig(configPath);
+			const tsBuildInfoPath = ts.getTsBuildInfoEmitOutputFilePath(config.options);
+			if (tsBuildInfoPath !== undefined) {
+				tsBuildInfoPaths.set(projectPathKey(configPath), path.normalize(tsBuildInfoPath));
+				const basePath = tsBuildInfoPath.endsWith(".tsbuildinfo")
+					? tsBuildInfoPath.slice(0, -".tsbuildinfo".length)
+					: tsBuildInfoPath;
+				// tsc and rbxtsc use different source hashes and must not overwrite each other's cache
+				config.options.tsBuildInfoFile = `${basePath}.rbxtsc.tsbuildinfo`;
+			}
 			configs.set(projectPathKey(configPath), config);
 
 			const configFile = config.options.configFile;
@@ -84,7 +97,7 @@ export class ProjectGraph {
 
 							noInclude: true,
 							includePath: rootData.projectOptions.includePath,
-							rojo: rootData.rojoConfigPath,
+							rojo: config.raw.rbxts.rojo ?? rootData.rojoConfigPath,
 						});
 
 			let pathTranslator: PathTranslator | undefined;
@@ -112,6 +125,7 @@ export class ProjectGraph {
 				data,
 				config,
 				pathTranslator,
+				tsBuildInfoPath: tsBuildInfoPaths.get(key),
 				dependencies: (config.projectReferences ?? []).map(ref =>
 					projectPathKey(ts.resolveProjectReferencePath(ref)),
 				),
@@ -124,6 +138,64 @@ export class ProjectGraph {
 
 		this.validateReferences();
 		this.mapReferencePaths();
+		this.refreshRojoProjects();
+	}
+
+	public refreshRojoProjects() {
+		const rojoProjects = new Map<string, ReturnType<typeof getRojoProject>>();
+		for (const { data } of this.projects.values()) {
+			if (!data.rojoConfigPath) {
+				continue;
+			}
+			// retain newly selected paths even when the project file has not been created yet
+			this.configPaths.add(data.rojoConfigPath);
+			const key = projectPathKey(data.rojoConfigPath);
+			let rojo = rojoProjects.get(key);
+			if (!rojo) {
+				rojo = getRojoProject(data.rojoConfigPath);
+				rojoProjects.set(key, rojo);
+			}
+			Object.assign(data, rojo);
+		}
+		this.validateReferenceRojoPaths();
+	}
+
+	private validateReferenceRojoPaths() {
+		for (const project of this.projects.values()) {
+			for (const key of project.dependencies) {
+				const reference = this.projects.get(key);
+				assert(reference);
+				const owner = reference.data.rojoResolver;
+				const consumer = project.data.rojoResolver;
+				if (!reference.pathTranslator || !owner || owner === consumer || !reference.config.raw.rbxts.rojo) {
+					continue;
+				}
+
+				const paths = new Set(reference.data.projectReferencePaths?.values());
+				for (const fileName of reference.config.fileNames) {
+					if (
+						ts.isDeclarationFileName(fileName) &&
+						!isPathDescendantOf(fileName, reference.pathTranslator.rootDir)
+					) {
+						continue;
+					}
+					paths.add(reference.pathTranslator.getImportPath(fileName));
+				}
+				paths.add(path.join(reference.data.projectOptions.includePath, "RuntimeLib.lua"));
+
+				for (const filePath of paths) {
+					const ownerPath = owner.getRbxPathFromFilePath(filePath);
+					const consumerPath = consumer?.getRbxPathFromFilePath(filePath);
+					if (JSON.stringify(ownerPath) !== JSON.stringify(consumerPath)) {
+						throw new DiagnosticError([
+							createTextDiagnostic(
+								`Project "${project.data.tsConfigPath}" must mount "${filePath}" at the same Roblox path as "${reference.data.rojoConfigPath}" (${ownerPath?.join(".") ?? "unmapped"}). Referenced projects with their own rbxts.rojo require consistent module and runtime mounts.`,
+							),
+						]);
+					}
+				}
+			}
+		}
 	}
 
 	private validateReferences() {

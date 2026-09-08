@@ -1,4 +1,5 @@
 import chokidar from "chokidar";
+import fs from "fs-extra";
 import path from "path";
 import { ProjectBuild } from "Project/classes/ProjectBuild";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
@@ -26,9 +27,11 @@ export function setupProjectWatchProgram(build: ProjectBuild, usePolling: boolea
 	const pending = new Set<string>();
 	let timeout: NodeJS.Timeout | undefined;
 	let ready = false;
+	let closed = false;
 
 	let activePaths = build.getWatchPaths();
 	const subscribedPaths = new Set(activePaths);
+	const missingPaths = new Map<string, () => void>();
 	const overlapsActivePath = (filePath: string) =>
 		activePaths.some(active => isPathDescendantOf(filePath, active) || isPathDescendantOf(active, filePath));
 
@@ -37,8 +40,41 @@ export function setupProjectWatchProgram(build: ProjectBuild, usePolling: boolea
 		ignoreInitial: false,
 		usePolling,
 		awaitWriteFinish: { pollInterval: 10, stabilityThreshold: 50 },
-		ignored: filePath => build.isOutputPath(filePath) || ["node_modules", ".git"].includes(path.basename(filePath)),
+		ignored: (filePath, stats) => {
+			if (build.isConfigPath(filePath)) {
+				return false;
+			}
+			if (build.isOutputPath(filePath) || ["node_modules", ".git"].includes(path.basename(filePath))) {
+				return !((!stats || stats.isDirectory()) && build.isRojoConfigDirectory(filePath));
+			}
+			// mapped directories are watched for project files, without subscribing to their unrelated assets
+			return Boolean(
+				stats?.isFile() && build.isRojoConfigDirectory(filePath) && !build.isSourceInputPath(filePath),
+			);
+		},
 	});
+
+	const updateMissingPaths = () => {
+		const missing = new Set(activePaths.filter(filePath => !fs.existsSync(filePath)));
+		for (const [filePath, close] of missingPaths) {
+			if (!missing.has(filePath)) {
+				close();
+				missingPaths.delete(filePath);
+			}
+		}
+		for (const filePath of missing) {
+			if (!missingPaths.has(filePath)) {
+				// chokidar can miss file creation when multiple parent directories are also missing
+				const listener = (current: fs.Stats) => {
+					if (current.nlink > 0) {
+						collect(filePath);
+					}
+				};
+				fs.watchFile(filePath, { interval: 250 }, listener);
+				missingPaths.set(filePath, () => fs.unwatchFile(filePath, listener));
+			}
+		}
+	};
 
 	const compile = (initial = false) => {
 		timeout = undefined;
@@ -75,6 +111,7 @@ export function setupProjectWatchProgram(build: ProjectBuild, usePolling: boolea
 		for (const filePath of activePaths) {
 			subscribedPaths.add(filePath);
 		}
+		updateMissingPaths();
 
 		for (const diagnostic of diagnostics) {
 			diagnosticReporter(diagnostic);
@@ -86,7 +123,7 @@ export function setupProjectWatchProgram(build: ProjectBuild, usePolling: boolea
 	};
 
 	const collect = (filePath: string) => {
-		if (!overlapsActivePath(filePath)) {
+		if (closed || !overlapsActivePath(filePath)) {
 			return;
 		}
 
@@ -114,9 +151,14 @@ export function setupProjectWatchProgram(build: ProjectBuild, usePolling: boolea
 
 	return {
 		async close() {
+			closed = true;
 			if (timeout) {
 				clearTimeout(timeout);
 			}
+			for (const close of missingPaths.values()) {
+				close();
+			}
+			missingPaths.clear();
 			await watcher.close();
 			build.close();
 		},

@@ -59,9 +59,9 @@ export function compileFiles(
 
 	const outDir = compilerOptions.outDir!;
 
-	const rojoResolver = data.rojoConfigPath
-		? RojoResolver.fromPath(data.rojoConfigPath)
-		: RojoResolver.synthetic(outDir);
+	const rojoResolver =
+		data.rojoResolver ??
+		(data.rojoConfigPath ? RojoResolver.fromPath(data.rojoConfigPath) : RojoResolver.synthetic(outDir));
 
 	for (const warning of rojoResolver.getWarnings()) {
 		LogService.warn(warning);
@@ -106,14 +106,18 @@ export function compileFiles(
 	const progressMaxLength = `${sourceFiles.length}/${sourceFiles.length}`.length;
 
 	let proxyProgram = program;
+	let pluginAfterDeclarations: ts.CustomTransformers["afterDeclarations"];
 
 	if (compilerOptions.plugins && compilerOptions.plugins.length > 0) {
 		benchmarkIfVerbose(`running transformers..`, () => {
 			const pluginConfigs = getPluginConfigs(data.tsConfigPath);
 			const transformerList = createTransformerList(program, pluginConfigs, data.projectPath);
+			pluginAfterDeclarations = transformerList.afterDeclarations;
 			const transformers = flattenIntoTransformers(transformerList);
 			if (transformers.length > 0) {
-				const { service, updateFile } = (data.transformerWatcher ??= createTransformerWatcher(program));
+				const { service, updateFile, updateProgram } = (data.transformerWatcher ??=
+					createTransformerWatcher(program));
+				updateProgram(program);
 				const transformResult = ts.transformNodes(
 					undefined,
 					undefined,
@@ -188,7 +192,11 @@ export function compileFiles(
 	// declaration errors must not leave Luau and declaration outputs from different builds
 	const declarationWrites = new Map<string, string>();
 	if (emitDeclarations) {
-		const afterDeclarations = [transformTypeReferenceDirectives, transformPathsTransformer(program, {})];
+		const afterDeclarations = [
+			...(pluginAfterDeclarations ?? []),
+			transformTypeReferenceDirectives,
+			transformPathsTransformer(program, {}),
+		];
 		for (const { sourceFile } of fileWriteQueue) {
 			const result = proxyProgram.emit(
 				sourceFile,
@@ -219,7 +227,13 @@ export function compileFiles(
 			}
 
 			for (const [fileName, text] of declarationWrites) {
-				fs.outputFileSync(fileName, text);
+				if (
+					!data.projectOptions.writeOnlyChanged ||
+					!fs.pathExistsSync(fileName) ||
+					fs.readFileSync(fileName, "utf8") !== text
+				) {
+					fs.outputFileSync(fileName, text);
+				}
 			}
 		});
 	}

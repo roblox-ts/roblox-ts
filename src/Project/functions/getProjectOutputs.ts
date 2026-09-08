@@ -53,8 +53,10 @@ export function validateProjectOutputs(graph: ProjectGraph) {
 			owners.set(root, project);
 		}
 
-		const buildInfoPath = project.pathTranslator?.buildInfoOutputPath;
-		if (buildInfoPath) {
+		for (const buildInfoPath of [project.pathTranslator?.buildInfoOutputPath, project.tsBuildInfoPath]) {
+			if (!buildInfoPath) {
+				continue;
+			}
 			const key = projectPathKey(buildInfoPath);
 			if (buildInfoOwners.has(key)) {
 				throw new ProjectError(
@@ -116,9 +118,10 @@ export function getProjectOutputs(project: ProjectNode, graph: ProjectGraph): Pr
 	excluded.push(graph.root.data.projectOptions.includePath);
 
 	const buildInfoPaths = new Set(
-		[...graph.projects.values()].flatMap(node =>
-			node.pathTranslator?.buildInfoOutputPath ? [projectPathKey(node.pathTranslator.buildInfoOutputPath)] : [],
-		),
+		[...graph.projects.values()]
+			.flatMap(node => [node.pathTranslator?.buildInfoOutputPath, node.tsBuildInfoPath])
+			.filter((filePath): filePath is string => filePath !== undefined)
+			.map(projectPathKey),
 	);
 
 	const walk = (input: string) => {
@@ -176,6 +179,16 @@ export function getProjectOutputs(project: ProjectNode, graph: ProjectGraph): Pr
 
 	if (translator.buildInfoOutputPath) {
 		files.set(projectPathKey(translator.buildInfoOutputPath), undefined);
+	}
+	if (project.tsBuildInfoPath) {
+		files.set(projectPathKey(project.tsBuildInfoPath), undefined);
+	}
+	for (const node of graph.projects.values()) {
+		for (const configPath of node.data.rojoConfigFiles?.keys() ?? []) {
+			if (!files.has(projectPathKey(configPath))) {
+				files.set(projectPathKey(configPath), undefined);
+			}
+		}
 	}
 
 	return { roots, files, assets };

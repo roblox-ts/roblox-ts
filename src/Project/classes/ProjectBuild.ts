@@ -27,6 +27,7 @@ interface ProjectBuildState {
 	diagnostics: ReadonlyArray<ts.Diagnostic>;
 	dirty: boolean;
 	blocked: boolean;
+	builder?: ts.EmitAndSemanticDiagnosticsBuilderProgram;
 }
 
 export class ProjectBuild {
@@ -102,26 +103,64 @@ export class ProjectBuild {
 
 	public getWatchPaths() {
 		const paths = new Set(this.configPaths);
+		const roots = [...this.states.values()].flatMap(state =>
+			state.project.pathTranslator ? getRootDirs(state.project.config.options) : [],
+		);
+		for (const root of roots) {
+			paths.add(root);
+		}
 
 		for (const state of this.states.values()) {
-			if (state.project.pathTranslator) {
-				for (const root of getRootDirs(state.project.config.options)) {
-					paths.add(root);
-				}
+			for (const configPath of state.project.data.rojoConfigFiles?.keys() ?? []) {
+				paths.add(configPath);
 			}
-
-			if (state.project.data.rojoConfigPath) {
-				paths.add(state.project.data.rojoConfigPath);
+			for (const directory of state.project.data.rojoConfigDirectories ?? []) {
+				paths.add(directory);
 			}
 
 			for (const input of state.inputs) {
-				if (!this.isOutputPath(input)) {
-					paths.add(input);
+				if (
+					this.isOutputPath(input) ||
+					roots.some(root => isPathDescendantOf(input, root)) ||
+					input.split(path.sep).some(part => part === "node_modules" || part === ".git")
+				) {
+					continue;
 				}
+				paths.add(input);
 			}
 		}
 
 		return [...paths];
+	}
+
+	public isConfigPath(filePath: string) {
+		const key = projectPathKey(filePath);
+		if ([...this.configPaths].some(configPath => projectPathKey(configPath) === key)) {
+			return true;
+		}
+		for (const { data } of this.graph.projects.values()) {
+			if ([...(data.rojoConfigFiles?.keys() ?? [])].some(configPath => projectPathKey(configPath) === key)) {
+				return true;
+			}
+		}
+		return (
+			/^.+\.project\.json$/.test(path.basename(filePath)) && this.isRojoConfigDirectory(path.dirname(filePath))
+		);
+	}
+
+	public isRojoConfigDirectory(directory: string) {
+		return [...this.graph.projects.values()].some(({ data }) =>
+			data.rojoConfigDirectories?.some(root => isPathDescendantOf(directory, root)),
+		);
+	}
+
+	public isSourceInputPath(filePath: string) {
+		return [...this.states.values()].some(
+			state =>
+				state.inputs.has(projectPathKey(filePath)) ||
+				(state.project.pathTranslator &&
+					getRootDirs(state.project.config.options).some(root => isPathDescendantOf(filePath, root))),
+		);
 	}
 
 	public isOutputPath(filePath: string) {
@@ -132,8 +171,9 @@ export class ProjectBuild {
 
 		for (const project of this.graph.projects.values()) {
 			if (
-				project.pathTranslator?.buildInfoOutputPath &&
-				key === projectPathKey(project.pathTranslator.buildInfoOutputPath)
+				[project.pathTranslator?.buildInfoOutputPath, project.tsBuildInfoPath].some(
+					buildInfoPath => buildInfoPath && key === projectPathKey(buildInfoPath),
+				)
 			) {
 				return true;
 			}
@@ -147,13 +187,15 @@ export class ProjectBuild {
 	}
 
 	public build(changedFiles?: ReadonlyArray<string>, referencesOnly = false): ts.EmitResult {
+		// removed configs must be recognized before refreshing the dependency list
+		const rojoChanged = changedFiles?.some(file => this.isConfigPath(file) || this.isRojoConfigDirectory(file));
 		this.refresh();
 
-		const configChanged = changedFiles?.some(file =>
-			[...this.graph.configPaths, this.graph.root.data.rojoConfigPath].some(
-				config => config && projectPathKey(config) === projectPathKey(file),
-			),
-		);
+		const configChanged =
+			rojoChanged ||
+			changedFiles?.some(file =>
+				[...this.graph.configPaths].some(config => projectPathKey(config) === projectPathKey(file)),
+			);
 
 		for (const state of this.states.values()) {
 			const roots = state.project.pathTranslator ? getRootDirs(state.project.config.options) : [];
@@ -235,7 +277,7 @@ export class ProjectBuild {
 
 		const outputs = getProjectOutputs(state.project, this.graph);
 		const createProgram = createProgramFactory(data, config.options, config.projectReferences);
-		const builder = createProgram(config.fileNames, config.options);
+		const builder = createProgram(config.fileNames, config.options, undefined, state.builder);
 		const program = builder.getProgram();
 
 		state.inputs = new Set(program.getSourceFiles().map(file => projectPathKey(file.fileName)));
@@ -254,6 +296,17 @@ export class ProjectBuild {
 		const result = compileFiles(program, data, pathTranslator, [...sourceFiles]);
 		if (!result.emitSkipped) {
 			syncProjectOutputs(outputs, data.projectOptions.writeOnlyChanged);
+			if (
+				[...outputs.assets].some(
+					([output, input]) =>
+						this.isConfigPath(output) &&
+						data.rojoConfigFiles?.get(output) !== fs.readFileSync(input, "utf8"),
+				)
+			) {
+				// consumers must see project files just copied by a dependency
+				this.graph.refreshRojoProjects();
+			}
+			state.builder = builder;
 		}
 
 		return result;
@@ -262,6 +315,7 @@ export class ProjectBuild {
 	public close() {
 		for (const state of this.states.values()) {
 			state.project.data.transformerWatcher?.service.dispose();
+			state.builder = undefined;
 		}
 	}
 }

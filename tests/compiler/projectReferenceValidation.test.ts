@@ -144,7 +144,7 @@ it("builds a package without Rojo while excluding generated output and repositor
 		expect(fs.existsSync(fixture.file("game/out/node_modules"))).toBe(false);
 		expect(fs.existsSync(fixture.file("game/out/stale.lua"))).toBe(false);
 		expect(watchPaths).toContain(fixture.file("game"));
-		expect(build.isOutputPath(fixture.file("cache/game.tsbuildinfo"))).toBe(true);
+		expect(build.isOutputPath(fixture.file("cache/game.rbxtsc.tsbuildinfo"))).toBe(true);
 	} finally {
 		build.close();
 	}
@@ -199,8 +199,8 @@ it("disables incremental game builds in development mode while retaining composi
 	try {
 		expectSuccess(fixture.createBuild().build());
 
-		expect(fs.existsSync(fixture.file("cache/shared.tsbuildinfo"))).toBe(true);
-		expect(fs.existsSync(fixture.file("cache/game.tsbuildinfo"))).toBe(false);
+		expect(fs.existsSync(fixture.file("cache/shared.rbxtsc.tsbuildinfo"))).toBe(true);
+		expect(fs.existsSync(fixture.file("cache/game.rbxtsc.tsbuildinfo"))).toBe(false);
 		expect(fixture.read("out/shared/index.d.ts")).toContain("value = 1");
 		expect(fixture.read("out/game/init.luau")).toContain("value = 1");
 	} finally {

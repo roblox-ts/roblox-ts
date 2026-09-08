@@ -23,7 +23,9 @@ function createCompilerHost(data: ProjectData, compilerOptions: ts.CompilerOptio
 	})},`;
 	contentsToHash += `references=${JSON.stringify(Array.from(data.projectReferencePaths ?? []))},`;
 
-	if (data.rojoConfigPath && fs.existsSync(data.rojoConfigPath)) {
+	if (data.rojoConfigFiles) {
+		contentsToHash += JSON.stringify([...data.rojoConfigFiles]);
+	} else if (data.rojoConfigPath && fs.existsSync(data.rojoConfigPath)) {
 		contentsToHash += fs.readFileSync(data.rojoConfigPath).toString();
 	}
 
@@ -46,8 +48,39 @@ export function createProgramFactory(
 		oldProgram = ts.readBuilderProgram(options, createReadBuildProgramHost()),
 		configFileParsingDiagnostics?: ReadonlyArray<ts.Diagnostic>,
 		refs = projectReferences,
-	) =>
-		ts.createEmitAndSemanticDiagnosticsBuilderProgram(
+	) => {
+		const previousProgram = oldProgram?.getProgramOrUndefined();
+		if (previousProgram) {
+			// a fresh host cannot validate the previous program's cached module resolutions
+			host.hasInvalidatedResolutions ??= () => true;
+
+			const getSourceFile = host.getSourceFile;
+			host.getSourceFile = (fileName, languageVersion, onError, shouldCreateNewSourceFile) => {
+				const previous = previousProgram.getSourceFile(fileName);
+				const sourceFile = previous?.redirectInfo?.unredirected ?? previous;
+				const target = typeof languageVersion === "object" ? languageVersion.languageVersion : languageVersion;
+				const impliedFormat =
+					typeof languageVersion === "object" ? languageVersion.impliedNodeFormat : undefined;
+				if (
+					sourceFile &&
+					!shouldCreateNewSourceFile &&
+					sourceFile.languageVersion === target &&
+					sourceFile.impliedNodeFormat === impliedFormat
+				) {
+					const text = host.readFile(fileName);
+					// a retained builder only saves parsing and binding when the host returns the same source files
+					if (
+						text === sourceFile.text &&
+						sourceFile.version === ts.getSourceFileVersionAsHashFromText(host, text)
+					) {
+						return sourceFile;
+					}
+				}
+				return getSourceFile.call(host, fileName, languageVersion, onError, shouldCreateNewSourceFile);
+			};
+		}
+
+		return ts.createEmitAndSemanticDiagnosticsBuilderProgram(
 			rootNames,
 			compilerOptions,
 			host,
@@ -55,4 +88,5 @@ export function createProgramFactory(
 			configFileParsingDiagnostics,
 			refs,
 		);
+	};
 }
