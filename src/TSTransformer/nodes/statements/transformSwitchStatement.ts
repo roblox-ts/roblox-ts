@@ -15,8 +15,9 @@ function transformCaseClauseExpression(
 ) {
 	const caseValueId = luau.tempId("caseValue");
 	let [expression, prereqStatements] = state.capture(() => transformExpression(state, caseClauseExpression));
+	const caseValueMightMutate = expressionMightMutate(state, expression, caseClauseExpression);
 
-	if (expressionMightMutate(state, expression, caseClauseExpression)) {
+	if (caseValueMightMutate) {
 		luau.list.push(
 			prereqStatements,
 			luau.create(luau.SyntaxKind.VariableDeclaration, {
@@ -29,7 +30,7 @@ function transformCaseClauseExpression(
 	let condition: luau.Expression = luau.binary(
 		switchExpression,
 		"==",
-		expressionMightMutate(state, expression, caseClauseExpression) ? caseValueId : expression,
+		caseValueMightMutate ? caseValueId : expression,
 	);
 
 	if (canFallThroughTo) {
@@ -124,7 +125,10 @@ function transformCaseClause(
 }
 
 export function transformSwitchStatement(state: TransformState, node: ts.SwitchStatement) {
-	const expression = state.pushToVarIfComplex(transformExpression(state, node.expression), "exp");
+	const switchExpression = transformExpression(state, node.expression);
+	const expression = expressionMightMutate(state, switchExpression, node.expression)
+		? state.pushToVar(switchExpression, "exp")
+		: state.pushToVarIfComplex(switchExpression, "exp");
 	const fallThroughFlagId = luau.tempId("fallthrough");
 
 	let isFallThroughFlagNeeded = false;
