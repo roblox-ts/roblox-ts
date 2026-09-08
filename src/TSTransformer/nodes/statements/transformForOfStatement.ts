@@ -13,6 +13,7 @@ import { transformWritableExpression } from "TSTransformer/nodes/transformWritab
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { getKindName } from "TSTransformer/util/getKindName";
+import { getLiteralNumberValue } from "TSTransformer/util/getLiteralNumberValue";
 import { getStatements } from "TSTransformer/util/getStatements";
 import { skipDownwards } from "TSTransformer/util/traversal";
 import {
@@ -465,7 +466,12 @@ export function transformForOfRangeMacro(
 			id,
 			start,
 			end,
-			step: step === undefined || luau.isNumberLiteral(step) ? step : luau.binary(step, "or", luau.number(1)),
+			// a numeric for loop throws on a nil step, so dynamic steps fall back to 1
+			// literal steps, including unary-minus literals like `-1`, can never be nil
+			step:
+				step === undefined || getLiteralNumberValue(step) !== undefined
+					? step
+					: luau.binary(step, "or", luau.number(1)),
 			statements,
 		}),
 	);
