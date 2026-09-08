@@ -12,6 +12,7 @@ export function transformArrayBindingPattern(
 	state: TransformState,
 	bindingPattern: ts.ArrayBindingPattern,
 	parentId: luau.AnyIdentifier,
+	isConst: boolean,
 ) {
 	validateNotAnyType(state, bindingPattern);
 
@@ -32,7 +33,7 @@ export function transformArrayBindingPattern(
 				: accessor(state, parentId, index, idStack, false);
 
 			if (ts.isIdentifier(name)) {
-				const id = transformVariable(state, name, value);
+				const id = transformVariable(state, name, value, isConst);
 				if (element.initializer) {
 					state.prereq(transformInitializer(state, id, element.initializer));
 				}
@@ -42,9 +43,9 @@ export function transformArrayBindingPattern(
 					state.prereq(transformInitializer(state, id, element.initializer));
 				}
 				if (ts.isArrayBindingPattern(name)) {
-					transformArrayBindingPattern(state, name, id);
+					transformArrayBindingPattern(state, name, id, isConst);
 				} else {
-					transformObjectBindingPattern(state, name, id);
+					transformObjectBindingPattern(state, name, id, isConst);
 				}
 			}
 		}

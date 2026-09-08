@@ -16,6 +16,7 @@ export function transformObjectBindingPattern(
 	state: TransformState,
 	bindingPattern: ts.ObjectBindingPattern,
 	parentId: luau.AnyIdentifier,
+	isConst: boolean,
 ) {
 	validateNotAnyType(state, bindingPattern);
 	const preSpreadNames = new Array<luau.Expression>();
@@ -35,7 +36,7 @@ export function transformObjectBindingPattern(
 				continue;
 			}
 
-			const id = transformVariable(state, name, value);
+			const id = transformVariable(state, name, value, isConst);
 			if (element.initializer) {
 				state.prereq(transformInitializer(state, id, element.initializer));
 			}
@@ -52,9 +53,9 @@ export function transformObjectBindingPattern(
 				state.prereq(transformInitializer(state, id, element.initializer));
 			}
 			if (ts.isArrayBindingPattern(name)) {
-				transformArrayBindingPattern(state, name, id);
+				transformArrayBindingPattern(state, name, id, isConst);
 			} else {
-				transformObjectBindingPattern(state, name, id);
+				transformObjectBindingPattern(state, name, id, isConst);
 			}
 		}
 	}
