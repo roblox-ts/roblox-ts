@@ -14,6 +14,7 @@ import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexa
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { getKindName } from "TSTransformer/util/getKindName";
 import { getStatements } from "TSTransformer/util/getStatements";
+import { getLiteralNumberValue } from "TSTransformer/util/offset";
 import { skipDownwards } from "TSTransformer/util/traversal";
 import {
 	getFirstDefinedSymbol,
@@ -465,7 +466,12 @@ export function transformForOfRangeMacro(
 			id,
 			start,
 			end,
-			step: step === undefined || luau.isNumberLiteral(step) ? step : luau.binary(step, "or", luau.number(1)),
+			// a literal step (including unary-minus literals like `-1`) is a known constant;
+			// only a dynamic step needs the `or 1` guard against a runtime `0`
+			step:
+				step === undefined || getLiteralNumberValue(step) !== undefined
+					? step
+					: luau.binary(step, "or", luau.number(1)),
 			statements,
 		}),
 	);
