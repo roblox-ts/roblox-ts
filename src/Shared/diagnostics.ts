@@ -48,11 +48,13 @@ function diagnosticWithContext<T extends Array<unknown> = []>(
 			debugger;
 		}
 
-		if (contextFormatter) {
-			messages.push(...contextFormatter(...context));
-		}
-
-		return createDiagnosticWithLocation(result.id, messages.filter(v => v !== false).join("\n"), category, node);
+		const diagnosticMessages = contextFormatter ? [...messages, ...contextFormatter(...context)] : messages;
+		return createDiagnosticWithLocation(
+			result.id,
+			diagnosticMessages.filter(v => v !== false).join("\n"),
+			category,
+			node,
+		);
 	};
 	result.id = id++;
 	return result;
@@ -196,8 +198,21 @@ export const errors = {
 
 	// import/export
 	noModuleSpecifierFile: error("Could not find file for import. Did you forget to `npm install`?"),
-	noInvalidModule: error("You can only use npm scopes that are listed in your typeRoots."),
-	noUnscopedModule: error("You cannot use modules directly under node_modules."),
+	noInvalidScope: error("You can only use npm scopes that are listed in your typeRoots."),
+	noUnscopedModule: error(
+		"Cannot import a module without a scope!",
+		"roblox-ts does not support importing regular npm packages.",
+	),
+	failedSymlinkResolve: errorWithContext(
+		(nodeModulesPath: string, moduleFilename: string, virtualPath: string | undefined, relativePath: string) => [
+			"Cannot resolve package entry point inside the project node_modules!",
+			"Check the package main field and any package symlinks.",
+			`Packages are expected to be installed under ${nodeModulesPath}`,
+			`Package declarations resolved to ${moduleFilename}`,
+			virtualPath ? `roblox-ts thinks it should be imported through this symlink: ${virtualPath}` : false,
+			`The path from node_modules to the package would be ${relativePath}`,
+		],
+	),
 	noNonModuleImport: error("Cannot import a non-ModuleScript!"),
 	noIsolatedImport: error("Attempted to import a file inside of an isolated container from outside!"),
 	noServerImport: error(

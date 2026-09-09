@@ -73,17 +73,30 @@ function getNodeModulesImportParts(
 	sourceFile: ts.SourceFile,
 	moduleSpecifier: ts.Expression,
 	moduleOutPath: string,
+	moduleFilename: string,
 ) {
-	const moduleScope = path.relative(state.data.nodeModulesPath, moduleOutPath).split(path.sep)[0];
+	const relativePath = path.relative(state.data.nodeModulesPath, moduleOutPath);
+	const moduleScope = relativePath.split(path.sep)[0];
 	assert(moduleScope);
 
-	if (!moduleScope.startsWith("@")) {
+	if (!isPathDescendantOf(moduleOutPath, state.data.nodeModulesPath)) {
+		DiagnosticService.addDiagnostic(
+			errors.failedSymlinkResolve(
+				moduleSpecifier,
+				state.data.nodeModulesPath,
+				moduleFilename,
+				state.guessVirtualPath(moduleFilename),
+				relativePath,
+			),
+		);
+		return [luau.none()];
+	} else if (!moduleScope.startsWith("@")) {
 		DiagnosticService.addDiagnostic(errors.noUnscopedModule(moduleSpecifier));
 		return [luau.none()];
 	}
 
 	if (!validateModule(state, moduleScope)) {
-		DiagnosticService.addDiagnostic(errors.noInvalidModule(moduleSpecifier));
+		DiagnosticService.addDiagnostic(errors.noInvalidScope(moduleSpecifier));
 		return [luau.none()];
 	}
 
@@ -193,11 +206,9 @@ export function getImportParts(state: TransformState, sourceFile: ts.SourceFile,
 	const referencePath = state.data.projectReferencePaths?.get(getCanonicalFileName(path.normalize(virtualPath)));
 
 	if (referencePath === undefined && ts.isInsideNodeModules(virtualPath)) {
-		const moduleOutPath = state.pathTranslator.getImportPath(
-			state.nodeModulesPathMapping.get(getCanonicalFileName(path.normalize(virtualPath))) ?? virtualPath,
-			/* isNodeModule */ true,
-		);
-		return getNodeModulesImportParts(state, sourceFile, moduleSpecifier, moduleOutPath);
+		const mappedPath = state.nodeModulesPathMapping.get(getCanonicalFileName(path.normalize(virtualPath)));
+		const moduleOutPath = state.pathTranslator.getImportPath(mappedPath ?? virtualPath, /* isNodeModule */ true);
+		return getNodeModulesImportParts(state, sourceFile, moduleSpecifier, moduleOutPath, moduleFile.fileName);
 	} else {
 		let moduleOutPath = referencePath ?? state.pathTranslator.getImportPath(virtualPath);
 
