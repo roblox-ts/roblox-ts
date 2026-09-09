@@ -1,236 +1,166 @@
-import { PathTranslator } from "@roblox-ts/path-translator";
 import chokidar from "chokidar";
 import fs from "fs-extra";
-import { ProjectData } from "Project";
-import { checkFileName } from "Project/functions/checkFileName";
-import { cleanup } from "Project/functions/cleanup";
-import { compileFiles } from "Project/functions/compileFiles";
-import { copyFiles } from "Project/functions/copyFiles";
-import { copyInclude } from "Project/functions/copyInclude";
-import { copyItem } from "Project/functions/copyItem";
-import { createPathTranslator } from "Project/functions/createPathTranslator";
-import { createProgramFactory } from "Project/functions/createProgramFactory";
-import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
-import { getParsedCommandLine } from "Project/functions/getParsedCommandLine";
-import { tryRemoveOutput } from "Project/functions/tryRemoveOutput";
-import { isCompilableFile } from "Project/util/isCompilableFile";
-import { walkDirectorySync } from "Project/util/walkDirectorySync";
-import { DTS_EXT } from "Shared/constants";
+import path from "path";
+import { ProjectBuild } from "Project/classes/ProjectBuild";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
-import { assert } from "Shared/util/assert";
-import { getRootDirs } from "Shared/util/getRootDirs";
+import { isPathDescendantOf } from "Shared/util/isPathDescendantOf";
 import ts from "typescript";
 
-const CHOKIDAR_OPTIONS: chokidar.WatchOptions = {
-	awaitWriteFinish: {
-		pollInterval: 10,
-		stabilityThreshold: 50,
-	},
-	ignoreInitial: true,
-	disableGlobbing: true,
-};
-
-function fixSlashes(fsPath: string) {
-	return fsPath.replace(/\\/g, "/");
-}
-
-export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean) {
-	const { fileNames, options } = getParsedCommandLine(data);
-	const fileNamesSet = new Set(fileNames);
-
-	let initialCompileCompleted = false;
-	let collecting = false;
-	let filesToAdd = new Set<string>();
-	let filesToChange = new Set<string>();
-	let filesToDelete = new Set<string>();
-
-	const watchReporter = ts.createWatchStatusReporter(ts.sys, true);
+export function setupProjectWatchProgram(build: ProjectBuild, usePolling: boolean) {
 	const diagnosticReporter = ts.createDiagnosticReporter(ts.sys, true);
+	const watchReporter = ts.createWatchStatusReporter(ts.sys, true);
 
-	function reportText(messageText: string) {
+	const reportText = (messageText: string) =>
 		watchReporter(
 			{
 				category: ts.DiagnosticCategory.Message,
-				messageText,
 				code: 0,
+				messageText,
 				file: undefined,
-				length: undefined,
 				start: undefined,
+				length: undefined,
 			},
 			ts.sys.newLine,
-			options,
+			build.graph.root.config.options,
 		);
-	}
 
-	function reportEmitResult(emitResult: ts.EmitResult) {
-		for (const diagnostic of emitResult.diagnostics) {
+	const pending = new Set<string>();
+	let timeout: NodeJS.Timeout | undefined;
+	let ready = false;
+	let closed = false;
+
+	let activePaths = build.getWatchPaths();
+	const subscribedPaths = new Set(activePaths);
+	const missingPaths = new Map<string, () => void>();
+	const overlapsActivePath = (filePath: string) =>
+		activePaths.some(active => isPathDescendantOf(filePath, active) || isPathDescendantOf(active, filePath));
+
+	const watcher = chokidar.watch(activePaths, {
+		// newly subscribed paths need add events to catch edits made while their watchers were being registered
+		ignoreInitial: false,
+		usePolling,
+		awaitWriteFinish: { pollInterval: 10, stabilityThreshold: 50 },
+		ignored: (filePath, stats) => {
+			if (build.isConfigPath(filePath)) {
+				return false;
+			}
+			if (build.isOutputPath(filePath) || ["node_modules", ".git"].includes(path.basename(filePath))) {
+				return !((!stats || stats.isDirectory()) && build.isRojoConfigDirectory(filePath));
+			}
+			// mapped directories are watched for project files, without subscribing to their unrelated assets
+			return Boolean(
+				stats?.isFile() && build.isRojoConfigDirectory(filePath) && !build.isSourceInputPath(filePath),
+			);
+		},
+	});
+
+	const updateMissingPaths = () => {
+		const missing = new Set(activePaths.filter(filePath => !fs.existsSync(filePath)));
+		for (const [filePath, close] of missingPaths) {
+			if (!missing.has(filePath)) {
+				close();
+				missingPaths.delete(filePath);
+			}
+		}
+		for (const filePath of missing) {
+			if (!missingPaths.has(filePath)) {
+				// chokidar can miss file creation when multiple parent directories are also missing
+				const listener = (current: fs.Stats) => {
+					if (current.nlink > 0) {
+						collect(filePath);
+					}
+				};
+				fs.watchFile(filePath, { interval: 250 }, listener);
+				missingPaths.set(filePath, () => fs.unwatchFile(filePath, listener));
+			}
+		}
+	};
+
+	const compile = (initial = false) => {
+		timeout = undefined;
+
+		const paths = [...pending];
+		pending.clear();
+
+		reportText(
+			initial
+				? "Starting compilation in watch mode..."
+				: "File change detected. Starting incremental compilation...",
+		);
+
+		let diagnostics: ReadonlyArray<ts.Diagnostic>;
+		try {
+			diagnostics = build.build(initial ? undefined : paths).diagnostics;
+		} catch (error) {
+			if (!(error instanceof DiagnosticError)) {
+				throw error;
+			}
+
+			diagnostics = error.diagnostics;
+		}
+
+		activePaths = build.getWatchPaths();
+		// unwatching an ancestor also ignores its children, which may still belong to the active graph
+		const removedPaths = [...subscribedPaths].filter(filePath => !overlapsActivePath(filePath));
+		watcher.unwatch(removedPaths);
+		for (const filePath of removedPaths) {
+			subscribedPaths.delete(filePath);
+		}
+
+		watcher.add(activePaths);
+		for (const filePath of activePaths) {
+			subscribedPaths.add(filePath);
+		}
+		updateMissingPaths();
+
+		for (const diagnostic of diagnostics) {
 			diagnosticReporter(diagnostic);
 		}
-		const amtErrors = emitResult.diagnostics.filter(v => v.category === ts.DiagnosticCategory.Error).length;
-		reportText(`Found ${amtErrors} error${amtErrors === 1 ? "" : "s"}. Watching for file changes.`);
-	}
 
-	let program: ts.EmitAndSemanticDiagnosticsBuilderProgram | undefined;
-	let pathTranslator: PathTranslator | undefined;
-	const createProgram = createProgramFactory(data, options);
-	function refreshProgram() {
-		program = createProgram([...fileNamesSet], options);
-		pathTranslator = createPathTranslator(program);
-	}
+		const errors = diagnostics.filter(diagnostic => diagnostic.category === ts.DiagnosticCategory.Error).length;
 
-	function runInitialCompile() {
-		refreshProgram();
-		assert(program && pathTranslator);
-		cleanup(pathTranslator);
-		copyInclude(data);
-		copyFiles(data, pathTranslator, new Set(getRootDirs(options)));
-		const sourceFiles = getChangedSourceFiles(program);
-		const emitResult = compileFiles(program.getProgram(), data, pathTranslator, sourceFiles);
-		if (!emitResult.emitSkipped) {
-			initialCompileCompleted = true;
-		}
-		return emitResult;
-	}
+		reportText(`Found ${errors} error${errors === 1 ? "" : "s"}. Watching for file changes.`);
+	};
 
-	const filesToCompile = new Set<string>();
-	const filesToCopy = new Set<string>();
-	const filesToClean = new Set<string>();
-	function runIncrementalCompile(additions: Set<string>, changes: Set<string>, removals: Set<string>): ts.EmitResult {
-		for (const fsPath of additions) {
-			if (fs.statSync(fsPath).isDirectory()) {
-				walkDirectorySync(fsPath, item => {
-					if (isCompilableFile(item)) {
-						fileNamesSet.add(item);
-						filesToCompile.add(item);
-					}
-				});
-			} else if (isCompilableFile(fsPath)) {
-				fileNamesSet.add(fsPath);
-				filesToCompile.add(fsPath);
-			} else {
-				// checks for copying `init.*.d.ts`
-				checkFileName(fsPath);
-				filesToCopy.add(fsPath);
-			}
+	const collect = (filePath: string) => {
+		if (closed || !overlapsActivePath(filePath)) {
+			return;
 		}
 
-		for (const fsPath of changes) {
-			if (isCompilableFile(fsPath)) {
-				filesToCompile.add(fsPath);
-			} else {
-				// Transformers use a separate program that must be updated separately (which is done in compileFiles),
-				// however certain files (such as d.ts files) aren't passed to that function and must be updated here.
-				if (fsPath.endsWith(DTS_EXT)) {
-					const transformerWatcher = data.transformerWatcher;
-					if (transformerWatcher) {
-						// Using ts.sys.readFile instead of fs.readFileSync here as it performs some utf conversions implicitly
-						// and is also used by the program host to read files.
-						const contents = ts.sys.readFile(fsPath);
-						if (contents) {
-							transformerWatcher.updateFile(fsPath, contents);
-						}
-					}
-				}
-
-				filesToCopy.add(fsPath);
-			}
+		pending.add(filePath);
+		if (!ready) {
+			return;
 		}
 
-		for (const fsPath of removals) {
-			fileNamesSet.delete(fsPath);
-			filesToClean.add(fsPath);
+		if (timeout) {
+			clearTimeout(timeout);
 		}
+		timeout = setTimeout(compile, 100);
+	};
 
-		refreshProgram();
-		assert(program && pathTranslator);
-		const sourceFiles = getChangedSourceFiles(program, options.incremental ? undefined : [...filesToCompile]);
-		const emitResult = compileFiles(program.getProgram(), data, pathTranslator, sourceFiles);
-		if (emitResult.emitSkipped) {
-			// exit before copying to prevent half-updated out directory
-			return emitResult;
-		}
-
-		for (const fsPath of filesToClean) {
-			tryRemoveOutput(pathTranslator, pathTranslator.getOutputPath(fsPath));
-			if (options.declaration) {
-				tryRemoveOutput(pathTranslator, pathTranslator.getOutputDeclarationPath(fsPath));
-			}
-		}
-		for (const fsPath of filesToCopy) {
-			copyItem(data, pathTranslator, fsPath);
-		}
-
-		filesToCompile.clear();
-		filesToCopy.clear();
-		filesToClean.clear();
-
-		return emitResult;
-	}
-
-	function runCompile() {
-		try {
-			if (!initialCompileCompleted) {
-				return runInitialCompile();
-			} else {
-				const additions = filesToAdd;
-				const changes = filesToChange;
-				const removals = filesToDelete;
-				filesToAdd = new Set();
-				filesToChange = new Set();
-				filesToDelete = new Set();
-				return runIncrementalCompile(additions, changes, removals);
-			}
-		} catch (e) {
-			if (e instanceof DiagnosticError) {
-				return {
-					emitSkipped: true,
-					diagnostics: e.diagnostics,
-				};
-			} else {
-				throw e;
-			}
-		}
-	}
-
-	function closeEventCollection() {
-		collecting = false;
-		reportEmitResult(runCompile());
-	}
-
-	function openEventCollection() {
-		if (!collecting) {
-			collecting = true;
-			reportText("File change detected. Starting incremental compilation...");
-			setTimeout(closeEventCollection, 100);
-		}
-	}
-
-	function collectAddEvent(fsPath: string) {
-		filesToAdd.add(fixSlashes(fsPath));
-		openEventCollection();
-	}
-
-	function collectChangeEvent(fsPath: string) {
-		filesToChange.add(fixSlashes(fsPath));
-		openEventCollection();
-	}
-
-	function collectDeleteEvent(fsPath: string) {
-		filesToDelete.add(fixSlashes(fsPath));
-		openEventCollection();
-	}
-
-	const chokidarOptions: chokidar.WatchOptions = { ...CHOKIDAR_OPTIONS, usePolling };
-
-	chokidar
-		.watch(getRootDirs(options), chokidarOptions)
-		.on("add", collectAddEvent)
-		.on("addDir", collectAddEvent)
-		.on("change", collectChangeEvent)
-		.on("unlink", collectDeleteEvent)
-		.on("unlinkDir", collectDeleteEvent)
+	watcher
+		.on("add", collect)
+		.on("addDir", collect)
+		.on("change", collect)
+		.on("unlink", collect)
+		.on("unlinkDir", collect)
 		.once("ready", () => {
-			reportText("Starting compilation in watch mode...");
-			reportEmitResult(runCompile());
+			ready = true;
+			compile(true);
 		});
+
+	return {
+		async close() {
+			closed = true;
+			if (timeout) {
+				clearTimeout(timeout);
+			}
+			for (const close of missingPaths.values()) {
+				close();
+			}
+			missingPaths.clear();
+			await watcher.close();
+			build.close();
+		},
+	};
 }

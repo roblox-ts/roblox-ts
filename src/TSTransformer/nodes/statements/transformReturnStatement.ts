@@ -1,5 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
 import { SYMBOL_NAMES, TransformState } from "TSTransformer";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isReturnBlockedByTryStatement } from "TSTransformer/util/isBlockedByTryStatement";
@@ -30,15 +31,16 @@ export function transformReturnStatementInner(
 	returnExp: ts.Expression,
 ): luau.List<luau.Statement> {
 	const result = luau.list.make<luau.Statement>();
+	const prereqs = new Prereqs();
 
 	let expression: luau.Expression | luau.List<luau.Expression>;
 
-	if (ts.isCallExpression(returnExp) && isTupleMacro(state, returnExp)) {
-		const [args, prereqs] = state.capture(() => ensureTransformOrder(state, returnExp.arguments));
-		luau.list.pushList(result, prereqs);
+	const innerReturnExp = skipDownwards(returnExp);
+	if (ts.isCallExpression(innerReturnExp) && isTupleMacro(state, innerReturnExp)) {
+		const args = ensureTransformOrder(state, prereqs, innerReturnExp.arguments);
 		expression = luau.list.make(...args);
 	} else {
-		expression = transformExpression(state, skipDownwards(returnExp));
+		expression = transformExpression(state, prereqs, innerReturnExp);
 		if (isLuaTupleType(state)(state.getType(returnExp)) && !isTupleReturningCall(state, returnExp, expression)) {
 			if (luau.isArray(expression)) {
 				expression = expression.members;
@@ -47,6 +49,8 @@ export function transformReturnStatementInner(
 			}
 		}
 	}
+
+	luau.list.pushList(result, prereqs.statements);
 
 	if (isReturnBlockedByTryStatement(returnExp)) {
 		state.markTryUses("usesReturn");

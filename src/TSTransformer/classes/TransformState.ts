@@ -6,14 +6,16 @@ import { PARENT_FIELD, ProjectType } from "Shared/constants";
 import { errors, warnings } from "Shared/diagnostics";
 import { ProjectData } from "Shared/types";
 import { assert } from "Shared/util/assert";
+import { getCanonicalFileName } from "Shared/util/getCanonicalFileName";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { MultiTransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
+import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
 import { TransformServices, TryUses } from "TSTransformer/types";
 import { createGetService } from "TSTransformer/util/createGetService";
 import { propertyAccessExpressionChain } from "TSTransformer/util/expressionChain";
 import { getModuleAncestor, skipUpwards } from "TSTransformer/util/traversal";
-import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
 import ts from "typescript";
 
 /**
@@ -95,42 +97,6 @@ export class TransformState {
 		this.tryUsesStack.pop();
 	}
 
-	public readonly prereqStatementsStack = new Array<luau.List<luau.Statement>>();
-
-	/**
-	 * Pushes a new prerequisite statement onto the list stack.
-	 * @param statement
-	 */
-	public prereq(statement: luau.Statement) {
-		luau.list.push(this.prereqStatementsStack[this.prereqStatementsStack.length - 1], statement);
-	}
-
-	/**
-	 * Pushes a new prerequisite list of statement onto the list stack.
-	 * @param statements
-	 */
-	public prereqList(statements: luau.List<luau.Statement>) {
-		luau.list.pushList(this.prereqStatementsStack[this.prereqStatementsStack.length - 1], statements);
-	}
-
-	/**
-	 * Creates and pushes a new list of `luau.Statement`s onto the prerequisite stack.
-	 */
-	public pushPrereqStatementsStack() {
-		const prereqStatements = luau.list.make<luau.Statement>();
-		this.prereqStatementsStack.push(prereqStatements);
-		return prereqStatements;
-	}
-
-	/**
-	 * Pops and returns the top item of the prerequisite stack.
-	 */
-	public popPrereqStatementsStack() {
-		const poppedValue = this.prereqStatementsStack.pop();
-		assert(poppedValue);
-		return poppedValue;
-	}
-
 	/**
 	 * Returns the leading comments of a `ts.Node` as an array of strings.
 	 * @param node
@@ -149,31 +115,6 @@ export class TransformState {
 				),
 			),
 		);
-	}
-
-	/**
-	 * Returns the prerequisite statements created by `callback`.
-	 */
-	public capturePrereqs(callback: () => void) {
-		this.pushPrereqStatementsStack();
-		callback();
-		return this.popPrereqStatementsStack();
-	}
-
-	/**
-	 * Returns the result and prerequisite statements created by `callback`.
-	 */
-	public capture<T>(callback: () => T): [value: T, prereqs: luau.List<luau.Statement>] {
-		let value!: T;
-		const prereqs = this.capturePrereqs(() => (value = callback()));
-		return [value, prereqs];
-	}
-
-	public noPrereqs(callback: () => luau.Expression) {
-		let expression!: luau.Expression;
-		const statements = this.capturePrereqs(() => (expression = callback()));
-		assert(luau.list.isEmpty(statements));
-		return expression;
 	}
 
 	public readonly hoistsByStatement = new Map<ts.Statement | ts.CaseClause, Array<ts.Identifier>>();
@@ -263,47 +204,6 @@ export class TransformState {
 		}
 	}
 
-	/**
-	 * Declares and defines a new Luau variable. Pushes that new variable to a new luau.TemporaryIdentifier.
-	 * Can also be used to initialise a new tempId without a value
-	 * @param expression
-	 */
-	public pushToVar(expression: luau.Expression | undefined, name?: string) {
-		const temp = luau.tempId(name || (expression && valueToIdStr(expression)));
-		this.prereq(
-			luau.create(luau.SyntaxKind.VariableDeclaration, {
-				left: temp,
-				right: expression,
-			}),
-		);
-		return temp;
-	}
-
-	/**
-	 * Uses `state.pushToVar(expression)` unless `luau.isSimple(expression)`
-	 * @param expression the expression to push
-	 */
-	public pushToVarIfComplex<T extends luau.Expression>(
-		expression: T,
-		name?: string,
-	): Extract<T, luau.SimpleTypes> | luau.TemporaryIdentifier {
-		if (luau.isSimple(expression)) {
-			return expression as Extract<T, luau.SimpleTypes>;
-		}
-		return this.pushToVar(expression, name);
-	}
-
-	/**
-	 * Uses `state.pushToVar(expression)` unless `luau.isAnyIdentifier(expression)`
-	 * @param expression the expression to push
-	 */
-	public pushToVarIfNonId<T extends luau.Expression>(expression: T, name?: string): luau.AnyIdentifier {
-		if (luau.isAnyIdentifier(expression)) {
-			return expression;
-		}
-		return this.pushToVar(expression, name);
-	}
-
 	public getModuleExports(moduleSymbol: ts.Symbol) {
 		return getOrSetDefault(this.multiTransformState.getModuleExportsCache, moduleSymbol, () =>
 			this.typeChecker.getExportsOfModule(moduleSymbol),
@@ -312,14 +212,17 @@ export class TransformState {
 
 	public getModuleExportsAliasMap(moduleSymbol: ts.Symbol) {
 		return getOrSetDefault(this.multiTransformState.getModuleExportsAliasMapCache, moduleSymbol, () => {
-			const aliasMap = new Map<ts.Symbol, string>();
+			const aliasMap = new Map<ts.Symbol, luau.Expression>();
 			for (const exportSymbol of this.getModuleExports(moduleSymbol)) {
 				const originalSymbol = ts.skipAlias(exportSymbol, this.typeChecker);
 				const declaration = exportSymbol.getDeclarations()?.[0];
 				if (declaration && ts.isExportSpecifier(declaration)) {
-					aliasMap.set(originalSymbol, declaration.name.text);
+					const namePrereqs = new Prereqs();
+					const name = transformPropertyName(this, namePrereqs, declaration.name);
+					assert(luau.list.isEmpty(namePrereqs.statements));
+					aliasMap.set(originalSymbol, name);
 				} else {
-					aliasMap.set(originalSymbol, exportSymbol.name);
+					aliasMap.set(originalSymbol, luau.string(exportSymbol.name));
 				}
 			}
 			return aliasMap;
@@ -357,7 +260,10 @@ export class TransformState {
 			const moduleSymbol = this.getModuleSymbolFromNode(idSymbol.valueDeclaration);
 			const alias = this.getModuleExportsAliasMap(moduleSymbol).get(idSymbol);
 			if (alias) {
-				return luau.property(this.getModuleIdFromSymbol(moduleSymbol), alias);
+				return luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+					expression: this.getModuleIdFromSymbol(moduleSymbol),
+					index: alias,
+				});
 			}
 		}
 	}
@@ -374,7 +280,9 @@ export class TransformState {
 			const parent = ts.ensureTrailingDirectorySeparator(path.dirname(fsPath));
 			if (fsPath === parent) break;
 			fsPath = parent;
-			const symlink = reverseSymlinkMap.get(fsPath as ts.Path)?.[0];
+			const symlink = reverseSymlinkMap.get(
+				ts.toPath(fsPath, this.program.getCurrentDirectory(), getCanonicalFileName),
+			)?.[0];
 			if (symlink) {
 				return path.join(symlink, path.relative(fsPath, original));
 			}

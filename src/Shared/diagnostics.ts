@@ -41,7 +41,10 @@ function diagnosticWithContext<T extends Array<unknown> = []>(
 	...messages: Array<string | false>
 ): DiagnosticFactory<T> {
 	const result = (node: ts.Node | SourceFileWithTextRange, ...context: T) => {
-		if (category === ts.DiagnosticCategory.Error) {
+		if (
+			category === ts.DiagnosticCategory.Error &&
+			process.env.ROBLOX_TS_EXPECTED_DIAGNOSTIC_ID !== String(result.id)
+		) {
 			debugger;
 		}
 
@@ -100,6 +103,7 @@ export const errors = {
 	noReservedIdentifier: error("Cannot use identifier reserved for compiler internal usage."),
 	noReservedClassFields: error("Cannot use class field reserved for compiler internal usage."),
 	noClassMetamethods: error("Metamethods cannot be used in class definitions!"),
+	noLengthIndexInTuples: error("Cannot index member `length` in a tuple!", suggestion("Use .size() instead.")),
 
 	// banned statements
 	noForInStatement: error("for-in loop statements are not supported!"),
@@ -129,7 +133,6 @@ export const errors = {
 	noExclamationEquals: error("operator `!=` is not supported!", suggestion("Use `!==` instead.")),
 	noEnumMerging: error("Enum merging is not supported!"),
 	noNamespaceMerging: error("Namespace merging is not supported!"),
-	noSpreadDestructuring: error("Operator `...` is not supported for destructuring!"),
 	noFunctionExpressionName: error("Function expression names are not supported!"),
 	noPrecedingSpreadElement: error("Spread element must come last in a list of arguments!"),
 	noLuaTupleDestructureAssignmentExpression: error(
@@ -143,6 +146,8 @@ export const errors = {
 		"The `instanceof` operator can only be used on roblox-ts classes!",
 		suggestion('Use `typeIs(myThing, "TypeToCheck") instead'),
 	),
+	noNestedSpreadsInAssignmentPatterns: error("Nesting spreads in assignment patterns is not supported!"),
+	noRestSpreadingOfRobloxTypes: error("Operator `...` is not allowed on Roblox types!"),
 	noNonNumberStringRelationOperator: error("Relation operators can only be used on number or string types!"),
 	noInstanceMethodCollisions: error("Static methods cannot use the same name as instance methods!"),
 	noStaticMethodCollisions: error("Instance methods cannot use the same name as static methods!"),
@@ -245,6 +250,10 @@ export const errors = {
 			`Invalid Rojo configuration. $path fields should be relative to out directory.`,
 			suggestion(`Change the value of $path from "${partitionPath}" to "${suggestedPath}".`),
 		),
+	noMixedStringIndex: error(
+		"Cannot index a type containing both strings and other types!",
+		suggestion("Narrow the value to a string or a non-string type before indexing."),
+	),
 };
 
 export const warnings = {

@@ -7,6 +7,13 @@ export = () => {
 		expect(b).to.equal(2);
 	});
 
+	it("should spread destructure arrays", () => {
+		const [a, ...b] = [1, 2, 3];
+		expect(a).to.equal(1);
+		expect(b[0]).to.equal(2);
+		expect(b[1]).to.equal(3);
+	});
+
 	it("should destructure nested arrays", () => {
 		const [[a, b], [c, d]] = [
 			[7, 2],
@@ -28,6 +35,80 @@ export = () => {
 		expect(b).to.equal(1);
 		expect(c).to.equal(2);
 		expect(d).to.equal(3);
+	});
+
+	it("should spread destructure objects", () => {
+		const a = {
+			b: 1,
+			c: 2,
+			d: 3,
+		};
+		const { b, ...rest } = a;
+		expect(b).to.equal(1);
+		expect(rest.c).to.be.equal(2);
+		expect(rest.d).to.be.equal(3);
+	});
+
+	it("should support rest in assignment patterns", () => {
+		const obj = {
+			a: 1,
+			b: 2,
+			c: 3,
+		};
+
+		let a: number, b: number, rest: { c: number };
+		({ a, b, ...rest } = obj);
+
+		expect(a).to.equal(1);
+		expect(b).to.equal(2);
+		expect(rest.c).to.equal(3);
+	});
+
+	it("should disregard array optimizations if contains spread", () => {
+		const [a, b, ...[...[c]]] = [1, 2, [1, 2]];
+		expect(a).to.equal(1);
+		expect(b).to.equal(2);
+		expect(c[0]).to.equal(1);
+	});
+
+	it("should support spread destructure in nested binding patterns", () => {
+		const foo = {
+			a: 1,
+			b: [1, 2, 3, 4],
+			c: {
+				d: 2,
+				e: 3,
+				f: 4,
+			},
+		};
+
+		const {
+			a,
+			b: [e1, e2, ...arrRest],
+			c: { d, ...rest },
+		} = foo;
+		expect(e1).to.be.equal(1);
+		expect(e2).to.be.equal(2);
+		expect(arrRest[0]).to.be.equal(3);
+		expect(arrRest[1]).to.be.equal(4);
+
+		expect(a).to.equal(1);
+		expect(d).to.equal(2);
+		expect(rest.e).to.equal(3);
+		expect(rest.f).to.equal(4);
+	});
+
+	it("should spread destructure objects with computed index exps", () => {
+		const a = {
+			b: 1,
+			c: 2,
+			d: 3,
+		};
+		const key = "b";
+		const { [key]: b, ...rest } = a;
+		expect(b).to.equal(1);
+		expect(rest.c).to.be.equal(2);
+		expect(rest.d).to.be.equal(3);
 	});
 
 	it("should destructure nested objects", () => {
@@ -104,6 +185,19 @@ export = () => {
 		expect(z).to.equal(123);
 	});
 
+	it("should not save variable changes made inside object binding elements", () => {
+		let notok = { foo: true, bar: false };
+		let ok = {
+			foo: undefined as boolean | undefined,
+			bar: true,
+		};
+		const { foo = (ok = notok).foo, bar } = ok;
+
+		expect(ok.foo).to.equal(true);
+		expect(foo).to.equal(true);
+		expect(bar).to.equal(true);
+	});
+
 	it("should not optimize array destructuring", () => {
 		function a() {
 			return [1, 2, 3];
@@ -143,6 +237,17 @@ export = () => {
 		expect(z).to.equal(3);
 	});
 
+	it("should support rest in destructure assignment", () => {
+		let x: number;
+		let y: number;
+		let z: number[];
+		[x, y, ...z] = [1, 2, 3, 4];
+		expect(x).to.equal(1);
+		expect(y).to.equal(2);
+		expect(z[0]).to.equal(3);
+		expect(z[1]).to.equal(4);
+	});
+
 	it("should support destructure assignment with identifier", () => {
 		let x: number;
 		let y: number;
@@ -152,6 +257,38 @@ export = () => {
 		expect(x).to.equal(1);
 		expect(y).to.equal(2);
 		expect(z).to.equal(3);
+	});
+
+	it("should support nested object destructure assignment with length property", () => {
+		let length: number;
+
+		([{ length }] = [{ length: 42 }] as const);
+
+		expect(length).to.equal(42);
+	});
+
+	it("should support length properties on generic objects", () => {
+		function readLength<T extends { length: number }>(value: T) {
+			const { length } = value;
+
+			expect(value.length).to.equal(length);
+			expect(value["length"]).to.equal(length);
+			return length;
+		}
+
+		expect(readLength({ length: 42 })).to.equal(42);
+	});
+
+	it("should support length properties on generic object intersections", () => {
+		function readLength<T extends { tag: string }>(value: T & { length: number }) {
+			const { length } = value;
+
+			expect(value.length).to.equal(length);
+			expect(value["length"]).to.equal(length);
+			return length;
+		}
+
+		expect(readLength({ length: 42, tag: "object" })).to.equal(42);
 	});
 
 	it("should support destructure assignment as expression", () => {
@@ -180,6 +317,16 @@ export = () => {
 		expect(obj.x).to.equal(1);
 		expect(obj.y).to.equal(2);
 		expect(obj.z).to.equal(3);
+	});
+
+	it("should not save variable changes made inside array binding elements", () => {
+		let notok = [true, false];
+		let ok = [undefined, true];
+		const [foo = (ok = notok)[0], bar] = ok;
+
+		expect(ok[0]).to.equal(true);
+		expect(foo).to.equal(true);
+		expect(bar).to.equal(true);
 	});
 
 	it("should support indexing a return value from a function", () => {
@@ -313,6 +460,12 @@ export = () => {
 		expect(expected.delete(c)).to.equal(true);
 	});
 
+	it("should spread destructure sets", () => {
+		const [a, ...rest] = new Set([1, 2, 3]);
+		expect(rest.size()).to.equal(2);
+		expect(rest.includes(a)).to.equal(false);
+	});
+
 	it("should properly destruct maps", () => {
 		const expected = new Map([
 			["a", 1],
@@ -334,6 +487,31 @@ export = () => {
 
 		expect(expected.get(c[0])).to.equal(c[1]);
 		expect(expected.delete(c[0])).to.equal(true);
+	});
+
+	it("should spread destructure maps", () => {
+		const expected = new Map([
+			["a", 1],
+			["b", 2],
+			["c", 3],
+		]);
+
+		const [a, ...rest] = new Map([
+			["a", 1],
+			["b", 2],
+			["c", 3],
+		]);
+
+		expect(expected.get(a[0])).to.equal(a[1]);
+		expect(expected.delete(a[0])).to.equal(true);
+
+		expect(expected.get(rest[0][0])).to.equal(rest[0][1]);
+		expect(expected.delete(rest[0][0])).to.equal(true);
+
+		expect(expected.get(rest[1][0])).to.equal(rest[1][1]);
+		expect(expected.delete(rest[1][0])).to.equal(true);
+
+		expect(expected.size()).to.equal(0);
 	});
 
 	it("should properly destruct with element access", () => {
@@ -432,6 +610,15 @@ export = () => {
 		expect(a).to.equal(4);
 		expect(b).to.equal(5);
 		expect(c).to.equal(6);
+	});
+
+	it("should support rest in object assignment destructuring", () => {
+		let a: number, b: number, c: { c: number; d: number };
+		({ a, b, ...c } = { a: 1, b: 2, c: 3, d: 4 });
+		expect(a).to.equal(1);
+		expect(b).to.equal(2);
+		expect(c.c).to.equal(3);
+		expect(c.d).to.equal(4);
 	});
 
 	it("should support object assignment destructuring with aliases", () => {
@@ -613,6 +800,20 @@ export = () => {
 		expect(c).to.equal(3);
 	});
 
+	it("should spread destructure generators", () => {
+		function* foo() {
+			yield 1;
+			yield 2;
+			yield 3;
+		}
+
+		const [a, ...rest] = foo();
+		expect(a).to.equal(1);
+		expect(rest.size()).to.equal(2);
+		expect(rest[0]).to.equal(2);
+		expect(rest[1]).to.equal(3);
+	});
+
 	it("should destructure double nested generators", () => {
 		function* foo() {
 			yield 1;
@@ -663,6 +864,74 @@ export = () => {
 		expect(a).to.equal("f");
 	});
 
+	it("should spread destructure strings", () => {
+		const [h, e, ...llo] = "hello";
+
+		expect(h).to.equal("h");
+		expect(e).to.equal("e");
+		expect(llo.join("")).to.equal("llo");
+
+		const [...fruits] = "🍓a🍉b🥝c";
+		expect(fruits[0]).to.equal("🍓");
+		expect(fruits[1]).to.equal("a");
+		expect(fruits[2]).to.equal("🍉");
+		expect(fruits[3]).to.equal("b");
+		expect(fruits[4]).to.equal("🥝");
+		expect(fruits[5]).to.equal("c");
+	});
+
+	it("should preserve omitted string bindings before rest", () => {
+		const [, second, , ...rest] = "a🍓bc";
+
+		expect(second).to.equal("🍓");
+		expect(rest.size()).to.equal(1);
+		expect(rest[0]).to.equal("c");
+	});
+
+	it("should preserve exhausted string bindings and defaults before rest", () => {
+		const [first, second = "fallback", ...rest] = "a";
+		const [empty = "empty", ...emptyRest] = "";
+		const [...onlyRest] = "";
+
+		expect(first).to.equal("a");
+		expect(second).to.equal("fallback");
+		expect(rest.size()).to.equal(0);
+		expect(empty).to.equal("empty");
+		expect(emptyRest.size()).to.equal(0);
+		expect(onlyRest.size()).to.equal(0);
+	});
+
+	it("should share a string iterator during rest assignment", () => {
+		let first = "";
+		let rest = new Array<string>();
+
+		[first, , ...rest] = "a🍓bc";
+
+		expect(first).to.equal("a");
+		expect(rest.join("")).to.equal("bc");
+	});
+
+	it("should keep separate string iterators for nested rest bindings", () => {
+		const [[first, ...inner], ...outer] = "🍓ab";
+
+		expect(first).to.equal("🍓");
+		expect(inner.size()).to.equal(0);
+		expect(outer.join("")).to.equal("ab");
+	});
+
+	it("should initialize a string rest iterator once per loop iteration", () => {
+		const heads = new Array<string>();
+		const tails = new Array<string>();
+
+		for (const [first, ...rest] of ["abc", "def"]) {
+			heads.push(first);
+			tails.push(rest.join(""));
+		}
+
+		expect(heads.join("")).to.equal("ad");
+		expect(tails.join("")).to.equal("bcef");
+	});
+
 	it("should get sub type of iterable iterator", () => {
 		function* foo() {
 			yield "abc";
@@ -707,5 +976,56 @@ export = () => {
 		const { b } = a;
 		b(123);
 		expect(x).to.equal(123);
+	});
+
+	it("should support array binding pattern with LuaTuple with spread", () => {
+		function returnsLuaTuple() {
+			return $tuple(1, 2, 3, 4, 5);
+		}
+		const [a, b, c, ...rest] = returnsLuaTuple();
+		expect(a).to.equal(1);
+		expect(b).to.equal(2);
+		expect(c).to.equal(3);
+		expect(rest[0]).to.equal(4);
+		expect(rest[1]).to.equal(5);
+	});
+
+	it("should support array assignment pattern with LuaTuple with spread", () => {
+		function returnsLuaTuple() {
+			return $tuple(1, 2, 3, 4, 5);
+		}
+		let a: number;
+		let b: number;
+		let c: number;
+		let rest: Array<number>;
+		[a, b, c, ...rest] = returnsLuaTuple();
+		expect(a).to.equal(1);
+		expect(b).to.equal(2);
+		expect(c).to.equal(3);
+		expect(rest[0]).to.equal(4);
+		expect(rest[1]).to.equal(5);
+	});
+
+	it("should support array binding pattern with LuaTuple with optional call", () => {
+		function returnsLuaTuple() {
+			return $tuple(1, 2, 3, 4, 5);
+		}
+		const [a, b, c] = returnsLuaTuple?.();
+		expect(a).to.equal(1);
+		expect(b).to.equal(2);
+		expect(c).to.equal(3);
+	});
+
+	it("should support array assignment pattern with LuaTuple with optional call", () => {
+		function returnsLuaTuple() {
+			return $tuple(1, 2, 3, 4, 5);
+		}
+		let a: number;
+		let b: number;
+		let c: number;
+		[a, b, c] = returnsLuaTuple?.();
+		expect(a).to.equal(1);
+		expect(b).to.equal(2);
+		expect(c).to.equal(3);
 	});
 };

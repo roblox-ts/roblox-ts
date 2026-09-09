@@ -50,11 +50,22 @@ It is not necessary to run the "devlink" script again.
 
 **roblox-ts** keeps a suite of automated unit tests inside of `/tests`.
 
-Effectively, this folder is a tiny **roblox-ts** game. Testing process is as follows:
+The tests run in two environments:
 
-1. Compile tests project to create a `/tests/out` folder containing `.lua` files
-2. Use `rojo build` to create `/tests/test.rbxl`
-3. Use `lune` to execute the tests
+- `tests/compiler/` contains Node/Jest tests for compiler behavior and exact Luau output.
+  Expected output is stored in Jest's `__snapshots__/` directories.
+- `tests/src/` is a tiny **roblox-ts** game containing runtime tests, diagnostic cases,
+  and supporting fixtures. It has a separate TypeScript configuration from the Node tests.
+
+Prefer source-level runtime tests for behavior and diagnostic tests for invalid source.
+Use emit snapshots to verify output quality that runtime assertions cannot observe,
+such as unnecessary temporary variables. Avoid testing transformer internals in isolation.
+
+The testing process is as follows:
+
+1. Run Jest to check compiler behavior, verify snapshots, and compile the Roblox test project into `tests/out`
+2. Use `rojo build` to create `tests/test.rbxl`
+3. Use `lune` to execute the runtime tests
 
 You can run this process yourself if you have [rokit](https://github.com/rojo-rbx/rokit) installed.
 
@@ -64,3 +75,7 @@ rokit install
 # Compile tests, build .rbxl, run with lune
 npm test
 ```
+
+After building the compiler, you can also run just the Jest tests with `npm run test-compile`.
+For an intentional emit change, update snapshots with `npm run test-compile -- --updateSnapshot`
+and review the resulting diff before committing.

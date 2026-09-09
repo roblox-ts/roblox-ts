@@ -5,6 +5,15 @@
 		"$className": "DataModel",
 		"ReplicatedStorage": {
 			"$className": "ReplicatedStorage",
+			"external": {
+				"$path": "projects/external"
+			},
+			"referenceCommon": {
+				"$path": "projects/common/out"
+			},
+			"referenceShared": {
+				"$path": "projects/shared/out"
+			},
 			"include": {
 				"$path": "include",
 				"node_modules": {
@@ -18,7 +27,7 @@
 		"ServerScriptService": {
 			"$className": "ServerScriptService",
 			"main": {
-				"$path": "out/main.server.lua"
+				"$path": "out/main.server.luau"
 			},
 			"tests": {
 				"$path": "out/tests"
@@ -36,7 +45,7 @@
 		"StarterGui": {
 			"$className": "StarterGui",
 			"isolated": {
-				"$path": "out/helpers/rojo/isolated.lua"
+				"$path": "out/helpers/rojo/isolated.luau"
 			}
 		}
 	}

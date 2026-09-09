@@ -1,0 +1,28 @@
+import type { Config } from "jest";
+
+const config: Config = {
+	preset: "ts-jest",
+	testEnvironment: "node",
+	testMatch: ["<rootDir>/tests/compiler/**/*.test.ts"],
+	modulePathIgnorePatterns: ["<rootDir>/out/"],
+	moduleNameMapper: {
+		"^(Project|Shared|CLI|TSTransformer)/(.*)$": "<rootDir>/src/$1/$2",
+		"^(Project|Shared|CLI|TSTransformer)$": "<rootDir>/src/$1",
+	},
+	collectCoverageFrom: [
+		"src/**/*.ts",
+		"!src/CLI/**",
+		"!src/Shared/classes/LogService.ts",
+		"!src/TSTransformer/util/getFlags.ts",
+		"!src/TSTransformer/util/getKindName.ts",
+		"!src/TSTransformer/util/jsx/constants.ts",
+	],
+	coverageDirectory: "coverage",
+	coverageReporters: ["lcov", "text"],
+	verbose: true,
+	transform: {
+		"^.+\\.tsx?$": ["ts-jest", { tsconfig: "tests/compiler/tsconfig.json" }],
+	},
+};
+
+export default config;

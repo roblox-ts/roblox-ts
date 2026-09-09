@@ -1,4 +1,6 @@
 {
+	"include": ["src"],
+	"references": [{ "path": "projects/shared" }],
 	"compilerOptions": {
 		// required
 		"allowSyntheticDefaultImports": true,
@@ -14,6 +16,7 @@
 		"strict": true,
 		"target": "ESNext",
 		"typeRoots": ["node_modules/@rbxts"],
+		"experimentalDecorators": true,
 
 		// configurable
 		"rootDir": "src",

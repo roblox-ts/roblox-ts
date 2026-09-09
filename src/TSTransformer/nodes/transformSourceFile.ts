@@ -3,7 +3,9 @@ import { RbxType } from "@roblox-ts/rojo-resolver";
 import { COMPILER_VERSION } from "Shared/constants";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
+import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfNode";
 import { isSymbolMutable } from "TSTransformer/util/isSymbolMutable";
@@ -11,10 +13,19 @@ import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
 import { getAncestor } from "TSTransformer/util/traversal";
 import ts from "typescript";
 
-function getExportPair(state: TransformState, exportSymbol: ts.Symbol): [name: string, id: luau.AnyIdentifier] {
+function getExportPair(
+	state: TransformState,
+	exportSymbol: ts.Symbol,
+): [name: luau.Expression, id: luau.AnyIdentifier] {
 	const declaration = exportSymbol.getDeclarations()?.[0];
 	if (declaration && ts.isExportSpecifier(declaration)) {
-		return [declaration.name.text, transformIdentifierDefined(state, declaration.propertyName ?? declaration.name)];
+		const exportName = declaration.propertyName ?? declaration.name;
+		// exportName is only a StringLiteral for re-exports, which are filtered out in handleExports
+		assert(ts.isIdentifier(exportName));
+		const namePrereqs = new Prereqs();
+		const name = transformPropertyName(state, namePrereqs, declaration.name);
+		assert(luau.list.isEmpty(namePrereqs.statements));
+		return [name, transformIdentifierDefined(state, exportName)];
 	} else {
 		let name = exportSymbol.name;
 		if (
@@ -26,7 +37,7 @@ function getExportPair(state: TransformState, exportSymbol: ts.Symbol): [name: s
 			name = declaration.name.text;
 		}
 
-		return [exportSymbol.name, luau.id(name)];
+		return [luau.string(exportSymbol.name), luau.id(name)];
 	}
 }
 
@@ -67,6 +78,25 @@ function getIgnoredExportSymbols(state: TransformState, sourceFile: ts.SourceFil
 }
 
 /**
+ * used to ignore exports in the form of `export declare const x: T;`
+ * however, this should still allow exports which are declare + export separately, i.e.
+ * ```ts
+ * declare const x: number;
+ * export { x };
+ * ```
+ * this mimics TypeScript behavior
+ */
+function isExportSymbolOnlyFromDeclare(exportSymbol: ts.Symbol): boolean {
+	return (
+		exportSymbol.declarations?.every(declaration => {
+			const statement = getAncestor(declaration, ts.isStatement);
+			const modifiers = statement && ts.canHaveModifiers(statement) ? ts.getModifiers(statement) : undefined;
+			return modifiers?.some(v => v.kind === ts.SyntaxKind.DeclareKeyword);
+		}) ?? false
+	);
+}
+
+/**
  * Adds export information to the end of the tree.
  * @param state The current transform state.
  * @param symbol The symbol of the file.
@@ -81,7 +111,7 @@ function handleExports(
 	const ignoredExportSymbols = getIgnoredExportSymbols(state, sourceFile);
 
 	let mustPushExports = state.hasExportFrom;
-	const exportPairs = new Array<[string, luau.AnyIdentifier]>();
+	const exportPairs = new Array<[luau.Expression, luau.AnyIdentifier]>();
 	if (!state.hasExportEquals) {
 		for (const exportSymbol of state.getModuleExports(symbol)) {
 			if (ignoredExportSymbols.has(exportSymbol)) continue;
@@ -103,13 +133,8 @@ function handleExports(
 				continue;
 			}
 
-			if (originalSymbol.valueDeclaration) {
-				const statement = getAncestor(originalSymbol.valueDeclaration, ts.isStatement);
-				const modifiers = statement && ts.canHaveModifiers(statement) ? ts.getModifiers(statement) : undefined;
-				if (modifiers?.some(v => v.kind === ts.SyntaxKind.DeclareKeyword)) {
-					continue;
-				}
-			}
+			// ignore exports in the form of `export declare const x: T;`
+			if (isExportSymbolOnlyFromDeclare(exportSymbol)) continue;
 
 			exportPairs.push(getExportPair(state, exportSymbol));
 		}
@@ -139,7 +164,10 @@ function handleExports(
 			luau.list.push(
 				statements,
 				luau.create(luau.SyntaxKind.Assignment, {
-					left: luau.property(luau.globals.exports, exportKey),
+					left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+						expression: luau.globals.exports,
+						index: exportKey,
+					}),
 					operator: "=",
 					right: exportId,
 				}),
@@ -158,7 +186,7 @@ function handleExports(
 			luau.list.push(
 				fields,
 				luau.create(luau.SyntaxKind.MapField, {
-					index: luau.string(exportKey),
+					index: exportKey,
 					value: exportId,
 				}),
 			);
