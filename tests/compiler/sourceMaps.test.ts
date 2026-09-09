@@ -243,10 +243,6 @@ it("updates a changed map when writeOnlyChanged preserves identical Luau", () =>
 		const mapPath = `${outputPath}.map`;
 		const output = fs.readFileSync(outputPath, "utf8");
 		const previousMap = fs.readFileSync(mapPath, "utf8");
-		const unchanged = build.build([fixture.file(sourcePath)]);
-		expectSuccess(unchanged);
-		expect(unchanged.emittedFiles).not.toContain(outputPath);
-		expect(unchanged.emittedFiles).not.toContain(mapPath);
 
 		fixture.write(sourcePath, 'export const callback = () => {\n\n\tprint("map-only");\n};');
 		const result = build.build([fixture.file(sourcePath)]);
@@ -259,6 +255,29 @@ it("updates a changed map when writeOnlyChanged preserves identical Luau", () =>
 		const map = new TraceMap(fs.readFileSync(mapPath, "utf8"));
 		const generatedLine = output.split("\n").findIndex(line => line.includes('print("map-only")')) + 1;
 		expect(originalPositionFor(map, { line: generatedLine, column: 0 })).toMatchObject({ line: 3, column: 1 });
+	} finally {
+		fixture.close();
+	}
+});
+
+it.each([
+	[true, false],
+	[false, true],
+])("honors writeOnlyChanged=%s for unchanged Luau and source maps", (writeOnlyChanged, shouldWrite) => {
+	const fixture = new ReferenceFixture();
+	try {
+		fixture.project("game", [], { sourceMap: true });
+		const sourcePath = "game/src/index.ts";
+		const source = 'export const unchanged = "source map";';
+		fixture.write(sourcePath, source);
+		expectSuccess(fixture.createBuild().build());
+
+		fs.removeSync(fixture.file("cache/game.rbxtsc.tsbuildinfo"));
+		const result = fixture.createBuild({ writeOnlyChanged }).build([fixture.file(sourcePath)]);
+		expectSuccess(result);
+		const outputPath = fixture.file("out/game/init.luau");
+		expect(result.emittedFiles?.includes(outputPath)).toBe(shouldWrite);
+		expect(result.emittedFiles?.includes(`${outputPath}.map`)).toBe(shouldWrite);
 	} finally {
 		fixture.close();
 	}
