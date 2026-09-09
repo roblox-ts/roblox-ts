@@ -219,6 +219,31 @@ it.each([
 	}
 });
 
+it("emits portable literal paths for source map consumers", () => {
+	const fixture = new ReferenceFixture();
+	try {
+		fixture.project("game", [], { sourceMap: true });
+		const sourcePath = "game/src/path edge #100% 雪/index.ts";
+		const outputPath = "out/game/path edge #100% 雪/init.luau";
+		const source = 'export const marker = "portable path";';
+		fixture.write(sourcePath, source);
+
+		expectSuccess(fixture.createBuild().build());
+
+		const rawMap = JSON.parse(fixture.read(`${outputPath}.map`));
+		expect(rawMap.sources).toEqual(["../../../game/src/path edge #100% 雪/index.ts"]);
+		expect(rawMap.sourcesContent).toEqual([source]);
+
+		const output = fixture.read(outputPath);
+		const generatedLine = output.split("\n").findIndex(line => line.includes('marker = "portable path"')) + 1;
+		const original = originalPositionFor(new TraceMap(rawMap), { line: generatedLine, column: 0 });
+		expect(original.source).toBe(rawMap.sources[0]);
+		expect(path.resolve(path.dirname(fixture.file(outputPath)), original.source!)).toBe(fixture.file(sourcePath));
+	} finally {
+		fixture.close();
+	}
+});
+
 it.each([false, true])("uses the generated %s extension for nested index source maps", luau => {
 	const fixture = new ReferenceFixture();
 	try {
