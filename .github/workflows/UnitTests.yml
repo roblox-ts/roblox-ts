@@ -8,14 +8,23 @@ on:
 
 jobs:
   unit-tests:
-    name: Unit Tests
-    runs-on: ubuntu-latest
+    name: Unit Tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
       - name: Install Rokit
-        uses: CompeyDev/setup-rokit@v0.1.2
+        uses: roblox-ts/setup-rokit@v0.1.2
 
       - name: Install NPM Dependencies
         uses: bahmutov/npm-install@v1
@@ -28,13 +37,13 @@ jobs:
 
       - name: Upload Test Output
         if: failure()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: test-output
+          name: test-output-${{ matrix.os }}
           path: tests/out
 
-      - name: Report Coverage
-        continue-on-error: true
-        uses: coverallsapp/github-action@v1.1.2
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage/lcov.info

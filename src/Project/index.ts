@@ -1,3 +1,4 @@
+export * from "Project/classes/ProjectBuild";
 export * from "Project/classes/VirtualProject";
 export * from "Project/functions/cleanup";
 export * from "Project/functions/createProjectData";

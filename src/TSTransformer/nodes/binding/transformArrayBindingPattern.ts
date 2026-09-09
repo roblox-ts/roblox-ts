@@ -1,16 +1,17 @@
 import luau from "@roblox-ts/luau-ast";
-import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
-import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformObjectBindingPattern } from "TSTransformer/nodes/binding/transformObjectBindingPattern";
 import { transformVariable } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { getAccessorForBindingType } from "TSTransformer/util/binding/getAccessorForBindingType";
+import { getSpreadDestructorForType } from "TSTransformer/util/spreadDestructuring";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import ts from "typescript";
 
 export function transformArrayBindingPattern(
 	state: TransformState,
+	prereqs: Prereqs,
 	bindingPattern: ts.ArrayBindingPattern,
 	parentId: luau.AnyIdentifier,
 ) {
@@ -19,30 +20,33 @@ export function transformArrayBindingPattern(
 	let index = 0;
 	const idStack = new Array<luau.AnyIdentifier>();
 	const accessor = getAccessorForBindingType(state, bindingPattern, state.getType(bindingPattern));
+	const destructor = getSpreadDestructorForType(state, bindingPattern, state.getType(bindingPattern));
+
 	for (const element of bindingPattern.elements) {
 		if (ts.isOmittedExpression(element)) {
-			accessor(state, parentId, index, idStack, true);
+			accessor(prereqs, parentId, index, idStack, true);
 		} else {
-			if (element.dotDotDotToken) {
-				DiagnosticService.addDiagnostic(errors.noSpreadDestructuring(element));
-				return;
-			}
 			const name = element.name;
-			const value = accessor(state, parentId, index, idStack, false);
+
+			const isSpreadElement = element.dotDotDotToken !== undefined;
+			const value = isSpreadElement
+				? destructor(prereqs, parentId, index, idStack)
+				: accessor(prereqs, parentId, index, idStack, false);
+
 			if (ts.isIdentifier(name)) {
-				const id = transformVariable(state, name, value);
+				const id = transformVariable(state, prereqs, name, value);
 				if (element.initializer) {
-					state.prereq(transformInitializer(state, id, element.initializer));
+					prereqs.push(transformInitializer(state, id, element.initializer));
 				}
 			} else {
-				const id = state.pushToVar(value, "binding");
+				const id = prereqs.pushToVar(value, "binding");
 				if (element.initializer) {
-					state.prereq(transformInitializer(state, id, element.initializer));
+					prereqs.push(transformInitializer(state, id, element.initializer));
 				}
 				if (ts.isArrayBindingPattern(name)) {
-					transformArrayBindingPattern(state, name, id);
+					transformArrayBindingPattern(state, prereqs, name, id);
 				} else {
-					transformObjectBindingPattern(state, name, id);
+					transformObjectBindingPattern(state, prereqs, name, id);
 				}
 			}
 		}

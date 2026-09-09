@@ -1,11 +1,11 @@
 import luau from "@roblox-ts/luau-ast";
-import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
-import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformArrayBindingPattern } from "TSTransformer/nodes/binding/transformArrayBindingPattern";
 import { transformObjectBindingPattern } from "TSTransformer/nodes/binding/transformObjectBindingPattern";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
+import { arrayLikeExpressionContainsSpread } from "TSTransformer/util/arrayLikeExpressionContainsSpread";
 import { isMethod } from "TSTransformer/util/isMethod";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import ts from "typescript";
@@ -15,6 +15,7 @@ import ts from "typescript";
  */
 function optimizeArraySpreadParameter(
 	state: TransformState,
+	prereqs: Prereqs,
 	parameters: luau.List<luau.AnyIdentifier>,
 	bindingPattern: ts.ArrayBindingPattern,
 ) {
@@ -22,28 +23,24 @@ function optimizeArraySpreadParameter(
 		if (ts.isOmittedExpression(element)) {
 			luau.list.push(parameters, luau.tempId());
 		} else {
-			if (element.dotDotDotToken) {
-				DiagnosticService.addDiagnostic(errors.noSpreadDestructuring(element));
-				return;
-			}
 			const name = element.name;
 			if (ts.isIdentifier(name)) {
 				const paramId = transformIdentifierDefined(state, name);
-				validateIdentifier(state, name);
+				validateIdentifier(name);
 				luau.list.push(parameters, paramId);
 				if (element.initializer) {
-					state.prereq(transformInitializer(state, paramId, element.initializer));
+					prereqs.push(transformInitializer(state, paramId, element.initializer));
 				}
 			} else {
 				const paramId = luau.tempId("param");
 				luau.list.push(parameters, paramId);
 				if (element.initializer) {
-					state.prereq(transformInitializer(state, paramId, element.initializer));
+					prereqs.push(transformInitializer(state, paramId, element.initializer));
 				}
 				if (ts.isArrayBindingPattern(name)) {
-					transformArrayBindingPattern(state, name, paramId);
+					transformArrayBindingPattern(state, prereqs, name, paramId);
 				} else {
-					transformObjectBindingPattern(state, name, paramId);
+					transformObjectBindingPattern(state, prereqs, name, paramId);
 				}
 			}
 		}
@@ -64,18 +61,21 @@ export function transformParameters(state: TransformState, node: ts.SignatureDec
 			continue;
 		}
 
-		if (parameter.dotDotDotToken && ts.isArrayBindingPattern(parameter.name)) {
-			const prereqs = state.capturePrereqs(() =>
-				optimizeArraySpreadParameter(state, parameters, parameter.name as ts.ArrayBindingPattern),
-			);
-			luau.list.pushList(statements, prereqs);
+		if (
+			parameter.dotDotDotToken &&
+			ts.isArrayBindingPattern(parameter.name) &&
+			!arrayLikeExpressionContainsSpread(parameter.name)
+		) {
+			const parameterPrereqs = new Prereqs();
+			optimizeArraySpreadParameter(state, parameterPrereqs, parameters, parameter.name);
+			luau.list.pushList(statements, parameterPrereqs.statements);
 			continue;
 		}
 
 		let paramId: luau.Identifier | luau.TemporaryIdentifier;
 		if (ts.isIdentifier(parameter.name)) {
 			paramId = transformIdentifierDefined(state, parameter.name);
-			validateIdentifier(state, parameter.name);
+			validateIdentifier(parameter.name);
 		} else {
 			paramId = luau.tempId("param");
 		}
@@ -102,17 +102,13 @@ export function transformParameters(state: TransformState, node: ts.SignatureDec
 		// destructuring
 		if (!ts.isIdentifier(parameter.name)) {
 			const bindingPattern = parameter.name;
+			const bindingPrereqs = new Prereqs();
 			if (ts.isArrayBindingPattern(bindingPattern)) {
-				luau.list.pushList(
-					statements,
-					state.capturePrereqs(() => transformArrayBindingPattern(state, bindingPattern, paramId)),
-				);
+				transformArrayBindingPattern(state, bindingPrereqs, bindingPattern, paramId);
 			} else {
-				luau.list.pushList(
-					statements,
-					state.capturePrereqs(() => transformObjectBindingPattern(state, bindingPattern, paramId)),
-				);
+				transformObjectBindingPattern(state, bindingPrereqs, bindingPattern, paramId);
 			}
+			luau.list.pushList(statements, bindingPrereqs.statements);
 		}
 	}
 

@@ -47,7 +47,7 @@ function transformNamespace(state: TransformState, name: ts.Identifier, body: ts
 	const symbol = state.typeChecker.getSymbolAtLocation(name);
 	assert(symbol);
 
-	validateIdentifier(state, name);
+	validateIdentifier(name);
 
 	const nameExp = transformIdentifierDefined(state, name);
 
