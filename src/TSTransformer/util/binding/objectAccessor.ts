@@ -26,11 +26,12 @@ export const objectAccessor = (
 	// (TS1180/TS1136), so it can never reach here
 	assert(!ts.isNoSubstitutionTemplateLiteral(name));
 
-	if (isMixedStringType(type)) {
+	if (isMixedStringType(receiverType)) {
 		DiagnosticService.addDiagnostic(errors.noMixedStringIndex(name));
 		return luau.none();
 	}
-	if (isDefinitelyType(type, isStringType) && !ts.isIdentifier(name) && !ts.isPrivateIdentifier(name)) {
+
+	if (isDefinitelyType(receiverType, isStringType) && !ts.isIdentifier(name) && !ts.isPrivateIdentifier(name)) {
 		const key = ts.isComputedPropertyName(name) ? name.expression : name;
 		const indexPrereqs = new Prereqs();
 		const index = transformExpression(state, indexPrereqs, key);

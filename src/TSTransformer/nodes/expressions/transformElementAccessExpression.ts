@@ -38,7 +38,7 @@ export function transformElementAccessExpressionInner(
 	const index = transformExpression(state, indexPrereqs, argumentExpression);
 
 	// optional chains already guard this access against nil
-	const nonNullableType = state.typeChecker.getNonNullableType(expType);
+	const nonNullableType = state.typeChecker.getNonNullableType(receiverType);
 	if (isDefinitelyType(nonNullableType, isStringType)) {
 		return createStringIndexExpression(
 			prereqs,
@@ -47,6 +47,7 @@ export function transformElementAccessExpressionInner(
 			state.getType(argumentExpression),
 		);
 	}
+
 	if (isMixedStringType(nonNullableType)) {
 		DiagnosticService.addDiagnostic(errors.noMixedStringIndex(node));
 		return luau.none();
