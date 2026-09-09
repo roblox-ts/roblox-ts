@@ -41,9 +41,9 @@ it.each([false, true])("explains external package entry points (symlink: %s)", l
 		const messages = result.diagnostics.map(diagnostic =>
 			ts
 				.flattenDiagnosticMessageText(diagnostic.messageText, "\n")
-				.split(fixture.directory)
-				.join("<project>")
-				.replace(/\\/g, "/"),
+				.replace(/\\/g, "/")
+				.split(fixture.directory.replace(/\\/g, "/"))
+				.join("<project>"),
 		);
 		expect(messages[0]).not.toContain("second");
 		expect(messages[1]).not.toContain("first");
