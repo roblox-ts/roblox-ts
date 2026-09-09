@@ -2,7 +2,7 @@ import fs from "fs-extra";
 import path from "path";
 import { ProjectGraph, ProjectNode, projectPathKey } from "Project/classes/ProjectGraph";
 import { checkFileName } from "Project/functions/checkFileName";
-import { INCLUDE_PATH } from "Shared/constants";
+import { getIncludeFiles } from "Project/functions/getIncludeFiles";
 import { ProjectError } from "Shared/errors/ProjectError";
 import { assert } from "Shared/util/assert";
 import { getRootDirs } from "Shared/util/getRootDirs";
@@ -160,22 +160,9 @@ export function getProjectOutputs(project: ProjectNode, graph: ProjectGraph): Pr
 	}
 
 	// the shared runtime can be placed inside an output directory, including at its root
-	const preserveInclude = (directory: string) => {
-		for (const name of fs.readdirSync(directory)) {
-			const input = path.join(directory, name);
-
-			if (fs.statSync(input).isDirectory()) {
-				preserveInclude(input);
-			} else {
-				addOutput(
-					path.join(graph.root.data.projectOptions.includePath, path.relative(INCLUDE_PATH, input)),
-					input,
-				);
-			}
-		}
-	};
-
-	preserveInclude(INCLUDE_PATH);
+	for (const { input, output } of getIncludeFiles(graph.root.data.projectOptions)) {
+		addOutput(output, input);
+	}
 
 	if (translator.buildInfoOutputPath) {
 		files.set(projectPathKey(translator.buildInfoOutputPath), undefined);

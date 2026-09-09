@@ -1,0 +1,6 @@
+{
+	"name": "include",
+	"tree": {
+		"$path": "./include"
+	}
+}

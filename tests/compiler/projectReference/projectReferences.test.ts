@@ -52,7 +52,7 @@ it("builds a reference chain in dependency order and reuses unchanged output", (
 		),
 	).toMatchSnapshot();
 	expect(fs.existsSync(fixture.file("shared/include"))).toBe(false);
-	expect(fs.existsSync(fixture.file("include/RuntimeLib.lua"))).toBe(true);
+	expect(fs.existsSync(fixture.file("include/RuntimeLib.luau"))).toBe(true);
 	expect(build.build().emittedFiles).toEqual([]);
 });
 
@@ -398,22 +398,32 @@ it("recovers a missing reference introduced while watching", async () => {
 	}
 });
 
-it.each(["out/game/include", "out/game"])("preserves runtime files at %s while cleaning stale output", includePath => {
+it.each([
+	{ includePath: "out/game/include", luau: false },
+	{ includePath: "out/game/include", luau: true },
+	{ includePath: "out/game", luau: false },
+	{ includePath: "out/game", luau: true },
+])("preserves runtime files at $includePath while cleaning stale output (luau=$luau)", ({ includePath, luau }) => {
 	fixture.project("game");
 	fixture.rojo({ include: { $path: includePath } });
 	fixture.write("game/src/orphan.ts", "export const orphan = 1;");
 
-	const build = fixture.createBuild({ includePath: fixture.file(includePath) });
+	const build = fixture.createBuild({ includePath: fixture.file(includePath), luau });
+	const extension = luau ? "luau" : "lua";
 	expectSuccess(build.build());
 
-	expect(fs.existsSync(fixture.file(`${includePath}/RuntimeLib.lua`))).toBe(true);
+	for (const name of ["Promise", "RuntimeLib"]) {
+		expect(fs.existsSync(fixture.file(`${includePath}/${name}.${extension}`))).toBe(true);
+	}
 
 	fs.removeSync(fixture.file("game/src/orphan.ts"));
 
 	expectSuccess(build.build());
 
-	expect(fs.existsSync(fixture.file(`${includePath}/RuntimeLib.lua`))).toBe(true);
-	expect(fs.existsSync(fixture.file("out/game/orphan.luau"))).toBe(false);
+	for (const name of ["Promise", "RuntimeLib"]) {
+		expect(fs.existsSync(fixture.file(`${includePath}/${name}.${extension}`))).toBe(true);
+	}
+	expect(fs.existsSync(fixture.file(`out/game/orphan.${extension}`))).toBe(false);
 });
 
 it("rebuilds shared output when switching between game deployment contexts", () => {
