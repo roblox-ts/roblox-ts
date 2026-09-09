@@ -19,17 +19,12 @@ export function transformObjectAssignmentPattern(
 	assignmentPattern: ts.ObjectLiteralExpression,
 	parentId: luau.AnyIdentifier,
 ) {
+	const patternType = state.typeChecker.getTypeOfAssignmentPattern(assignmentPattern);
 	const preSpreadNames = new Array<luau.Expression>();
 	for (const property of assignmentPattern.properties) {
 		if (ts.isShorthandPropertyAssignment(property)) {
 			const name = property.name;
-			const value = objectAccessor(
-				state,
-				prereqs,
-				parentId,
-				state.typeChecker.getTypeOfAssignmentPattern(assignmentPattern),
-				name,
-			);
+			const value = objectAccessor(state, prereqs, parentId, patternType, name);
 			preSpreadNames.push(value);
 
 			const id = transformWritableExpression(
@@ -81,13 +76,7 @@ export function transformObjectAssignmentPattern(
 				init = skipDownwards(property.initializer.left);
 			}
 
-			const value = objectAccessor(
-				state,
-				prereqs,
-				parentId,
-				state.typeChecker.getTypeOfAssignmentPattern(assignmentPattern),
-				name,
-			);
+			const value = objectAccessor(state, prereqs, parentId, patternType, name);
 			preSpreadNames.push(value);
 
 			if (ts.isIdentifier(init) || ts.isElementAccessExpression(init) || ts.isPropertyAccessExpression(init)) {

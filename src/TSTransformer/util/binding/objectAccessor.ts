@@ -17,7 +17,7 @@ export const objectAccessor = (
 	type: ts.Type,
 	name: ts.PropertyName,
 ): luau.Expression => {
-	addIndexDiagnostics(state, name, state.getType(name));
+	addIndexDiagnostics(state, name, state.getType(name), type);
 
 	// NoSubstitutionTemplateLiteral is part of ts.PropertyName but TS rejects it as a binding key
 	// (TS1180/TS1136), so it can never reach here

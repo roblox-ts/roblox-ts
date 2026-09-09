@@ -259,6 +259,12 @@ export = () => {
 		expect(z).to.equal(3);
 	});
 
+	it("should support nested object destructure assignment with length property", () => {
+		let length: number;
+		([{ length }] = [{ length: 42 }] as const);
+		expect(length).to.equal(42);
+	});
+
 	it("should support destructure assignment as expression", () => {
 		function test(obj: [number, number, [number]]) {
 			expect(obj[0]).to.equal(1);
