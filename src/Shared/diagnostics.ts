@@ -237,6 +237,10 @@ export const errors = {
 			`Invalid Rojo configuration. $path fields should be relative to out directory.`,
 			suggestion(`Change the value of $path from "${partitionPath}" to "${suggestedPath}".`),
 		),
+	noMixedStringIndex: error(
+		"Cannot index a type containing both strings and other types!",
+		suggestion("Narrow the value to a string or a non-string type before indexing."),
+	),
 };
 
 export const warnings = {

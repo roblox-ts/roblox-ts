@@ -1,0 +1,148 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`captures a receiver before an index call rebinds it 1`] = `
+"local value = "abc"
+local function index()
+	value = "xyz"
+	return 0
+end
+local _exp = value
+local _arg0 = index()
+local byte = if _arg0 >= 0 and _arg0 % 1 == 0 and _arg0 < #_exp then string.sub(_exp, _arg0 + 1, _arg0 + 1) else nil
+return {
+	byte = byte,
+}
+"
+`;
+
+exports[`checks dynamic byte indices without capturing parameters 1`] = `
+"local function read(value, index)
+	return if index >= 0 and index % 1 == 0 and index < #value then string.sub(value, index + 1, index + 1) else nil
+end
+return {
+	read = read,
+}
+"
+`;
+
+exports[`converts numeric string keys 1`] = `
+"local function read(value, index)
+	local _index = tonumber(index)
+	return if _index ~= nil and _index >= 0 and _index % 1 == 0 and _index < #value then string.sub(value, _index + 1, _index + 1) else nil
+end
+local first = if 0 < #"abc" then string.sub("abc", 1, 1) else nil
+return {
+	read = read,
+	first = first,
+}
+"
+`;
+
+exports[`evaluates a receiver before index prerequisites 1`] = `
+"local index = 0
+local _exp = value()
+local _original = index
+index += 1
+local byte = if _original >= 0 and _original % 1 == 0 and _original < #_exp then string.sub(_exp, _original + 1, _original + 1) else nil
+return {
+	byte = byte,
+}
+"
+`;
+
+exports[`evaluates effectful receiver and index calls once 1`] = `
+"local _exp = value()
+local _arg0 = index()
+local byte = if _arg0 >= 0 and _arg0 % 1 == 0 and _arg0 < #_exp then string.sub(_exp, _arg0 + 1, _arg0 + 1) else nil
+return {
+	byte = byte,
+}
+"
+`;
+
+exports[`folds invalid literal indices while preserving receiver effects 1`] = `
+"value()
+local negative = nil
+value()
+local fractional = nil
+return {
+	negative = negative,
+	fractional = fractional,
+}
+"
+`;
+
+exports[`keeps string indexing prerequisites inside optional chains 1`] = `
+"local function read(value)
+	local _result = value
+	if _result ~= nil then
+		local _arg0 = index()
+		_result = if _arg0 >= 0 and _arg0 % 1 == 0 and _arg0 < #_result then string.sub(_result, _arg0 + 1, _arg0 + 1) else nil
+	end
+	return _result
+end
+return {
+	read = read,
+}
+"
+`;
+
+exports[`preserves effects when an indexed value is discarded 1`] = `
+"local _exp = value()
+local _arg0 = index()
+local _ = if _arg0 >= 0 and _arg0 % 1 == 0 and _arg0 < #_exp then string.sub(_exp, _arg0 + 1, _arg0 + 1) else nil
+return nil
+"
+`;
+
+exports[`reuses one string iterator for bindings and rest 1`] = `
+"local _binding = "abc"
+local _matcher = string.gmatch(_binding, utf8.charpattern)
+local first = _matcher()
+_matcher()
+local third = _matcher()
+if third == nil then
+	third = "fallback"
+end
+local _rest = {}
+for _char in _matcher do
+	table.insert(_rest, _char)
+end
+local rest = _rest
+return {
+	first = first,
+	third = third,
+	rest = rest,
+}
+"
+`;
+
+exports[`uses byte indexing for numeric object destructuring keys 1`] = `
+"local _binding = value
+local first = if 0 < #_binding then string.sub(_binding, 1, 1) else nil
+local second = if 1 < #_binding then string.sub(_binding, 2, 2) else nil
+local missing = if 5 < #_binding then string.sub(_binding, 6, 6) else nil
+if missing == nil then
+	missing = "fallback"
+end
+return {
+	first = first,
+	second = second,
+	missing = missing,
+}
+"
+`;
+
+exports[`uses byte offsets for literal indices 1`] = `
+"local function read(value)
+	return if 0 < #value then string.sub(value, 1, 1) else nil
+end
+local function readOffset(value)
+	return if 1_0 < #value then string.sub(value, 11, 11) else nil
+end
+return {
+	read = read,
+	readOffset = readOffset,
+}
+"
+`;

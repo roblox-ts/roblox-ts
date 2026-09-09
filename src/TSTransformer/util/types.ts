@@ -106,6 +106,15 @@ export function isStringType(type: ts.Type) {
 	return !!(type.flags & (ts.TypeFlags.String | ts.TypeFlags.StringLike | ts.TypeFlags.StringLiteral));
 }
 
+export function isMixedStringType(type: ts.Type) {
+	type = type.getConstraint() ?? type;
+	return (
+		type.isUnion() &&
+		!isDefinitelyType(type, isStringType) &&
+		type.types.some(type => isDefinitelyType(type, isStringType))
+	);
+}
+
 export function isArrayType(state: TransformState): TypeCheck {
 	return type => {
 		// typeChecker.isArrayLikeType() will return true for `any`, so rule it out here

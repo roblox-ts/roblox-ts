@@ -1,17 +1,20 @@
 import luau from "@roblox-ts/luau-ast";
+import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformOptionalChain } from "TSTransformer/nodes/transformOptionalChain";
 import { addIndexDiagnostics } from "TSTransformer/util/addIndexDiagnostics";
 import { addOneIfArrayType } from "TSTransformer/util/addOneIfArrayType";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
+import { createStringIndexExpression } from "TSTransformer/util/createStringIndexExpression";
 import { tryMarkBuiltinMember } from "TSTransformer/util/evaluation/builtins";
 import { effectsCommute, getEffects, isLateRead, joinEffects, NO_EFFECTS } from "TSTransformer/util/evaluation/effects";
 import { getConstantValueLiteral } from "TSTransformer/util/getConstantValueLiteral";
 import { offset } from "TSTransformer/util/offset";
 import { skipUpwards } from "TSTransformer/util/traversal";
-import { isLuaTupleType } from "TSTransformer/util/types";
+import { isDefinitelyType, isLuaTupleType, isMixedStringType, isStringType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import ts from "typescript";
 
@@ -33,6 +36,21 @@ export function transformElementAccessExpressionInner(
 
 	const indexPrereqs = new Prereqs();
 	const index = transformExpression(state, indexPrereqs, argumentExpression);
+
+	// optional chains already guard this access against nil
+	const nonNullableType = state.typeChecker.getNonNullableType(expType);
+	if (isDefinitelyType(nonNullableType, isStringType)) {
+		return createStringIndexExpression(
+			prereqs,
+			expression,
+			{ expression: index, prereqs: indexPrereqs.statements },
+			state.getType(argumentExpression),
+		);
+	}
+	if (isMixedStringType(nonNullableType)) {
+		DiagnosticService.addDiagnostic(errors.noMixedStringIndex(node));
+		return luau.none();
+	}
 
 	if (
 		!effectsCommute(

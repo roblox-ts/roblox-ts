@@ -864,6 +864,74 @@ export = () => {
 		expect(a).to.equal("f");
 	});
 
+	it("should spread destructure strings", () => {
+		const [h, e, ...llo] = "hello";
+
+		expect(h).to.equal("h");
+		expect(e).to.equal("e");
+		expect(llo.join("")).to.equal("llo");
+
+		const [...fruits] = "🍓a🍉b🥝c";
+		expect(fruits[0]).to.equal("🍓");
+		expect(fruits[1]).to.equal("a");
+		expect(fruits[2]).to.equal("🍉");
+		expect(fruits[3]).to.equal("b");
+		expect(fruits[4]).to.equal("🥝");
+		expect(fruits[5]).to.equal("c");
+	});
+
+	it("should preserve omitted string bindings before rest", () => {
+		const [, second, , ...rest] = "a🍓bc";
+
+		expect(second).to.equal("🍓");
+		expect(rest.size()).to.equal(1);
+		expect(rest[0]).to.equal("c");
+	});
+
+	it("should preserve exhausted string bindings and defaults before rest", () => {
+		const [first, second = "fallback", ...rest] = "a";
+		const [empty = "empty", ...emptyRest] = "";
+		const [...onlyRest] = "";
+
+		expect(first).to.equal("a");
+		expect(second).to.equal("fallback");
+		expect(rest.size()).to.equal(0);
+		expect(empty).to.equal("empty");
+		expect(emptyRest.size()).to.equal(0);
+		expect(onlyRest.size()).to.equal(0);
+	});
+
+	it("should share a string iterator during rest assignment", () => {
+		let first = "";
+		let rest = new Array<string>();
+
+		[first, , ...rest] = "a🍓bc";
+
+		expect(first).to.equal("a");
+		expect(rest.join("")).to.equal("bc");
+	});
+
+	it("should keep separate string iterators for nested rest bindings", () => {
+		const [[first, ...inner], ...outer] = "🍓ab";
+
+		expect(first).to.equal("🍓");
+		expect(inner.size()).to.equal(0);
+		expect(outer.join("")).to.equal("ab");
+	});
+
+	it("should initialize a string rest iterator once per loop iteration", () => {
+		const heads = new Array<string>();
+		const tails = new Array<string>();
+
+		for (const [first, ...rest] of ["abc", "def"]) {
+			heads.push(first);
+			tails.push(rest.join(""));
+		}
+
+		expect(heads.join("")).to.equal("ad");
+		expect(tails.join("")).to.equal("bcef");
+	});
+
 	it("should get sub type of iterable iterator", () => {
 		function* foo() {
 			yield "abc";

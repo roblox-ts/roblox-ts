@@ -4,6 +4,7 @@ import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { Prereqs } from "TSTransformer/classes/Prereqs";
+import { getMatcherForStringAccessor } from "TSTransformer/util/binding/getMatcherForStringAccessor";
 import {
 	isArrayType,
 	isDefinitelyType,
@@ -39,17 +40,7 @@ const arrayAccessor: BindingAccessor = (prereqs, parentId, index) => {
 };
 
 const stringAccessor: BindingAccessor = (prereqs, parentId, index, idStack, isOmitted) => {
-	let id: luau.AnyIdentifier;
-	if (idStack.length === 0) {
-		id = prereqs.pushToVar(
-			luau.call(luau.globals.string.gmatch, [parentId, luau.globals.utf8.charpattern]),
-			"matcher",
-		);
-		idStack.push(id);
-	} else {
-		id = idStack[0];
-	}
-
+	const id = getMatcherForStringAccessor(prereqs, parentId, idStack);
 	const callExp = luau.call(id);
 
 	if (isOmitted) {
