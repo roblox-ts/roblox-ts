@@ -5,6 +5,24 @@ import { expectSuccess, ReferenceFixture } from "./referenceFixture";
 
 jest.setTimeout(30000);
 
+it("preserves plugin-reprinted comments when source maps are disabled", () => {
+	const fixture = new ReferenceFixture();
+	try {
+		fixture.project("game", [], {
+			plugins: [{ transform: "../identity.cjs" }],
+			removeComments: true,
+		});
+		fixture.write("identity.cjs", "module.exports = () => () => source => source;");
+		fixture.write("game/src/index.ts", "// retained in the transformed TypeScript\nexport const value = 1;");
+
+		expectSuccess(fixture.createBuild({ writeTransformedFiles: true }).build());
+
+		expect(fixture.read("out/game/index.transformed.ts")).toContain("// retained in the transformed TypeScript");
+	} finally {
+		fixture.close();
+	}
+});
+
 it.each([false, true])(
 	"maps plugin-reprinted statements to the original source (removeComments=%s)",
 	removeComments => {

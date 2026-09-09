@@ -10,7 +10,7 @@ export function printSourceFileWithTraceMap(
 	sourceFile: ts.SourceFile,
 	compilerOptions: ts.CompilerOptions,
 ): PrintResult {
-	const printer = ts.createPrinter({ removeComments: compilerOptions.removeComments });
+	const printer = ts.createPrinter();
 
 	if (!compilerOptions.sourceMap) {
 		return { text: printer.printFile(sourceFile), traceMap: undefined };
