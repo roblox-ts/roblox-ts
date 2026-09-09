@@ -7,6 +7,7 @@ import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
+import { getOriginalSourcePosition } from "TSTransformer/util/getOriginalSourcePosition";
 import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfNode";
 import { isSymbolMutable } from "TSTransformer/util/isSymbolMutable";
 import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
@@ -77,6 +78,45 @@ function getIgnoredExportSymbols(state: TransformState, sourceFile: ts.SourceFil
 	return ignoredSymbols;
 }
 
+function getExportSyntaxAnchor(exportSymbol: ts.Symbol, sourceFile: ts.SourceFile): ts.Node | undefined {
+	const declarations = exportSymbol.getDeclarations();
+	if (!declarations || declarations.length === 0) {
+		return undefined;
+	}
+
+	for (const decl of declarations) {
+		if (decl.getSourceFile() !== sourceFile) {
+			continue;
+		}
+
+		if (ts.isExportSpecifier(decl)) {
+			return decl;
+		}
+
+		if (ts.isExportAssignment(decl)) {
+			return decl;
+		}
+
+		const statement = getAncestor(decl, ts.isStatement);
+		if (statement) {
+			const modifiers = ts.canHaveModifiers(statement) ? ts.getModifiers(statement) : undefined;
+			if (modifiers?.some(m => m.kind === ts.SyntaxKind.ExportKeyword)) {
+				return statement;
+			}
+		}
+	}
+
+	// prefer a containing statement in this source file for merged declarations
+	for (const decl of declarations) {
+		if (decl.getSourceFile() !== sourceFile) {
+			continue;
+		}
+		return getAncestor(decl, ts.isStatement) ?? decl;
+	}
+
+	return declarations[0];
+}
+
 /**
  * used to ignore exports in the form of `export declare const x: T;`
  * however, this should still allow exports which are declare + export separately, i.e.
@@ -111,7 +151,7 @@ function handleExports(
 	const ignoredExportSymbols = getIgnoredExportSymbols(state, sourceFile);
 
 	let mustPushExports = state.hasExportFrom;
-	const exportPairs = new Array<[luau.Expression, luau.AnyIdentifier]>();
+	const exportPairs = new Array<[luau.Expression, luau.AnyIdentifier, ts.Symbol]>();
 	if (!state.hasExportEquals) {
 		for (const exportSymbol of state.getModuleExports(symbol)) {
 			if (ignoredExportSymbols.has(exportSymbol)) continue;
@@ -136,7 +176,7 @@ function handleExports(
 			// ignore exports in the form of `export declare const x: T;`
 			if (isExportSymbolOnlyFromDeclare(exportSymbol)) continue;
 
-			exportPairs.push(getExportPair(state, exportSymbol));
+			exportPairs.push([...getExportPair(state, exportSymbol), exportSymbol]);
 		}
 	}
 
@@ -160,18 +200,29 @@ function handleExports(
 				right: luau.map(),
 			}),
 		);
-		for (const [exportKey, exportId] of exportPairs) {
-			luau.list.push(
-				statements,
-				luau.create(luau.SyntaxKind.Assignment, {
-					left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-						expression: luau.globals.exports,
-						index: exportKey,
-					}),
-					operator: "=",
-					right: exportId,
+		for (const [exportKey, exportId, exportSymbol] of exportPairs) {
+			const assignment = luau.create(luau.SyntaxKind.Assignment, {
+				left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+					expression: luau.globals.exports,
+					index: exportKey,
 				}),
-			);
+				operator: "=",
+				right: exportId,
+			});
+			if (state.compilerOptions.sourceMap) {
+				const anchor = getExportSyntaxAnchor(exportSymbol, sourceFile);
+				if (anchor) {
+					state.sourcePositionMap.set(
+						assignment,
+						getOriginalSourcePosition(state.multiTransformState, anchor),
+					);
+					state.sourceEndPositionMap.set(
+						assignment,
+						getOriginalSourcePosition(state.multiTransformState, anchor, n => n.getEnd() - 1),
+					);
+				}
+			}
+			luau.list.push(statements, assignment);
 		}
 		luau.list.push(
 			statements,

@@ -6,6 +6,8 @@ import path from "path";
 import { checkFileName } from "Project/functions/checkFileName";
 import { checkRojoConfig } from "Project/functions/checkRojoConfig";
 import { createNodeModulesPathMapping } from "Project/functions/createNodeModulesPathMapping";
+import { printSourceFileWithTraceMap } from "Project/functions/printSourceFileWithTraceMap";
+import { renderASTWithSourceMap } from "Project/functions/renderASTWithSourceMap";
 import transformPathsTransformer from "Project/transformers/builtin/transformPaths";
 import { transformTypeReferenceDirectives } from "Project/transformers/builtin/transformTypeReferenceDirectives";
 import { createTransformerList, flattenIntoTransformers } from "Project/transformers/createTransformerList";
@@ -102,9 +104,10 @@ export function compileFiles(
 
 	LogService.writeLineIfVerbose(`compiling as ${projectType}..`);
 
-	const fileWriteQueue = new Array<{ sourceFile: ts.SourceFile; source: string }>();
+	const fileWriteQueue = new Array<{ sourceFile: ts.SourceFile; source: string; sourceMapJson?: string }>();
 	const progressMaxLength = `${sourceFiles.length}/${sourceFiles.length}`.length;
 
+	const originalSourceTexts = new Map<string, string>();
 	let proxyProgram = program;
 	let pluginAfterDeclarations: ts.CustomTransformers["afterDeclarations"];
 
@@ -118,6 +121,11 @@ export function compileFiles(
 				const { service, updateFile, updateProgram } = (data.transformerWatcher ??=
 					createTransformerWatcher(program));
 				updateProgram(program);
+				if (compilerOptions.sourceMap) {
+					for (const sourceFile of sourceFiles) {
+						originalSourceTexts.set(sourceFile.fileName, sourceFile.text);
+					}
+				}
 				const transformResult = ts.transformNodes(
 					undefined,
 					undefined,
@@ -134,7 +142,10 @@ export function compileFiles(
 					if (ts.isSourceFile(sourceFile)) {
 						// transformed nodes don't have symbol or type information (or they have out of date information)
 						// there's no way to "rebind" an existing file, so we have to reprint it
-						const source = ts.createPrinter().printFile(sourceFile);
+						const { text: source, traceMap } = printSourceFileWithTraceMap(sourceFile, compilerOptions);
+						if (traceMap) {
+							multiTransformState.reprintTraceMaps.set(sourceFile.fileName, traceMap);
+						}
 						updateFile(sourceFile.fileName, source);
 						if (data.projectOptions.writeTransformedFiles) {
 							const outPath = pathTranslator.getOutputTransformedPath(sourceFile.fileName);
@@ -181,9 +192,20 @@ export function compileFiles(
 			const luauAST = transformSourceFile(transformState, sourceFile);
 			if (DiagnosticService.hasErrors()) return;
 
-			const source = renderAST(luauAST);
-
-			fileWriteQueue.push({ sourceFile, source });
+			if (compilerOptions.sourceMap) {
+				const outPath = pathTranslator.getOutputPath(sourceFile.fileName);
+				const result = renderASTWithSourceMap(
+					luauAST,
+					transformState.sourcePositionMap,
+					transformState.sourceEndPositionMap,
+					path.relative(path.dirname(outPath), sourceFile.fileName),
+					path.basename(outPath),
+					originalSourceTexts.get(sourceFile.fileName) ?? sourceFile.text,
+				);
+				fileWriteQueue.push({ sourceFile, source: result.code, sourceMapJson: JSON.stringify(result.map) });
+			} else {
+				fileWriteQueue.push({ sourceFile, source: renderAST(luauAST) });
+			}
 		});
 	}
 
@@ -214,7 +236,7 @@ export function compileFiles(
 	const emittedFiles = new Array<string>();
 	if (fileWriteQueue.length > 0) {
 		benchmarkIfVerbose("writing compiled files", () => {
-			for (const { sourceFile, source } of fileWriteQueue) {
+			for (const { sourceFile, source, sourceMapJson } of fileWriteQueue) {
 				const outPath = pathTranslator.getOutputPath(sourceFile.fileName);
 				if (
 					!data.projectOptions.writeOnlyChanged ||
@@ -223,6 +245,17 @@ export function compileFiles(
 				) {
 					fs.outputFileSync(outPath, source);
 					emittedFiles.push(outPath);
+				}
+				const mapPath = outPath + ".map";
+				if (sourceMapJson !== undefined) {
+					if (
+						!data.projectOptions.writeOnlyChanged ||
+						!fs.existsSync(mapPath) ||
+						fs.readFileSync(mapPath, "utf8") !== sourceMapJson
+					) {
+						fs.outputFileSync(mapPath, sourceMapJson);
+						emittedFiles.push(mapPath);
+					}
 				}
 			}
 
@@ -236,6 +269,12 @@ export function compileFiles(
 				}
 			}
 		});
+	}
+
+	if (!compilerOptions.sourceMap) {
+		for (const { sourceFile } of fileWriteQueue) {
+			fs.removeSync(pathTranslator.getOutputPath(sourceFile.fileName) + ".map");
+		}
 	}
 
 	program.emitBuildInfo();

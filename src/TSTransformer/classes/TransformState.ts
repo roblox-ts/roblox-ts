@@ -4,7 +4,7 @@ import { RbxPath, RbxPathParent, RojoResolver } from "@roblox-ts/rojo-resolver";
 import path from "path";
 import { PARENT_FIELD, ProjectType } from "Shared/constants";
 import { errors, warnings } from "Shared/diagnostics";
-import { ProjectData } from "Shared/types";
+import { ProjectData, SourcePosition } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { getCanonicalFileName } from "Shared/util/getCanonicalFileName";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
@@ -22,6 +22,8 @@ import ts from "typescript";
  * Represents the state of the transformation between TS -> Luau AST.
  */
 export class TransformState {
+	public readonly sourcePositionMap = new WeakMap<luau.Node, SourcePosition>();
+	public readonly sourceEndPositionMap = new WeakMap<luau.Node, SourcePosition>();
 	private readonly sourceFileText: string;
 	public hasExportEquals = false;
 	public hasExportFrom = false;

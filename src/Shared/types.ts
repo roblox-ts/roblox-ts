@@ -2,6 +2,11 @@ import { RojoResolver } from "@roblox-ts/rojo-resolver";
 import { ProjectType } from "Shared/constants";
 import ts from "typescript";
 
+export interface SourcePosition {
+	line: number;
+	column: number;
+}
+
 export interface ProjectOptions {
 	includePath: string;
 	rojo: string | undefined;

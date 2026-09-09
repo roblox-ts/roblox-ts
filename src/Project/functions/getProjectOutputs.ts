@@ -103,6 +103,9 @@ export function getProjectOutputs(project: ProjectNode, graph: ProjectGraph): Pr
 		}
 
 		addOutput(translator.getOutputPath(fileName), fileName);
+		if (project.config.options.sourceMap) {
+			addOutput(translator.getOutputPath(fileName) + ".map", fileName);
+		}
 		if (project.data.projectOptions.writeTransformedFiles && project.config.options.plugins?.length) {
 			addOutput(translator.getOutputTransformedPath(fileName), fileName);
 		}
