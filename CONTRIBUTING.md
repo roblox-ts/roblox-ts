@@ -9,7 +9,7 @@ First, we'll need to setup the development build of **roblox-ts**.
 This guide assumes you have the following installed:
 
 -   Git
--   NodeJS 24.9 or newer (required for Jest to load ESM dependencies)
+-   NodeJS 24 or newer
 -   NPM
 
 We'll also assume you understand some basic terminal navigation commands (`cd`, `ls`/`dir`, etc.).
