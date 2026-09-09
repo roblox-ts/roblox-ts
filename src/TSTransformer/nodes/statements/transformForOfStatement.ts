@@ -13,7 +13,6 @@ import { transformStatementList } from "TSTransformer/nodes/transformStatementLi
 import { transformWritableExpression } from "TSTransformer/nodes/transformWritable";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
-import { getKindName } from "TSTransformer/util/getKindName";
 import { getLiteralNumberValue } from "TSTransformer/util/getLiteralNumberValue";
 import { getStatements } from "TSTransformer/util/getStatements";
 import { skipDownwards } from "TSTransformer/util/traversal";
@@ -197,13 +196,12 @@ function transformInLineArrayAssignmentPattern(
 					bindingPrereqs.push(transformInitializer(state, valueId, initializer));
 				}
 				transformArrayAssignmentPattern(state, bindingPrereqs, element, valueId);
-			} else if (ts.isObjectLiteralExpression(element)) {
+			} else {
+				assert(ts.isObjectLiteralExpression(element), "Expected object assignment pattern");
 				if (initializer) {
 					bindingPrereqs.push(transformInitializer(state, valueId, initializer));
 				}
 				transformObjectAssignmentPattern(state, bindingPrereqs, element, valueId);
-			} else {
-				assert(false, `transformInLineArrayAssignmentPattern invalid element: ${getKindName(element.kind)}`);
 			}
 
 			luau.list.push(ids, valueId);

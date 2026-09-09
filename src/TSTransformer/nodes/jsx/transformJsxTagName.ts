@@ -1,5 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
+import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { Prereqs } from "TSTransformer/classes/Prereqs";
@@ -31,13 +32,10 @@ function transformJsxTagNameExpression(state: TransformState, prereqs: Prereqs, 
 	}
 }
 
-export function transformJsxTagName(state: TransformState, prereqs: Prereqs, tagName: ts.JsxTagNameExpression) {
+export function transformJsxTagName(state: TransformState, tagName: ts.JsxTagNameExpression) {
 	const expressionPrereqs = new Prereqs();
 	const expression = transformJsxTagNameExpression(state, expressionPrereqs, tagName);
-	let tagNameExp = expression;
-	if (!luau.list.isEmpty(expressionPrereqs.statements)) {
-		prereqs.pushList(expressionPrereqs.statements);
-		tagNameExp = prereqs.pushToVarIfComplex(tagNameExp, "tagName");
-	}
-	return tagNameExp;
+	// JSX tag names only allow identifiers, this, dotted names, and namespaced names
+	assert(luau.list.isEmpty(expressionPrereqs.statements));
+	return expression;
 }

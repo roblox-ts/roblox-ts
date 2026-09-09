@@ -1,4 +1,158 @@
+import defaultValue from "../helpers/util/prereqs/defaultValue";
+import exportedValue = require("../helpers/util/prereqs/exportedValue");
+
 export = () => {
+	it("should evaluate module export prerequisites before importing their values", () => {
+		expect(defaultValue).to.equal(3);
+		expect(exportedValue.value).to.equal(2);
+	});
+
+	it("should apply optimized assignment defaults after evaluating the tuple", () => {
+		const values = [1, 2, 3];
+		const target = { value: 0 };
+		const array = [0];
+		let nested = 0;
+		let property = 0;
+		function read(): LuaTuple<[number?, Array<number>?, { value: number }?]> {
+			return $tuple(undefined, undefined, undefined);
+		}
+
+		[target.value = values.pop()!, [nested] = [values.pop()!], { value: property } = { value: values.pop()! }] =
+			read();
+		expect(target.value).to.equal(3);
+		expect(nested).to.equal(2);
+		expect(property).to.equal(1);
+		expect(values.size()).to.equal(0);
+
+		[array[0] = 10] = [undefined];
+		expect(array[0]).to.equal(10);
+	});
+
+	it("should apply optimized binding defaults after omitted tuple values", () => {
+		const values = [1, 2, 3];
+		function read(): LuaTuple<[number, number?, Array<number>?, { value: number }?]> {
+			return $tuple(10, undefined, undefined, undefined);
+		}
+
+		const [, a = values.pop()!, [b] = [values.pop()!], { value: c } = { value: values.pop()! }] = read();
+		expect(a).to.equal(3);
+		expect(b).to.equal(2);
+		expect(c).to.equal(1);
+		expect(values.size()).to.equal(0);
+	});
+
+	it("should assign inline iterator targets without defaults", () => {
+		let calls = 0;
+		const iterator = (() => {
+			calls += 1;
+			if (calls === 1) {
+				return $tuple(1, [2], { value: 3 });
+			}
+			return $tuple();
+		}) as IterableFunction<LuaTuple<[number, Array<number>, { value: number }]>>;
+		const target = { value: 0 };
+		let a = 0;
+		let b = 0;
+		for ([target.value, [a], { value: b }] of iterator) {
+			expect(target.value).to.equal(1);
+			expect(a).to.equal(2);
+			expect(b).to.equal(3);
+		}
+		expect(calls).to.equal(2);
+	});
+
+	it("should preserve single-value iterator and anonymous tuple iterator prerequisites", () => {
+		let calls = 0;
+		const iterator = (() => {
+			calls += 1;
+			return calls <= 2 ? calls : undefined;
+		}) as IterableFunction<number>;
+		const seen = new Array<number>();
+		for (const value of iterator) {
+			seen.push(value);
+		}
+		expect(seen.join(",")).to.equal("1,2");
+		expect(calls).to.equal(3);
+
+		let tupleCalls = 0;
+		for (const tuple of ((): LuaTuple<Array<number>> => {
+			tupleCalls += 1;
+			if (tupleCalls === 1) {
+				return $tuple(4, 5);
+			}
+			return $tuple();
+		}) as IterableFunction<LuaTuple<Array<number>>>) {
+			expect(tuple.join(",")).to.equal("4,5");
+		}
+		expect(tupleCalls).to.equal(2);
+	});
+
+	it("should repeat while prerequisites and support a for loop without a condition", () => {
+		const values = [1, 2, 3];
+		let iterations = 0;
+		while (values.pop() !== undefined) {
+			iterations += 1;
+		}
+		expect(iterations).to.equal(3);
+		expect(values.size()).to.equal(0);
+
+		let increments = 0;
+		for (;; increments += 1) {
+			if (increments === 2) {
+				break;
+			}
+		}
+		expect(increments).to.equal(2);
+	});
+
+	it("should evaluate omitted set and generator bindings", () => {
+		const set = new Set([10]);
+		const [,] = set;
+		expect(set.has(10)).to.equal(true);
+		expect(set.size()).to.equal(1);
+
+		let calls = 0;
+		function* numbers() {
+			calls += 1;
+			yield 1;
+			calls += 1;
+			yield 2;
+		}
+		const [, second] = numbers();
+		expect(second).to.equal(2);
+		expect(calls).to.equal(2);
+	});
+
+	it("should preserve mixed enum members and clear macro prerequisites", () => {
+		enum Mixed {
+			Text = "text",
+			Number = 1,
+		}
+		expect(Mixed.Text).to.equal("text");
+		expect(Mixed.Number).to.equal(1);
+		expect(Mixed[1]).to.equal("Number");
+
+		const values = [1, 2];
+		values.clear();
+		expect(values.size()).to.equal(0);
+		expect(values.clear()).to.equal(undefined);
+	});
+
+	it("should pass self to optional super method calls", () => {
+		class Base {
+			constructor(readonly value: number) {}
+			read(extra: number) {
+				return this.value + extra;
+			}
+		}
+		class Derived extends Base {
+			read(extra: number) {
+				return super.read?.(extra) ?? 0;
+			}
+		}
+		expect(new Derived(10).read(2)).to.equal(12);
+	});
+
 	it("should keep else-if and return prerequisites conditional", () => {
 		const values = [1, 2, 3];
 		function read(enabled: boolean) {

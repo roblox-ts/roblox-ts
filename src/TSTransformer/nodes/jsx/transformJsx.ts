@@ -24,7 +24,7 @@ export function transformJsx(
 
 	const createElementExpression = convertToIndexableExpression(transformEntityName(state, jsxFactoryEntity));
 
-	const tagNameExp = transformJsxTagName(state, prereqs, tagName);
+	const tagNameExp = transformJsxTagName(state, tagName);
 
 	let attributesPtr: MapPointer | undefined;
 	if (attributes.properties.length > 0) {

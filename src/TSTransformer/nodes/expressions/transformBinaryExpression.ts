@@ -22,7 +22,6 @@ import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexa
 import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOperator";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { getAssignableValue } from "TSTransformer/util/getAssignableValue";
-import { getKindName } from "TSTransformer/util/getKindName";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { skipDownwards } from "TSTransformer/util/traversal";
 import {
@@ -49,9 +48,9 @@ function transformOptimizedArrayAssignmentPattern(
 	for (let element of assignmentPattern.elements) {
 		if (ts.isOmittedExpression(element)) {
 			luau.list.push(writes, luau.tempId());
-		} else if (ts.isSpreadElement(element)) {
-			assert(false, "Cannot optimize-assign spread element");
 		} else {
+			// callers only select this optimization for patterns without spread elements
+			assert(!ts.isSpreadElement(element), "Cannot optimize-assign spread element");
 			let initializer: ts.Expression | undefined;
 			if (ts.isBinaryExpression(element)) {
 				initializer = skipDownwards(element.right);
@@ -78,7 +77,8 @@ function transformOptimizedArrayAssignmentPattern(
 					bindingPrereqs.push(transformInitializer(state, id, initializer));
 				}
 				transformArrayAssignmentPattern(state, bindingPrereqs, element, id);
-			} else if (ts.isObjectLiteralExpression(element)) {
+			} else {
+				assert(ts.isObjectLiteralExpression(element), "Expected object assignment pattern");
 				const id = luau.tempId("binding");
 				luau.list.push(variables, id);
 				luau.list.push(writes, id);
@@ -86,8 +86,6 @@ function transformOptimizedArrayAssignmentPattern(
 					bindingPrereqs.push(transformInitializer(state, id, initializer));
 				}
 				transformObjectAssignmentPattern(state, bindingPrereqs, element, id);
-			} else {
-				assert(false, `transformOptimizedArrayAssignmentPattern invalid element: ${getKindName(element.kind)}`);
 			}
 		}
 	}
