@@ -259,6 +259,38 @@ export = () => {
 		expect(z).to.equal(3);
 	});
 
+	it("should support nested object destructure assignment with length property", () => {
+		let length: number;
+
+		([{ length }] = [{ length: 42 }] as const);
+
+		expect(length).to.equal(42);
+	});
+
+	it("should support length properties on generic objects", () => {
+		function readLength<T extends { length: number }>(value: T) {
+			const { length } = value;
+
+			expect(value.length).to.equal(length);
+			expect(value["length"]).to.equal(length);
+			return length;
+		}
+
+		expect(readLength({ length: 42 })).to.equal(42);
+	});
+
+	it("should support length properties on generic object intersections", () => {
+		function readLength<T extends { tag: string }>(value: T & { length: number }) {
+			const { length } = value;
+
+			expect(value.length).to.equal(length);
+			expect(value["length"]).to.equal(length);
+			return length;
+		}
+
+		expect(readLength({ length: 42, tag: "object" })).to.equal(42);
+	});
+
 	it("should support destructure assignment as expression", () => {
 		function test(obj: [number, number, [number]]) {
 			expect(obj[0]).to.equal(1);

@@ -27,8 +27,9 @@ export function transformElementAccessExpressionInner(
 	// b in a[b]
 	validateNotAnyType(state, node.argumentExpression);
 
-	const expType = state.typeChecker.getNonOptionalType(state.getType(node.expression));
-	addIndexDiagnostics(state, node, expType);
+	const receiverType = state.typeChecker.getNonOptionalType(state.getType(node.expression));
+	const memberType = state.typeChecker.getNonOptionalType(state.getType(node));
+	addIndexDiagnostics(state, node, memberType, receiverType);
 
 	const indexPrereqs = new Prereqs();
 	const index = transformExpression(state, indexPrereqs, argumentExpression);
@@ -40,7 +41,7 @@ export function transformElementAccessExpressionInner(
 		)
 	) {
 		// hack because wrapReturnIfLuaTuple will not wrap this, but now we need to!
-		if (isLuaTupleType(state)(expType)) {
+		if (isLuaTupleType(state)(receiverType)) {
 			expression = luau.array([expression]);
 		}
 
@@ -49,7 +50,7 @@ export function transformElementAccessExpressionInner(
 	prereqs.pushList(indexPrereqs.statements);
 
 	// LuaTuple<T> checks
-	if (luau.isCall(expression) && isLuaTupleType(state)(expType)) {
+	if (luau.isCall(expression) && isLuaTupleType(state)(receiverType)) {
 		// wrap in select() if it isn't the first value
 		if (!luau.isNumberLiteral(index) || Number(index.value.replace(/_/g, "")) !== 0) {
 			expression = luau.call(luau.globals.select, [offset(index, 1), expression]);
@@ -63,7 +64,7 @@ export function transformElementAccessExpressionInner(
 			luau.create(luau.SyntaxKind.Assignment, {
 				left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 					expression: convertToIndexableExpression(expression),
-					index: addOneIfArrayType(state, expType, index),
+					index: addOneIfArrayType(state, receiverType, index),
 				}),
 				operator: "=",
 				right: luau.nil(),
@@ -74,7 +75,7 @@ export function transformElementAccessExpressionInner(
 
 	const access = luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 		expression: convertToIndexableExpression(expression),
-		index: addOneIfArrayType(state, expType, index),
+		index: addOneIfArrayType(state, receiverType, index),
 	});
 	tryMarkBuiltinMember(state, node, access);
 	return access;

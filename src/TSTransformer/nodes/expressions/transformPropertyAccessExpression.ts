@@ -20,7 +20,9 @@ export function transformPropertyAccessExpressionInner(
 	// a in a.b
 	validateNotAnyType(state, node.expression);
 
-	addIndexDiagnostics(state, node, state.typeChecker.getNonOptionalType(state.getType(node)));
+	const memberType = state.typeChecker.getNonOptionalType(state.getType(node));
+	const receiverType = state.getType(node.expression);
+	addIndexDiagnostics(state, node, memberType, receiverType);
 
 	if (ts.isDeleteExpression(skipUpwards(node).parent)) {
 		prereqs.push(
