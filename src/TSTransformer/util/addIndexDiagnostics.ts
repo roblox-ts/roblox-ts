@@ -7,19 +7,6 @@ import { skipUpwards } from "TSTransformer/util/traversal";
 import { getFirstDefinedSymbol, isPossiblyType } from "TSTransformer/util/types";
 import ts from "typescript";
 
-function isPossiblyTupleType(state: TransformState, type: ts.Type): boolean {
-	const constraint = type.getConstraint();
-	if (constraint && constraint !== type) {
-		return isPossiblyTupleType(state, constraint);
-	}
-
-	if (type.isUnionOrIntersection()) {
-		return type.types.some(t => isPossiblyTupleType(state, t));
-	}
-
-	return state.typeChecker.isTupleType(type);
-}
-
 function isLengthPropertyName(state: TransformState, node: ts.PropertyName): boolean {
 	if (ts.isComputedPropertyName(node)) {
 		const argumentType = state.getType(node.expression);
@@ -51,7 +38,10 @@ export function addIndexDiagnostics(
 		expressionType = state.getType(node.expression);
 	}
 
-	if (!expressionType || !isPossiblyTupleType(state, expressionType)) return;
+	if (!expressionType || !isPossiblyType(expressionType, state.typeChecker.isTupleType)) {
+		return;
+	}
+
 	if (ts.isPropertyAccessExpression(node) && node.name.text === "length") {
 		DiagnosticService.addDiagnostic(errors.noLengthIndexInTuples(node));
 	}
