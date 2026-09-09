@@ -29,6 +29,12 @@ export default defineConfig(
 			"eslint-comments": comments,
 		},
 		rules: {
+			// keep the existing lint policy when recommended presets change
+			"no-shadow-restricted-names": ["error", { reportGlobalThis: false }],
+			"no-unassigned-vars": "off",
+			"no-useless-assignment": "off",
+			"preserve-caught-error": "off",
+
 			// off
 			"@typescript-eslint/explicit-function-return-type": "off",
 			"@typescript-eslint/explicit-module-boundary-types": "off",
