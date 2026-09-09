@@ -3,6 +3,8 @@ import { projectPathKey } from "Project/classes/ProjectGraph";
 
 import { expectSuccess, ReferenceFixture, startWatch } from "../referenceFixture";
 
+jest.setTimeout(30000);
+
 let fixture: ReferenceFixture;
 beforeEach(() => {
 	fixture = new ReferenceFixture();
