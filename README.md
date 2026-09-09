@@ -18,6 +18,32 @@
 
 Ready to dive in? [Check out the documentation.](https://roblox-ts.com/docs)
 
+### TypeScript 6.0 migration
+
+This branch uses TypeScript 6.0.3. Keep `"module": "commonjs"`, switch to
+`"moduleResolution": "bundler"`, and remove `downlevelIteration` entirely
+(setting it to `false` still produces a deprecation error). Remove `baseUrl`; if
+imports depend on it, replace it with explicit `paths` mappings relative to the
+tsconfig, for example `"paths": { "*": ["./src/*"] }` for `"baseUrl": "src"`.
+Update inherited configurations too.
+
+The companion `@rbxts/compiler-types` change is required: `Iterable`,
+`IterableIterator`, `AsyncIterable`, and `AsyncIterableIterator` must accept three
+type parameters. The published `3.0.0-types.0` package does not include this fix.
+Until it is available upstream, install a checkout containing the fix into each
+consumer project. With `compiler-types` beside this repository, prepare the test
+dependencies from the repository root with:
+
+```sh
+cd tests
+npm install
+npm install --no-save --package-lock=false --install-links ../../compiler-types
+cd ..
+```
+
+Reapply the local installation after `npm run update-test-types`, which installs
+the upstream compiler-types revision.
+
 ## Join the Community!
 
 https://discord.roblox-ts.com

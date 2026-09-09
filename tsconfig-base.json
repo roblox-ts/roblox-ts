@@ -2,6 +2,7 @@
 	"compilerOptions": {
 		"declaration": true,
 		"module": "commonjs",
+		"moduleResolution": "bundler",
 		"target": "ES2019",
 		"lib": ["ES2019"],
 		"strict": true,
@@ -13,9 +14,9 @@
 		"composite": true,
 		"sourceMap": true,
 		"outDir": "out",
-		"baseUrl": "src",
+		"types": ["node", "ts-expose-internals"],
 		"paths": {
-			"*": ["*"]
+			"*": ["./src/*"]
 		},
 		"plugins": [
 			{

@@ -9,6 +9,7 @@ const ENFORCED_OPTIONS = {
 	target: ts.ScriptTarget.ESNext,
 	module: ts.ModuleKind.CommonJS,
 	moduleDetection: ts.ModuleDetectionKind.Force,
+	// eslint-disable-next-line @typescript-eslint/no-deprecated -- retain legacy configs using ignoreDeprecations
 	moduleResolution: ts.ModuleResolutionKind.Node10,
 	noLib: true,
 	strict: true,
@@ -56,8 +57,11 @@ export function validateCompilerOptions(opts: ts.CompilerOptions, projectPath: s
 		errors.push(`${y(`"moduleDetection"`)} must be ${y(`"force"`)}`);
 	}
 
-	if (opts.moduleResolution !== ENFORCED_OPTIONS.moduleResolution) {
-		errors.push(`${y(`"moduleResolution"`)} must be ${y(`"Node"`)}`);
+	if (
+		opts.moduleResolution !== ENFORCED_OPTIONS.moduleResolution &&
+		opts.moduleResolution !== ts.ModuleResolutionKind.Bundler
+	) {
+		errors.push(`${y(`"moduleResolution"`)} must be ${y(`"Bundler"`)} or ${y(`"Node"`)}`);
 	}
 
 	if (opts.allowSyntheticDefaultImports !== ENFORCED_OPTIONS.allowSyntheticDefaultImports) {
