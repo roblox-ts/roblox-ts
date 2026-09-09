@@ -30,7 +30,7 @@ The main pipeline is TypeScript source → TypeScript AST/type checker → Luau 
 | `src/Project/classes/VirtualProject.ts`             | In-memory compilation used by the playground and compiler snapshots, backed by `VirtualFileSystem.ts`. Preserve this path alongside filesystem builds.                                                                             |
 | `src/Project/functions/setupProjectWatchProgram.ts` | Incremental builds and file lifecycle. Also inspect `createProgramFactory.ts` and `getChangedFilePaths.ts` for invalidation and dependent files.                                                                                   |
 | `src/TSTransformer/nodes/`                          | Syntax lowering. `transformSourceFile.ts` handles module wrapping; `expressions/transformExpression.ts` and `statements/transformStatement.ts` dispatch by syntax kind. Binding, class, and JSX transforms have their own folders. |
-| `src/TSTransformer/classes/`                        | `TransformState` owns per-file transformation context and prerequisite statements; `MultiTransformState` owns caches for one compilation; `MacroManager` binds macros to TypeScript symbols.                                       |
+| `src/TSTransformer/classes/`                        | `TransformState` owns per-file transformation context; `Prereqs` owns an explicit statement destination; `MultiTransformState` owns caches for one compilation; `MacroManager` binds macros to TypeScript symbols.                 |
 | `src/TSTransformer/macros/`                         | Identifier, constructor, call, and property-call macros. Array, map, set, string, and Roblox arithmetic methods are expanded here.                                                                                                 |
 | `src/TSTransformer/util/`                           | Shared lowering rules: evaluation order, type classification, truthiness, imports, assignments, tuples, and string conversion.                                                                                                     |
 | `src/Shared/`                                       | Options and defaults, diagnostic factories, errors, logging, and common utilities.                                                                                                                                                 |
@@ -109,10 +109,16 @@ For an engine-specific issue, verify the actual API and use an appropriate Roblo
 
 ## Compiler invariants and common traps
 
-- **Prerequisites and evaluation order:** `state.capture()` returns an expression and its prerequisite statements;
-  `state.prereq()` / `state.prereqList()` emit them into the enclosing capture. Keep prerequisites in the correct
-  branch, loop iteration, and source evaluation order. Start with `ensureTransformOrder.ts`, `transformWritable.ts`,
-  and `transformCallExpression.ts` when changing captures. Calls also pass through `transformOptionalChain.ts`.
+- **Prerequisites and evaluation order:** Pass an explicit `Prereqs` collector to transforms that emit caller
+  prerequisites. Create a separate `new Prereqs()` for each statement destination, then attach its `.statements`
+  to the appropriate branch, loop, or enclosing list. `prereqs.push()` / `prereqs.pushList()` append to that
+  collector. Pass the intended collector explicitly through callbacks instead of closing over an outer one.
+  Statement transforms return their complete statement lists, with any prerequisite collectors kept local.
+  Assemble final output in plain Luau lists; append each collector after its collection phase is complete,
+  since `luau.list.pushList()` consumes the appended list. Thin forwarding helpers may return `.statements` directly.
+  Keep prerequisites in the correct branch, loop iteration, and source evaluation order. Start with
+  `ensureTransformOrder.ts`, `transformWritable.ts`, and `transformCallExpression.ts` when changing destinations.
+  Calls also pass through `transformOptionalChain.ts`.
 - **Macro operands:** Macros can reorder, repeat, or discard inputs and invoke callbacks. Removing a temporary needs
   evidence that reads, writes, receiver rebinding, errors, conditional execution, and allocation identity remain
   correct. A simple identifier can still be mutable. Inspect both used-result and statement-only forms.

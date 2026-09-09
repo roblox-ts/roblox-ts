@@ -1,5 +1,5 @@
 import luau from "@roblox-ts/luau-ast";
-import { TransformState } from "TSTransformer";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOperator";
 import { isDefinitelyType, isStringType } from "TSTransformer/util/types";
 import ts from "typescript";
@@ -48,19 +48,18 @@ export function createAssignmentStatement(
 }
 
 export function createAssignmentExpression(
-	state: TransformState,
+	prereqs: Prereqs,
 	writable: luau.WritableExpression,
 	operator: luau.AssignmentOperator,
 	value: luau.Expression,
 	readable: luau.WritableExpression = writable,
 ) {
-	state.prereq(createAssignmentStatement(writable, operator, value, readable));
+	prereqs.push(createAssignmentStatement(writable, operator, value, readable));
 	return writable;
 }
 
 export function createCompoundAssignmentStatement(
-	state: TransformState,
-	node: ts.Node,
+	prereqs: Prereqs,
 	writable: luau.WritableExpression,
 	writableType: ts.Type,
 	readable: luau.WritableExpression,
@@ -71,13 +70,12 @@ export function createCompoundAssignmentStatement(
 	return luau.create(luau.SyntaxKind.Assignment, {
 		left: writable,
 		operator: "=",
-		right: createBinaryFromOperator(state, node, readable, writableType, operator, value, valueType),
+		right: createBinaryFromOperator(prereqs, readable, writableType, operator, value, valueType),
 	});
 }
 
 export function createCompoundAssignmentExpression(
-	state: TransformState,
-	node: ts.Node,
+	prereqs: Prereqs,
 	writable: luau.WritableExpression,
 	writableType: ts.Type,
 	readable: luau.WritableExpression,
@@ -86,9 +84,9 @@ export function createCompoundAssignmentExpression(
 	valueType: ts.Type,
 ) {
 	return createAssignmentExpression(
-		state,
+		prereqs,
 		writable,
 		"=",
-		createBinaryFromOperator(state, node, readable, writableType, operator, value, valueType),
+		createBinaryFromOperator(prereqs, readable, writableType, operator, value, valueType),
 	);
 }

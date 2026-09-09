@@ -1,5 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformOptionalChain } from "TSTransformer/nodes/transformOptionalChain";
 import { addIndexDiagnostics } from "TSTransformer/util/addIndexDiagnostics";
@@ -16,6 +17,7 @@ import ts from "typescript";
 
 export function transformElementAccessExpressionInner(
 	state: TransformState,
+	prereqs: Prereqs,
 	node: ts.ElementAccessExpression,
 	expression: luau.Expression,
 	argumentExpression: ts.Expression,
@@ -28,12 +30,13 @@ export function transformElementAccessExpressionInner(
 	const expType = state.typeChecker.getNonOptionalType(state.getType(node.expression));
 	addIndexDiagnostics(state, node, expType);
 
-	const [index, prereqs] = state.capture(() => transformExpression(state, argumentExpression));
+	const indexPrereqs = new Prereqs();
+	const index = transformExpression(state, indexPrereqs, argumentExpression);
 
 	if (
 		!effectsCommute(
 			getEffects(expression),
-			joinEffects(getEffects(prereqs), isLateRead(expression) ? getEffects(index) : NO_EFFECTS),
+			joinEffects(getEffects(indexPrereqs.statements), isLateRead(expression) ? getEffects(index) : NO_EFFECTS),
 		)
 	) {
 		// hack because wrapReturnIfLuaTuple will not wrap this, but now we need to!
@@ -41,9 +44,9 @@ export function transformElementAccessExpressionInner(
 			expression = luau.array([expression]);
 		}
 
-		expression = state.pushToVar(expression, "exp");
+		expression = prereqs.pushToVar(expression, "exp");
 	}
-	state.prereqList(prereqs);
+	prereqs.pushList(indexPrereqs.statements);
 
 	// LuaTuple<T> checks
 	if (luau.isCall(expression) && isLuaTupleType(state)(expType)) {
@@ -56,7 +59,7 @@ export function transformElementAccessExpressionInner(
 	}
 
 	if (ts.isDeleteExpression(skipUpwards(node).parent)) {
-		state.prereq(
+		prereqs.push(
 			luau.create(luau.SyntaxKind.Assignment, {
 				left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 					expression: convertToIndexableExpression(expression),
@@ -77,11 +80,15 @@ export function transformElementAccessExpressionInner(
 	return access;
 }
 
-export function transformElementAccessExpression(state: TransformState, node: ts.ElementAccessExpression) {
+export function transformElementAccessExpression(
+	state: TransformState,
+	prereqs: Prereqs,
+	node: ts.ElementAccessExpression,
+) {
 	const constantValue = getConstantValueLiteral(state, node);
 	if (constantValue) {
 		return constantValue;
 	}
 
-	return transformOptionalChain(state, node);
+	return transformOptionalChain(state, prereqs, node);
 }

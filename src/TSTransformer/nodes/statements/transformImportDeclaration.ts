@@ -2,6 +2,7 @@ import luau from "@roblox-ts/luau-ast";
 import { Lazy } from "Shared/classes/Lazy";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformVariable } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
 import { cleanModuleName } from "TSTransformer/util/cleanModuleName";
@@ -67,6 +68,8 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 			importExp.set(id);
 		}
 
+		const bindingPrereqs = new Prereqs();
+
 		// default import logic
 		const importClauseName = importClause.name;
 		if (importClauseName) {
@@ -75,17 +78,14 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 				const moduleFile = getSourceFileFromModuleSpecifier(state, node.moduleSpecifier);
 				const moduleSymbol = moduleFile && state.typeChecker.getSymbolAtLocation(moduleFile);
 				if (moduleSymbol && state.getModuleExports(moduleSymbol).some(v => v.name === "default")) {
-					luau.list.pushList(
-						statements,
-						state.capturePrereqs(() =>
-							transformVariable(state, importClauseName, luau.property(importExp.get(), "default")),
-						),
+					transformVariable(
+						state,
+						bindingPrereqs,
+						importClauseName,
+						luau.property(importExp.get(), "default"),
 					);
 				} else {
-					luau.list.pushList(
-						statements,
-						state.capturePrereqs(() => transformVariable(state, importClauseName, importExp.get())),
-					);
+					transformVariable(state, bindingPrereqs, importClauseName, importExp.get());
 				}
 			}
 		}
@@ -94,35 +94,32 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 		if (importClauseNamedBindings) {
 			// namespace import logic
 			if (ts.isNamespaceImport(importClauseNamedBindings)) {
-				luau.list.pushList(
-					statements,
-					state.capturePrereqs(() =>
-						transformVariable(state, importClauseNamedBindings.name, importExp.get()),
-					),
-				);
+				transformVariable(state, bindingPrereqs, importClauseNamedBindings.name, importExp.get());
 			} else {
 				// named elements import logic
 				for (const element of importClauseNamedBindings.elements) {
 					const symbol = getOriginalSymbolOfNode(state.typeChecker, element.name);
 					// check that import is referenced and has a value at runtime
 					if (state.resolver.isReferencedAliasDeclaration(element) && (!symbol || isSymbolOfValue(symbol))) {
-						luau.list.pushList(
-							statements,
-							state.capturePrereqs(() =>
-								transformVariable(
+						transformVariable(
+							state,
+							bindingPrereqs,
+							element.name,
+							luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+								expression: importExp.get(),
+								index: transformPropertyName(
 									state,
-									element.name,
-									luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-										expression: importExp.get(),
-										index: transformPropertyName(state, element.propertyName ?? element.name),
-									}),
+									bindingPrereqs,
+									element.propertyName ?? element.name,
 								),
-							),
+							}),
 						);
 					}
 				}
 			}
 		}
+
+		luau.list.pushList(statements, bindingPrereqs.statements);
 	}
 
 	// ensure we emit something

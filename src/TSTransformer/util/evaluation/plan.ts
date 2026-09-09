@@ -1,5 +1,5 @@
 import luau from "@roblox-ts/luau-ast";
-import { TransformState } from "TSTransformer";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import {
 	canDiscard,
@@ -54,9 +54,9 @@ function substitute<T extends luau.Node>(node: T, replacements: ReadonlyMap<numb
 // opaque references prevent macros from decomposing or duplicating an operand's
 // computation before we decide where its value must be captured
 export function planEvaluation(
-	state: TransformState,
+	prereqs: Prereqs,
 	operands: ReadonlyArray<EvaluationOperand>,
-	expand: (references: Array<luau.Expression>) => luau.Expression,
+	expand: (prereqs: Prereqs, references: Array<luau.Expression>) => luau.Expression,
 ) {
 	const effects = operands.map(operand => getEffects(operand.expression));
 	const slots = new Map<number, EvaluationReference>();
@@ -70,8 +70,9 @@ export function planEvaluation(
 		slots.set(reference.id, { operandIndex: index, expression, effects: effects[index] });
 		return reference;
 	});
-	const [result, statements] = state.capture(() => expand(references));
-	const events = getEvaluationEvents(statements, result, slots);
+	const expansionPrereqs = new Prereqs();
+	const result = expand(expansionPrereqs, references);
+	const events = getEvaluationEvents(expansionPrereqs.statements, result, slots);
 
 	const uses = operands.map(() => new Array<number>());
 	events.forEach((event, index) => {
@@ -110,13 +111,13 @@ export function planEvaluation(
 
 	const replacements = new Map<number, luau.Expression>();
 	for (let i = 0; i < operands.length; i++) {
-		state.prereqList(operands[i].prereqs);
+		prereqs.pushList(operands[i].prereqs);
 		let expression = operands[i].expression;
 		if (captures[i]) {
 			if (uses[i].length === 0) {
-				state.prereqList(wrapExpressionStatement(expression));
+				prereqs.pushList(wrapExpressionStatement(expression));
 			} else {
-				const captured = state.pushToVar(expression, i === 0 ? "exp" : `arg${i - 1}`);
+				const captured = prereqs.pushToVar(expression, i === 0 ? "exp" : `arg${i - 1}`);
 				// working temporaries may change value; only immutable captures inherit these facts
 				copyValueFacts(expression, captured);
 				expression = captured;
@@ -128,8 +129,10 @@ export function planEvaluation(
 		}
 	}
 
-	state.prereqList(
-		luau.list.make(...luau.list.toArray(statements).map(statement => substitute(statement, replacements))),
+	prereqs.pushList(
+		luau.list.make(
+			...luau.list.toArray(expansionPrereqs.statements).map(statement => substitute(statement, replacements)),
+		),
 	);
 	return substitute(result, replacements);
 }
