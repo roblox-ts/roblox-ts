@@ -1,4 +1,4 @@
-import luau, { render, RenderState, renderStatements, solveTempIds } from "@roblox-ts/luau-ast";
+import luau, { render, RenderState, renderStatements, setNodeOrigin, solveTempIds } from "@roblox-ts/luau-ast";
 import { PathTranslator } from "@roblox-ts/path-translator";
 import { RbxPath, RbxPathParent, RojoResolver } from "@roblox-ts/rojo-resolver";
 import path from "path";
@@ -15,6 +15,7 @@ import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName
 import { TransformServices, TryUses } from "TSTransformer/types";
 import { createGetService } from "TSTransformer/util/createGetService";
 import { propertyAccessExpressionChain } from "TSTransformer/util/expressionChain";
+import { getOriginalSourcePosition } from "TSTransformer/util/getOriginalSourcePosition";
 import { getModuleAncestor, skipUpwards } from "TSTransformer/util/traversal";
 import ts from "typescript";
 
@@ -115,6 +116,20 @@ export class TransformState {
 				),
 			),
 		);
+	}
+
+	public setSourceOrigin<T extends luau.Node>(node: T, sourceNode: ts.Node): T {
+		if (!this.compilerOptions.sourceMap) {
+			return node;
+		}
+
+		const start = getOriginalSourcePosition(this.multiTransformState, sourceNode);
+		if (!start) {
+			return node;
+		}
+
+		const closing = getOriginalSourcePosition(this.multiTransformState, sourceNode, n => n.getEnd() - 1);
+		return setNodeOrigin(node, { start, closing });
 	}
 
 	public readonly hoistsByStatement = new Map<ts.Statement | ts.CaseClause, Array<ts.Identifier>>();

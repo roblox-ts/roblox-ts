@@ -28,7 +28,9 @@
 	"author": "",
 	"license": "MIT",
 	"dependencies": {
-		"@roblox-ts/luau-ast": "=2.1.1",
+		"@jridgewell/gen-mapping": "^0.3.13",
+		"@jridgewell/trace-mapping": "^0.3.31",
+		"@roblox-ts/luau-ast": "git+https://github.com/christopher-buss/luau-ast.git#8e2c0e9f75d4b01262c1a511b93630f8edc97ca2",
 		"@roblox-ts/path-translator": "=1.1.1",
 		"@roblox-ts/rojo-resolver": "=1.2.1",
 		"chokidar": "^4.0.3",

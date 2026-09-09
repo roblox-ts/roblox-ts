@@ -51,6 +51,10 @@ export function transformStatementList(
 			luau.list.push(result, hoistDeclaration);
 		}
 
+		if (state.compilerOptions.sourceMap) {
+			luau.list.forEach(transformedStatements, node => state.setSourceOrigin(node, statement));
+		}
+
 		luau.list.pushList(result, transformedStatements);
 
 		const lastStatement = transformedStatements.tail?.value;
@@ -64,14 +68,15 @@ export function transformStatementList(
 			const exportMapping = exportInfo.mapping.get(statement);
 			if (exportMapping !== undefined) {
 				for (const exportName of exportMapping) {
-					luau.list.push(
-						result,
-						luau.create(luau.SyntaxKind.Assignment, {
-							left: luau.property(containerId, exportName),
-							operator: "=",
-							right: luau.id(exportName),
-						}),
-					);
+					const assignment = luau.create(luau.SyntaxKind.Assignment, {
+						left: luau.property(containerId, exportName),
+						operator: "=",
+						right: luau.id(exportName),
+					});
+					if (state.compilerOptions.sourceMap) {
+						state.setSourceOrigin(assignment, statement);
+					}
+					luau.list.push(result, assignment);
 				}
 			}
 		}

@@ -41,11 +41,14 @@ export function transformIfStatementInner(
 		elseBody = transformStatementList(state, elseStatement, getStatements(elseStatement));
 	}
 
-	return luau.create(luau.SyntaxKind.IfStatement, {
-		condition,
-		statements,
-		elseBody,
-	});
+	return state.setSourceOrigin(
+		luau.create(luau.SyntaxKind.IfStatement, {
+			condition,
+			statements,
+			elseBody,
+		}),
+		node,
+	);
 }
 
 export function transformIfStatement(state: TransformState, node: ts.IfStatement) {
