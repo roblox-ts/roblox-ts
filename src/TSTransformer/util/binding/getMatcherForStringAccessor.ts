@@ -7,10 +7,11 @@ export function getMatcherForStringAccessor(
 	idStack: Array<luau.AnyIdentifier>,
 ) {
 	if (idStack.length === 0) {
-		return prereqs.pushToVar(
+		const id = prereqs.pushToVar(
 			luau.call(luau.globals.string.gmatch, [parentId, luau.globals.utf8.charpattern]),
 			"matcher",
 		);
+		idStack.push(id);
 	}
 
 	return idStack[0];

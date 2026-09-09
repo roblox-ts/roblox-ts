@@ -8,6 +8,8 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { addIndexDiagnostics } from "TSTransformer/util/addIndexDiagnostics";
 import { addOneIfArrayType } from "TSTransformer/util/addOneIfArrayType";
 import { assertNever } from "TSTransformer/util/assertNever";
+import { createStringIndexExpression } from "TSTransformer/util/createStringIndexExpression";
+import { isDefinitelyType, isMixedStringType, isStringType } from "TSTransformer/util/types";
 import ts from "typescript";
 
 export const objectAccessor = (
@@ -22,6 +24,22 @@ export const objectAccessor = (
 	// NoSubstitutionTemplateLiteral is part of ts.PropertyName but TS rejects it as a binding key
 	// (TS1180/TS1136), so it can never reach here
 	assert(!ts.isNoSubstitutionTemplateLiteral(name));
+
+	if (isMixedStringType(type)) {
+		DiagnosticService.addDiagnostic(errors.noMixedStringIndex(name));
+		return luau.none();
+	}
+	if (isDefinitelyType(type, isStringType) && !ts.isIdentifier(name) && !ts.isPrivateIdentifier(name)) {
+		const key = ts.isComputedPropertyName(name) ? name.expression : name;
+		const indexPrereqs = new Prereqs();
+		const index = transformExpression(state, indexPrereqs, key);
+		return createStringIndexExpression(
+			prereqs,
+			parentId,
+			{ expression: index, prereqs: indexPrereqs.statements },
+			state.getType(key),
+		);
+	}
 
 	if (ts.isIdentifier(name)) {
 		return luau.property(parentId, name.text);
