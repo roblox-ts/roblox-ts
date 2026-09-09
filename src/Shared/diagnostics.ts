@@ -48,11 +48,13 @@ function diagnosticWithContext<T extends Array<unknown> = []>(
 			debugger;
 		}
 
-		if (contextFormatter) {
-			messages.push(...contextFormatter(...context));
-		}
-
-		return createDiagnosticWithLocation(result.id, messages.filter(v => v !== false).join("\n"), category, node);
+		const diagnosticMessages = contextFormatter ? [...messages, ...contextFormatter(...context)] : messages;
+		return createDiagnosticWithLocation(
+			result.id,
+			diagnosticMessages.filter(v => v !== false).join("\n"),
+			category,
+			node,
+		);
 	};
 	result.id = id++;
 	return result;
@@ -198,10 +200,10 @@ export const errors = {
 	),
 	failedSymlinkResolve: errorWithContext(
 		(nodeModulesPath: string, moduleFilename: string, virtualPath: string | undefined, relativePath: string) => [
-			"Failed to resolve symlink to import!",
-			"The following info might help to find the issue",
+			"Cannot resolve package entry point inside the project node_modules!",
+			"Check the package main field and any package symlinks.",
 			`Packages are expected to be installed under ${nodeModulesPath}`,
-			`This package is installed at ${moduleFilename}`,
+			`Package declarations resolved to ${moduleFilename}`,
 			virtualPath ? `roblox-ts thinks it should be imported through this symlink: ${virtualPath}` : false,
 			`The path from node_modules to the package would be ${relativePath}`,
 		],

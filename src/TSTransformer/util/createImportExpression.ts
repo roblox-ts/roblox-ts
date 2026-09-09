@@ -79,7 +79,7 @@ function getNodeModulesImportParts(
 	const moduleScope = relativePath.split(path.sep)[0];
 	assert(moduleScope);
 
-	if (moduleScope === "..") {
+	if (!isPathDescendantOf(moduleOutPath, state.data.nodeModulesPath)) {
 		DiagnosticService.addDiagnostic(
 			errors.failedSymlinkResolve(
 				moduleSpecifier,

@@ -1,0 +1,40 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`explains external package entry points (symlink: false) 1`] = `
+[
+  "Cannot resolve package entry point inside the project node_modules!
+Check the package main field and any package symlinks.
+Packages are expected to be installed under <project>/node_modules
+Package declarations resolved to <project>/node_modules/@rbxts/first/index.d.ts
+The path from node_modules to the package would be ../elsewhere/node_modules/@rbxts/first/init.luau",
+  "Cannot resolve package entry point inside the project node_modules!
+Check the package main field and any package symlinks.
+Packages are expected to be installed under <project>/node_modules
+Package declarations resolved to <project>/node_modules/@rbxts/second/index.d.ts
+The path from node_modules to the package would be ../elsewhere/node_modules/@rbxts/second/init.luau",
+]
+`;
+
+exports[`explains external package entry points (symlink: true) 1`] = `
+[
+  "Cannot resolve package entry point inside the project node_modules!
+Check the package main field and any package symlinks.
+Packages are expected to be installed under <project>/node_modules
+Package declarations resolved to <project>/packages/first/index.d.ts
+roblox-ts thinks it should be imported through this symlink: <project>/node_modules/@rbxts/first/index.d.ts
+The path from node_modules to the package would be ../elsewhere/node_modules/@rbxts/first/init.luau",
+  "Cannot resolve package entry point inside the project node_modules!
+Check the package main field and any package symlinks.
+Packages are expected to be installed under <project>/node_modules
+Package declarations resolved to <project>/packages/second/index.d.ts
+roblox-ts thinks it should be imported through this symlink: <project>/node_modules/@rbxts/second/index.d.ts
+The path from node_modules to the package would be ../elsewhere/node_modules/@rbxts/second/init.luau",
+]
+`;
+
+exports[`explains why @other/example cannot be imported 1`] = `"You can only use npm scopes that are listed in your typeRoots."`;
+
+exports[`explains why unscoped cannot be imported 1`] = `
+"Cannot import a module without a scope!
+roblox-ts does not support importing regular npm packages."
+`;
