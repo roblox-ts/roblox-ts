@@ -520,36 +520,41 @@ it.each([false, true])("watches atomic source and config replacements (polling=%
 	}
 });
 
-it.each([false, true])("detaches removed references and watches restored references (polling=%s)", async polling => {
-	fixture.project("shared");
-	fixture.project("game", ["shared"]);
-	fixture.json("shared/base.json", { extends: "../base.json" });
-	const sharedConfig = fs.readJsonSync(fixture.file("shared/tsconfig.json"));
-	fixture.json("shared/tsconfig.json", { ...sharedConfig, extends: "./base.json" });
-	const gameConfig = fs.readJsonSync(fixture.file("game/tsconfig.json"));
+// six rebuilds share this test budget; each rebuild retains its own 30-second deadline
+it.each([false, true])(
+	"detaches removed references and watches restored references (polling=%s)",
+	async polling => {
+		fixture.project("shared");
+		fixture.project("game", ["shared"]);
+		fixture.json("shared/base.json", { extends: "../base.json" });
+		const sharedConfig = fs.readJsonSync(fixture.file("shared/tsconfig.json"));
+		fixture.json("shared/tsconfig.json", { ...sharedConfig, extends: "./base.json" });
+		const gameConfig = fs.readJsonSync(fixture.file("game/tsconfig.json"));
 
-	const watch = await startWatch(fixture, polling);
-	try {
-		await watch.edit(() => fixture.json("game/tsconfig.json", { ...gameConfig, references: [] }));
-		await watch.expectNoBuild(() => {
-			fixture.write("shared/src/index.ts", "export const value = 2;");
-			fixture.json("shared/base.json", { extends: "../base.json", compilerOptions: { strict: true } });
-			fixture.write("shared/tsconfig.json", fixture.read("shared/tsconfig.json") + "\n");
-		});
+		const watch = await startWatch(fixture, polling);
+		try {
+			await watch.edit(() => fixture.json("game/tsconfig.json", { ...gameConfig, references: [] }));
+			await watch.expectNoBuild(() => {
+				fixture.write("shared/src/index.ts", "export const value = 2;");
+				fixture.json("shared/base.json", { extends: "../base.json", compilerOptions: { strict: true } });
+				fixture.write("shared/tsconfig.json", fixture.read("shared/tsconfig.json") + "\n");
+			});
 
-		await watch.edit(() => fixture.json("game/tsconfig.json", gameConfig));
-		expect(fixture.read("out/shared/init.luau")).toContain("value = 2");
+			await watch.edit(() => fixture.json("game/tsconfig.json", gameConfig));
+			expect(fixture.read("out/shared/init.luau")).toContain("value = 2");
 
-		await watch.edit(() => fixture.write("shared/src/added.ts", "export const added = 3;"));
-		await watch.edit(() => fs.removeSync(fixture.file("shared/src/added.ts")));
-		expect(fs.existsSync(fixture.file("out/shared/added.luau"))).toBe(false);
+			await watch.edit(() => fixture.write("shared/src/added.ts", "export const added = 3;"));
+			await watch.edit(() => fs.removeSync(fixture.file("shared/src/added.ts")));
+			expect(fs.existsSync(fixture.file("out/shared/added.luau"))).toBe(false);
 
-		await watch.edit(() => fixture.write("shared/src/added.ts", "export const added = 4;"));
-		expect(fixture.read("out/shared/added.luau")).toContain("added = 4");
-	} finally {
-		await watch.close();
-	}
-});
+			await watch.edit(() => fixture.write("shared/src/added.ts", "export const added = 4;"));
+			expect(fixture.read("out/shared/added.luau")).toContain("added = 4");
+		} finally {
+			await watch.close();
+		}
+	},
+	60000,
+);
 
 it.each([false, true])("catches source generation while registering a new reference (polling=%s)", async polling => {
 	fixture.project("shared", [], { plugins: [{ transform: "../generate.cjs" }] });

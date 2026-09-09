@@ -47,8 +47,9 @@ const MAPPING_EXPECTATIONS: ReadonlyArray<MappingExpectation> = [
 	{ marker: '"probe:range-end"', line: 113, column: 8 },
 	{ marker: '"probe:range-step"', line: 117, column: 8 },
 	{ marker: '"probe:range-body"', line: 121, column: 4 },
-	{ marker: '"probe:static-method"', line: 125, column: 8 },
-	{ marker: '"probe:final"', line: 128, column: 0 },
+	{ marker: '"probe:range-no-step"', line: 124, column: 4 },
+	{ marker: '"probe:static-method"', line: 128, column: 8 },
+	{ marker: '"probe:final"', line: 131, column: 0 },
 ];
 
 function readMappingSource(): string {
