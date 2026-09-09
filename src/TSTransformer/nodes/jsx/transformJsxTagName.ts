@@ -1,12 +1,14 @@
 import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
+import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import ts from "typescript";
 
-function transformJsxTagNameExpression(state: TransformState, node: ts.JsxTagNameExpression) {
+function transformJsxTagNameExpression(state: TransformState, prereqs: Prereqs, node: ts.JsxTagNameExpression) {
 	// host component
 	if (ts.isIdentifier(node)) {
 		const firstChar = node.text[0];
@@ -19,20 +21,21 @@ function transformJsxTagNameExpression(state: TransformState, node: ts.JsxTagNam
 		if (ts.isPrivateIdentifier(node.name)) {
 			DiagnosticService.addDiagnostic(errors.noPrivateIdentifier(node.name));
 		}
-		return luau.property(convertToIndexableExpression(transformExpression(state, node.expression)), node.name.text);
+		return luau.property(
+			convertToIndexableExpression(transformExpression(state, prereqs, node.expression)),
+			node.name.text,
+		);
 	} else if (ts.isJsxNamespacedName(node)) {
 		return luau.string(ts.getTextOfJsxNamespacedName(node));
 	} else {
-		return transformExpression(state, node);
+		return transformExpression(state, prereqs, node);
 	}
 }
 
 export function transformJsxTagName(state: TransformState, tagName: ts.JsxTagNameExpression) {
-	const [expression, prereqs] = state.capture(() => transformJsxTagNameExpression(state, tagName));
-	let tagNameExp = expression;
-	if (!luau.list.isEmpty(prereqs)) {
-		state.prereqList(prereqs);
-		tagNameExp = state.pushToVarIfComplex(tagNameExp, "tagName");
-	}
-	return tagNameExp;
+	const expressionPrereqs = new Prereqs();
+	const expression = transformJsxTagNameExpression(state, expressionPrereqs, tagName);
+	// JSX tag names only allow identifiers, this, dotted names, and namespaced names
+	assert(luau.list.isEmpty(expressionPrereqs.statements));
+	return expression;
 }

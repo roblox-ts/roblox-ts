@@ -1,4 +1,4 @@
-import path from "path";
+import { getExtendedConfigPaths } from "Project/functions/getExtendedConfigPaths";
 import { ProjectError } from "Shared/errors/ProjectError";
 import { TransformerPluginConfig } from "Shared/types";
 import ts from "typescript";
@@ -20,10 +20,7 @@ export function getPluginConfigs(tsConfigPath: string) {
 		}
 	}
 
-	if (config.extends) {
-		const extendedPath = require.resolve(config.extends, {
-			paths: [path.dirname(tsConfigPath)],
-		});
+	for (const extendedPath of getExtendedConfigPaths(tsConfigPath, config.extends)) {
 		pluginConfigs.push(...getPluginConfigs(extendedPath));
 	}
 

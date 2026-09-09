@@ -1,6 +1,7 @@
 import luau from "@roblox-ts/luau-ast";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformVariable } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { transformEntityName } from "TSTransformer/nodes/transformEntityName";
 import { createImportExpression } from "TSTransformer/util/createImportExpression";
@@ -10,18 +11,16 @@ import ts from "typescript";
 export function transformImportEqualsDeclaration(state: TransformState, node: ts.ImportEqualsDeclaration) {
 	const { moduleReference } = node;
 	if (ts.isExternalModuleReference(moduleReference)) {
+		const statements = luau.list.make<luau.Statement>();
 		assert(ts.isStringLiteral(moduleReference.expression));
 		const importExp = createImportExpression(state, node.getSourceFile(), moduleReference.expression);
-
-		const statements = luau.list.make<luau.Statement>();
 
 		const aliasSymbol = state.typeChecker.getSymbolAtLocation(node.name);
 		assert(aliasSymbol);
 		if (isSymbolOfValue(ts.skipAlias(aliasSymbol, state.typeChecker))) {
-			luau.list.pushList(
-				statements,
-				state.capturePrereqs(() => transformVariable(state, node.name, importExp)),
-			);
+			const importPrereqs = new Prereqs();
+			transformVariable(state, importPrereqs, node.name, importExp);
+			luau.list.pushList(statements, importPrereqs.statements);
 		}
 
 		// ensure we emit something
@@ -37,8 +36,8 @@ export function transformImportEqualsDeclaration(state: TransformState, node: ts
 	} else {
 		// Identifier | QualifiedName
 		// see: https://github.com/roblox-ts/roblox-ts/issues/1895
-		return state.capturePrereqs(() =>
-			transformVariable(state, node.name, transformEntityName(state, moduleReference)),
-		);
+		const importPrereqs = new Prereqs();
+		transformVariable(state, importPrereqs, node.name, transformEntityName(state, moduleReference));
+		return importPrereqs.statements;
 	}
 }

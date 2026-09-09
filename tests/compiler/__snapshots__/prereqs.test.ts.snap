@@ -1,0 +1,265 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`preserves prerequisites for class field and parameter initializers 1`] = `
+"local values = { 1, 2, 3 }
+local Example
+do
+	Example = setmetatable({}, {
+		__tostring = function()
+			return "Example"
+		end,
+	})
+	Example.__index = Example
+	function Example.new(...)
+		local self = setmetatable({}, Example)
+		return self:constructor(...) or self
+	end
+	function Example:constructor(other)
+		if other == nil then
+			-- ▼ Array.pop ▼
+			local _length = #values
+			local _result = values[_length]
+			values[_length] = nil
+			-- ▲ Array.pop ▲
+			other = _result
+		end
+		self.other = other
+		-- ▼ Array.pop ▼
+		local _length = #values
+		local _result = values[_length]
+		values[_length] = nil
+		-- ▲ Array.pop ▲
+		self.value = _result
+	end
+end
+print(Example.new(10), Example.new())
+return nil
+"
+`;
+
+exports[`preserves prerequisites for conditional macro expansion inside an optional call 1`] = `
+"local first = { 1, 2 }
+local second = { 3, 4 }
+local _result = values
+if _result ~= nil then
+	local _arg0 = function()
+		local _result_1
+		if enabled then
+			-- ▼ Array.pop ▼
+			local _length = #first
+			local _result_2 = first[_length]
+			first[_length] = nil
+			-- ▲ Array.pop ▲
+			_result_1 = _result_2
+		else
+			-- ▼ Array.pop ▼
+			local _length = #second
+			local _result_2 = second[_length]
+			second[_length] = nil
+			-- ▲ Array.pop ▲
+			_result_1 = _result_2
+		end
+		return _result_1
+	end
+	-- ▼ ReadonlyArray.map ▼
+	local _newValue = table.create(#_result)
+	for _k, _v in _result do
+		_newValue[_k] = _arg0(_v, _k - 1, _result)
+	end
+	-- ▲ ReadonlyArray.map ▲
+	_result = _newValue
+end
+local result = _result
+print(result)
+return nil
+"
+`;
+
+exports[`preserves prerequisites for destructuring defaults before object rest 1`] = `
+"local values = { 1, 2, 3 }
+local function read(_param)
+	local value = _param.value
+	if value == nil then
+		-- ▼ Array.pop ▼
+		local _length = #values
+		local _result = values[_length]
+		values[_length] = nil
+		-- ▲ Array.pop ▲
+		value = _result
+	end
+	local _extracted = {
+		["value"] = true,
+	}
+	local _rest = {}
+	for _k, _v in _param do
+		if not _extracted[_k] then
+			_rest[_k] = _v
+		end
+	end
+	local rest = _rest
+	return { value, rest.other }
+end
+print(read({
+	other = 4,
+}), read({
+	value = 5,
+	other = 6,
+}))
+return nil
+"
+`;
+
+exports[`preserves prerequisites for else-if condition prerequisites 1`] = `
+"local values = { 1, 2, 3 }
+local function read(enabled)
+	if enabled then
+		return 0
+	else
+		-- ▼ Array.pop ▼
+		local _length = #values
+		local _result = values[_length]
+		values[_length] = nil
+		-- ▲ Array.pop ▲
+		if _result == 3 then
+			-- ▼ Array.pop ▼
+			local _length_1 = #values
+			local _result_1 = values[_length_1]
+			values[_length_1] = nil
+			-- ▲ Array.pop ▲
+			return _result_1
+		end
+	end
+	-- ▼ Array.pop ▼
+	local _length = #values
+	local _result = values[_length]
+	values[_length] = nil
+	-- ▲ Array.pop ▲
+	return _result
+end
+print((read(true)), (read(false)))
+return nil
+"
+`;
+
+exports[`preserves prerequisites for loop condition and increment prerequisites with continue 1`] = `
+"local values = { 1, 2, 3 }
+local checks = 0
+local increments = 0
+do
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			increments += 1
+		else
+			_shouldIncrement = true
+		end
+		checks += 1
+		local _condition = checks < 4
+		if _condition then
+			-- ▼ Array.pop ▼
+			local _length = #values
+			local _result = values[_length]
+			values[_length] = nil
+			-- ▲ Array.pop ▲
+			_condition = _result ~= nil
+		end
+		if not _condition then
+			break
+		end
+		if checks == 2 then
+			continue
+		end
+		print(checks)
+	end
+end
+print(checks, increments)
+return nil
+"
+`;
+
+exports[`preserves prerequisites for statement comments and hoisted declarations 1`] = `
+"local values = { 1, 2, 3 }
+-- keep this comment before the hoist and temporary
+local later
+-- ▼ Array.pop ▼
+local _length = #values
+local _result = values[_length]
+values[_length] = nil
+-- ▲ Array.pop ▲
+local read = { function()
+	return later
+end, _result }
+later = 4
+print(read, later)
+return nil
+"
+`;
+
+exports[`preserves prerequisites for statement prerequisites before namespace exports 1`] = `
+"local values = { 1, 2, 3 }
+local Example = {}
+do
+	local _container = Example
+	-- ▼ Array.pop ▼
+	local _length = #values
+	local _result = values[_length]
+	values[_length] = nil
+	-- ▲ Array.pop ▲
+	local value = _result
+	_container.value = value
+	local function read()
+		-- ▼ Array.pop ▼
+		local _length_1 = #values
+		local _result_1 = values[_length_1]
+		values[_length_1] = nil
+		-- ▲ Array.pop ▲
+		return _result_1
+	end
+	_container.read = read
+end
+print(Example.value, (Example.read()))
+return nil
+"
+`;
+
+exports[`preserves prerequisites for try return and throw prerequisites 1`] = `
+"local TS = _G[script]
+local values = { 1, 2, 3, 4 }
+local function read(enabled)
+	local _exitType, _returns = TS.try(function()
+		if enabled then
+			-- ▼ Array.pop ▼
+			local _length = #values
+			local _result = values[_length]
+			values[_length] = nil
+			-- ▲ Array.pop ▲
+			-- ▼ Array.pop ▼
+			local _length_1 = #values
+			local _result_1 = values[_length_1]
+			values[_length_1] = nil
+			-- ▲ Array.pop ▲
+			return TS.TRY_RETURN, { _result, _result_1 }
+		end
+		-- ▼ Array.pop ▼
+		local _length = #values
+		local _result = values[_length]
+		values[_length] = nil
+		-- ▲ Array.pop ▲
+		error(_result)
+	end, function(error)
+		-- ▼ Array.pop ▼
+		local _length = #values
+		local _result = values[_length]
+		values[_length] = nil
+		-- ▲ Array.pop ▲
+		return TS.TRY_RETURN, { error, _result }
+	end)
+	if _exitType then
+		return unpack(_returns)
+	end
+end
+print({ read(true) })
+print({ read(false) })
+return nil
+"
+`;

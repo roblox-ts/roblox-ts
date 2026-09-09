@@ -14,6 +14,82 @@ function difference<T>(set1: Set<T>, set2: Set<T>): Set<T> {
 }
 
 export = () => {
+	it("should support numeric separators in loop bounds and steps", () => {
+		const ascending = new Array<number>();
+		for (let i = 0x0_0; i < 3_0; i += 1_0) {
+			ascending.push(i);
+		}
+		expect(ascending.join(",")).to.equal("0,10,20");
+
+		const descending = new Array<number>();
+		for (let i = 3_0; i > 0x0_0; i -= 1_0) {
+			descending.push(i);
+		}
+		expect(descending.join(",")).to.equal("30,20,10");
+	});
+
+	it("should preserve negative zero in a loop initializer", () => {
+		for (let i = -0; i <= 0; i++) {
+			expect(1 / i).to.equal(-math.huge);
+		}
+	});
+
+	it("should support breaking from a loop with a zero step", () => {
+		let iterations = 0;
+		for (let i = 0; i < 1; i += 0) {
+			iterations++;
+			break;
+		}
+		expect(iterations).to.equal(1);
+	});
+
+	it("should reevaluate a changing array-size loop bound", () => {
+		const values = [1, 2, 3, 4];
+		let iterations = 0;
+		for (let i = 0; i < values.size(); i++) {
+			values.pop();
+			iterations++;
+		}
+		expect(iterations).to.equal(2);
+	});
+
+	it("should reevaluate calls with a numeric literal return type in loop conditions", () => {
+		let calls = 0;
+		function limit(): 2 {
+			calls++;
+			return 2;
+		}
+		for (let i = 0; i < limit(); i++) {}
+		expect(calls).to.equal(3);
+	});
+
+	it("should preserve loop conditions that compare a different variable", () => {
+		let condition = 2;
+		let iterations = 0;
+		for (let i = 0; condition < 3; i++) {
+			condition++;
+			iterations++;
+		}
+		expect(iterations).to.equal(1);
+	});
+
+	it("should preserve loop incrementors that decrement a different variable", () => {
+		let remaining = 3;
+		for (let i = 3; i > 0; remaining -= 1) {
+			if (remaining === 1) break;
+		}
+		expect(remaining).to.equal(1);
+	});
+
+	it("should preserve destructuring writes to the loop variable", () => {
+		let iterations = 0;
+		for (let i = 0; i < 3; i++) {
+			[i] = [5];
+			iterations++;
+		}
+		expect(iterations).to.equal(1);
+	});
+
 	it("should support numeric for loops", () => {
 		const hit = new Set<number>();
 		let sum = 10;
@@ -417,6 +493,52 @@ export = () => {
 			expect(tuple.size()).to.equal(6);
 			break;
 		}
+	});
+
+	it("should support iterator function with rest tuple elements when indexing as array", () => {
+		let callCount = 0;
+		const restIterator: IterableFunction<LuaTuple<[number, ...number[]]>> = (() => {
+			callCount++;
+			if (callCount === 1) {
+				return [10, 20, 30] as unknown as LuaTuple<[number, ...number[]]>;
+			}
+			return undefined as unknown as LuaTuple<[number, ...number[]]>;
+		}) as never;
+
+		for (const tuple of restIterator) {
+			expect(tuple.size()).to.equal(3);
+			expect(tuple[0]).to.equal(10);
+			expect(tuple[1]).to.equal(20);
+			expect(tuple[2]).to.equal(30);
+			break;
+		}
+	});
+
+	it("should support iterator function with variadic tuple elements when indexing as array", () => {
+		function collectFirst<T extends unknown[]>(
+			iter: IterableFunction<LuaTuple<[number, ...T]>>,
+		): Array<unknown> | undefined {
+			for (const entry of iter) {
+				return entry as unknown as Array<unknown>;
+			}
+			return undefined;
+		}
+
+		let callCount = 0;
+		const iter: IterableFunction<LuaTuple<[number, number, number]>> = (() => {
+			callCount++;
+			if (callCount === 1) {
+				return [10, 20, 30] as LuaTuple<[number, number, number]>;
+			}
+			return undefined as unknown as LuaTuple<[number, number, number]>;
+		}) as never;
+
+		const result = collectFirst<[number, number]>(iter);
+		expect(result).to.be.ok();
+		expect(result!.size()).to.equal(3);
+		expect(result![0]).to.equal(10);
+		expect(result![1]).to.equal(20);
+		expect(result![2]).to.equal(30);
 	});
 
 	it("should support the $range macro without step", () => {
