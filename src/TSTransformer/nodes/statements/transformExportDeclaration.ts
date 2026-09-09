@@ -1,6 +1,7 @@
 import luau from "@roblox-ts/luau-ast";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
 import { cleanModuleName } from "TSTransformer/util/cleanModuleName";
 import { createImportExpression } from "TSTransformer/util/createImportExpression";
@@ -72,17 +73,21 @@ function transformExportFrom(state: TransformState, node: ts.ExportDeclaration) 
 			// export { a, b, c } from "./module";
 			for (const element of exportClause.elements) {
 				if (isExportSpecifierValue(state, element)) {
+					const namePrereqs = new Prereqs();
+					const exportName = transformPropertyName(state, namePrereqs, element.name);
+					const importName = transformPropertyName(state, namePrereqs, element.propertyName ?? element.name);
+					luau.list.pushList(statements, namePrereqs.statements);
 					luau.list.push(
 						statements,
 						luau.create(luau.SyntaxKind.Assignment, {
 							left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 								expression: moduleId,
-								index: transformPropertyName(state, element.name),
+								index: exportName,
 							}),
 							operator: "=",
 							right: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 								expression: importExp,
-								index: transformPropertyName(state, element.propertyName ?? element.name),
+								index: importName,
 							}),
 						}),
 					);
@@ -90,12 +95,15 @@ function transformExportFrom(state: TransformState, node: ts.ExportDeclaration) 
 			}
 		} else {
 			// export * as foo from "./module";
+			const namePrereqs = new Prereqs();
+			const name = transformPropertyName(state, namePrereqs, exportClause.name);
+			luau.list.pushList(statements, namePrereqs.statements);
 			luau.list.push(
 				statements,
 				luau.create(luau.SyntaxKind.Assignment, {
 					left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 						expression: moduleId,
-						index: transformPropertyName(state, exportClause.name),
+						index: name,
 					}),
 					operator: "=",
 					right: importExp,
@@ -133,7 +141,9 @@ function transformExportFrom(state: TransformState, node: ts.ExportDeclaration) 
 }
 
 export function transformExportDeclaration(state: TransformState, node: ts.ExportDeclaration) {
-	if (node.isTypeOnly) return luau.list.make<luau.Statement>();
+	if (node.isTypeOnly) {
+		return luau.list.make<luau.Statement>();
+	}
 
 	if (node.moduleSpecifier) {
 		return transformExportFrom(state, node);

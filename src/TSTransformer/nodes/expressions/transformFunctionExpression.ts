@@ -21,9 +21,7 @@ export function transformFunctionExpression(state: TransformState, node: ts.Func
 	if (ts.isFunctionBody(body)) {
 		luau.list.pushList(statements, transformStatementList(state, body, body.statements));
 	} else {
-		const [returnStatements, prereqs] = state.capture(() => transformReturnStatementInner(state, body));
-		luau.list.pushList(statements, prereqs);
-		luau.list.pushList(statements, returnStatements);
+		luau.list.pushList(statements, transformReturnStatementInner(state, body));
 	}
 
 	const isAsync = ts.hasSyntacticModifier(node, ts.ModifierFlags.Async);

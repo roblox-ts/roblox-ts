@@ -3,6 +3,7 @@ import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { CallMacro, PropertyCallMacro } from "TSTransformer/macros/types";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { EvaluationOperand, planEvaluation } from "TSTransformer/util/evaluation/plan";
@@ -13,19 +14,21 @@ import ts from "typescript";
 export function transformMacroCall(
 	macro: CallMacro | PropertyCallMacro,
 	state: TransformState,
+	prereqs: Prereqs,
 	node: ts.CallExpression,
 	expression: luau.Expression,
 	nodeArguments: ReadonlyArray<ts.Expression>,
 ): luau.Expression {
 	const operands: Array<EvaluationOperand> = [{ expression, prereqs: luau.list.make() }];
 	for (const argument of nodeArguments) {
-		let [value, prereqs] = state.capture(() => transformExpression(state, argument));
+		const valuePrereqs = new Prereqs();
+		let value = transformExpression(state, valuePrereqs, argument);
 		if (!ts.isSpreadElement(argument)) {
 			// scalar arguments must supply one nil even when an inlined call returns no values
 			if (luau.isCall(value) && isPossiblyType(state.getType(argument), isUndefinedType)) {
 				value = luau.create(luau.SyntaxKind.ParenthesizedExpression, { expression: value });
 			}
-			operands.push({ expression: value, prereqs });
+			operands.push({ expression: value, prereqs: valuePrereqs.statements });
 			continue;
 		}
 		const signature = state.typeChecker.getResolvedSignature(node);
@@ -41,23 +44,22 @@ export function transformMacroCall(
 		const ids = Array.from({ length: count }, (_, i) => luau.tempId(`spread${i}`));
 		if (ids.length === 0) {
 			// an empty spread may still have effects
-			luau.list.push(
-				prereqs,
-				luau.create(luau.SyntaxKind.VariableDeclaration, { left: luau.tempId(), right: value }),
-			);
-			operands.push({ expression: luau.none(), prereqs });
+			valuePrereqs.push(luau.create(luau.SyntaxKind.VariableDeclaration, { left: luau.tempId(), right: value }));
+			operands.push({ expression: luau.none(), prereqs: valuePrereqs.statements });
 		} else {
-			luau.list.push(
-				prereqs,
+			valuePrereqs.push(
 				luau.create(luau.SyntaxKind.VariableDeclaration, { left: luau.list.make(...ids), right: value }),
 			);
-			ids.forEach((id, i) => operands.push({ expression: id, prereqs: i === 0 ? prereqs : luau.list.make() }));
+			ids.forEach((id, i) =>
+				operands.push({ expression: id, prereqs: i === 0 ? valuePrereqs.statements : luau.list.make() }),
+			);
 		}
 	}
-	const result = planEvaluation(state, operands, ([receiver, ...args]) =>
+	const result = planEvaluation(prereqs, operands, (expansionPrereqs, [receiver, ...args]) =>
 		macro(
 			state,
-			node as Parameters<PropertyCallMacro>[1],
+			expansionPrereqs,
+			node as Parameters<PropertyCallMacro>[2],
 			receiver,
 			args.filter(arg => !luau.isNone(arg)),
 		),

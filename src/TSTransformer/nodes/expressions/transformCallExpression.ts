@@ -1,5 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformImportExpression } from "TSTransformer/nodes/expressions/transformImportExpression";
 import { transformMacroCall } from "TSTransformer/nodes/transformMacroCall";
@@ -47,6 +48,7 @@ function fixVoidArgumentsForRobloxFunctions(
 
 export function transformCallExpressionInner(
 	state: TransformState,
+	prereqs: Prereqs,
 	node: ts.CallExpression,
 	expression: luau.Expression,
 	nodeArguments: ReadonlyArray<ts.Expression>,
@@ -61,7 +63,7 @@ export function transformCallExpressionInner(
 	if (ts.isSuperCall(node)) {
 		return luau.call(luau.property(convertToIndexableExpression(expression), "constructor"), [
 			luau.globals.self,
-			...ensureTransformOrder(state, node.arguments),
+			...ensureTransformOrder(state, prereqs, node.arguments),
 		]);
 	}
 
@@ -70,17 +72,18 @@ export function transformCallExpressionInner(
 	if (symbol) {
 		const macro = state.services.macroManager.getCallMacro(symbol);
 		if (macro) {
-			return transformMacroCall(macro, state, node, expression, nodeArguments);
+			return transformMacroCall(macro, state, prereqs, node, expression, nodeArguments);
 		}
 	}
 
-	const [args, prereqs] = state.capture(() => ensureTransformOrder(state, nodeArguments));
+	const argsPrereqs = new Prereqs();
+	const args = ensureTransformOrder(state, argsPrereqs, nodeArguments);
 	fixVoidArgumentsForRobloxFunctions(state, expType, args, nodeArguments);
 
-	if (!effectsCommute(getEffects(expression), getEffects(prereqs))) {
-		expression = state.pushToVar(expression, "fn");
+	if (!effectsCommute(getEffects(expression), getEffects(argsPrereqs.statements))) {
+		expression = prereqs.pushToVar(expression, "fn");
 	}
-	state.prereqList(prereqs);
+	prereqs.pushList(argsPrereqs.statements);
 
 	const exp = luau.call(convertToIndexableExpression(expression), args);
 
@@ -89,11 +92,12 @@ export function transformCallExpressionInner(
 
 function createOrderedPropertyCall(
 	state: TransformState,
+	prereqs: Prereqs,
 	source: ts.PropertyAccessExpression | ts.ElementAccessExpression,
 	base: luau.Expression,
 	key: string | luau.Expression,
 	args: Array<luau.Expression>,
-	prereqs: luau.List<luau.Statement>,
+	prereqStatements: luau.List<luau.Statement>,
 	method: boolean,
 ) {
 	const property = () => {
@@ -107,7 +111,7 @@ function createOrderedPropertyCall(
 		tryMarkBuiltinMember(state, source, expression);
 		return expression;
 	};
-	const prereqEffects = getEffects(prereqs);
+	const prereqEffects = getEffects(prereqStatements);
 	const name = typeof key === "string" ? key : luau.isStringLiteral(key) ? key.value : undefined;
 	const stableMethod = method && isStableBuiltinMember(state, source);
 	let callee: luau.IndexableExpression = property();
@@ -121,9 +125,9 @@ function createOrderedPropertyCall(
 	) {
 		// a stable method lookup can stay inline even when its receiver needs a snapshot
 		if (stableMethod && !effectsCommute(getEffects(base), prereqEffects)) {
-			base = state.pushToVar(base, "self");
+			base = prereqs.pushToVar(base, "self");
 		}
-		state.prereqList(prereqs);
+		prereqs.pushList(prereqStatements);
 		return luau.create(luau.SyntaxKind.MethodCallExpression, {
 			expression: convertToIndexableExpression(base),
 			name,
@@ -135,18 +139,19 @@ function createOrderedPropertyCall(
 		method &&
 		(!luau.isSimple(base) || !effectsCommute(getEffects(base), joinEffects(lookupEffects, prereqEffects)))
 	) {
-		base = state.pushToVar(base, "self");
+		base = prereqs.pushToVar(base, "self");
 		callee = property();
 	}
 	if (captureCallee) {
-		callee = state.pushToVar(callee, "fn");
+		callee = prereqs.pushToVar(callee, "fn");
 	}
-	state.prereqList(prereqs);
+	prereqs.pushList(prereqStatements);
 	return luau.call(callee, method ? [base, ...args] : args);
 }
 
 export function transformPropertyCallExpressionInner(
 	state: TransformState,
+	prereqs: Prereqs,
 	node: ts.CallExpression,
 	expression: ts.PropertyAccessExpression,
 	baseExpression: luau.Expression,
@@ -161,7 +166,7 @@ export function transformPropertyCallExpressionInner(
 	if (ts.isSuperProperty(expression)) {
 		return luau.call(luau.property(convertToIndexableExpression(baseExpression), expression.name.text), [
 			luau.globals.self,
-			...ensureTransformOrder(state, node.arguments),
+			...ensureTransformOrder(state, prereqs, node.arguments),
 		]);
 	}
 
@@ -170,20 +175,22 @@ export function transformPropertyCallExpressionInner(
 	if (symbol) {
 		const macro = state.services.macroManager.getPropertyCallMacro(symbol);
 		if (macro) {
-			return transformMacroCall(macro, state, node, baseExpression, nodeArguments);
+			return transformMacroCall(macro, state, prereqs, node, baseExpression, nodeArguments);
 		}
 	}
 
-	const [args, prereqs] = state.capture(() => ensureTransformOrder(state, nodeArguments));
+	const argsPrereqs = new Prereqs();
+	const args = ensureTransformOrder(state, argsPrereqs, nodeArguments);
 	fixVoidArgumentsForRobloxFunctions(state, expType, args, nodeArguments);
 
 	const exp = createOrderedPropertyCall(
 		state,
+		prereqs,
 		expression,
 		baseExpression,
 		name,
 		args,
-		prereqs,
+		argsPrereqs.statements,
 		isMethod(state, expression),
 	);
 	return wrapReturnIfLuaTuple(state, node, exp);
@@ -191,6 +198,7 @@ export function transformPropertyCallExpressionInner(
 
 export function transformElementCallExpressionInner(
 	state: TransformState,
+	prereqs: Prereqs,
 	node: ts.CallExpression,
 	expression: ts.ElementAccessExpression,
 	baseExpression: luau.Expression,
@@ -208,9 +216,9 @@ export function transformElementCallExpressionInner(
 		return luau.call(
 			luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 				expression: convertToIndexableExpression(baseExpression),
-				index: transformExpression(state, expression.argumentExpression),
+				index: transformExpression(state, prereqs, expression.argumentExpression),
 			}),
-			[luau.globals.self, ...ensureTransformOrder(state, node.arguments)],
+			[luau.globals.self, ...ensureTransformOrder(state, prereqs, node.arguments)],
 		);
 	}
 
@@ -219,21 +227,26 @@ export function transformElementCallExpressionInner(
 	if (symbol) {
 		const macro = state.services.macroManager.getPropertyCallMacro(symbol);
 		if (macro) {
-			return transformMacroCall(macro, state, node, baseExpression, nodeArguments);
+			return transformMacroCall(macro, state, prereqs, node, baseExpression, nodeArguments);
 		}
 	}
 
-	const [argumentExp, keyPrereqs] = state.capture(() => transformExpression(state, argumentExpression));
+	const keyPrereqs = new Prereqs();
+	const argumentExp = transformExpression(state, keyPrereqs, argumentExpression);
 	if (
 		!effectsCommute(
 			getEffects(baseExpression),
-			joinEffects(getEffects(keyPrereqs), isLateRead(baseExpression) ? getEffects(argumentExp) : NO_EFFECTS),
+			joinEffects(
+				getEffects(keyPrereqs.statements),
+				isLateRead(baseExpression) ? getEffects(argumentExp) : NO_EFFECTS,
+			),
 		)
 	) {
-		baseExpression = state.pushToVar(baseExpression, "exp");
+		baseExpression = prereqs.pushToVar(baseExpression, "exp");
 	}
-	state.prereqList(keyPrereqs);
-	const [args, prereqs] = state.capture(() => ensureTransformOrder(state, nodeArguments));
+	prereqs.pushList(keyPrereqs.statements);
+	const argsPrereqs = new Prereqs();
+	const args = ensureTransformOrder(state, argsPrereqs, nodeArguments);
 	fixVoidArgumentsForRobloxFunctions(state, expType, args, nodeArguments);
 	const key = addOneIfArrayType(
 		state,
@@ -242,16 +255,17 @@ export function transformElementCallExpressionInner(
 	);
 	const exp = createOrderedPropertyCall(
 		state,
+		prereqs,
 		expression,
 		baseExpression,
 		key,
 		args,
-		prereqs,
+		argsPrereqs.statements,
 		isMethod(state, expression),
 	);
 	return wrapReturnIfLuaTuple(state, node, exp);
 }
 
-export function transformCallExpression(state: TransformState, node: ts.CallExpression) {
-	return transformOptionalChain(state, node);
+export function transformCallExpression(state: TransformState, prereqs: Prereqs, node: ts.CallExpression) {
+	return transformOptionalChain(state, prereqs, node);
 }

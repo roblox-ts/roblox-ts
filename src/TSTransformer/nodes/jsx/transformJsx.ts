@@ -1,6 +1,7 @@
 import luau from "@roblox-ts/luau-ast";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformJsxAttributes } from "TSTransformer/nodes/jsx/transformJsxAttributes";
 import { transformJsxChildren } from "TSTransformer/nodes/jsx/transformJsxChildren";
 import { transformJsxTagName } from "TSTransformer/nodes/jsx/transformJsxTagName";
@@ -11,6 +12,7 @@ import ts from "typescript";
 
 export function transformJsx(
 	state: TransformState,
+	prereqs: Prereqs,
 	node: ts.JsxElement | ts.JsxSelfClosingElement,
 	tagName: ts.JsxTagNameExpression,
 	attributes: ts.JsxAttributes,
@@ -22,15 +24,15 @@ export function transformJsx(
 
 	const createElementExpression = convertToIndexableExpression(transformEntityName(state, jsxFactoryEntity));
 
-	const tagNameExp = transformJsxTagName(state, tagName);
+	const tagNameExp = transformJsxTagName(state, prereqs, tagName);
 
 	let attributesPtr: MapPointer | undefined;
 	if (attributes.properties.length > 0) {
 		attributesPtr = createMapPointer("attributes");
-		transformJsxAttributes(state, attributes, attributesPtr);
+		transformJsxAttributes(state, prereqs, attributes, attributesPtr);
 	}
 
-	const transformedChildren = transformJsxChildren(state, children);
+	const transformedChildren = transformJsxChildren(state, prereqs, children);
 
 	const args = [tagNameExp];
 

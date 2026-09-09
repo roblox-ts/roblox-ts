@@ -1,5 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { createHoistDeclaration } from "TSTransformer/util/createHoistDeclaration";
@@ -14,7 +15,10 @@ function transformCaseClauseExpression(
 	canFallThroughTo: boolean,
 ) {
 	const caseValueId = luau.tempId("caseValue");
-	let [expression, prereqStatements] = state.capture(() => transformExpression(state, caseClauseExpression));
+	const casePrereqs = new Prereqs();
+	const expression = transformExpression(state, casePrereqs, caseClauseExpression);
+	let prereqStatements = luau.list.make<luau.Statement>();
+	luau.list.pushList(prereqStatements, casePrereqs.statements);
 	const caseValueMightMutate = expressionMightMutate(state, expression, caseClauseExpression);
 
 	if (caseValueMightMutate) {
@@ -125,10 +129,13 @@ function transformCaseClause(
 }
 
 export function transformSwitchStatement(state: TransformState, node: ts.SwitchStatement) {
-	const switchExpression = transformExpression(state, node.expression);
+	const result = luau.list.make<luau.Statement>();
+	const prereqs = new Prereqs();
+	const switchExpression = transformExpression(state, prereqs, node.expression);
 	const expression = expressionMightMutate(state, switchExpression, node.expression)
-		? state.pushToVar(switchExpression, "exp")
-		: state.pushToVarIfComplex(switchExpression, "exp");
+		? prereqs.pushToVar(switchExpression, "exp")
+		: prereqs.pushToVarIfComplex(switchExpression, "exp");
+	luau.list.pushList(result, prereqs.statements);
 	const fallThroughFlagId = luau.tempId("fallthrough");
 
 	let isFallThroughFlagNeeded = false;
@@ -141,7 +148,11 @@ export function transformSwitchStatement(state: TransformState, node: ts.SwitchS
 		if (ts.isCaseClause(caseClauseNode)) {
 			const shouldUpdateFallThroughFlag =
 				i < node.caseBlock.clauses.length - 1 && ts.isCaseClause(node.caseBlock.clauses[i + 1]);
-			const { canFallThroughFrom, prereqs, clauseStatements } = transformCaseClause(
+			const {
+				canFallThroughFrom,
+				prereqs: prereqStatements,
+				clauseStatements,
+			} = transformCaseClause(
 				state,
 				caseClauseNode,
 				expression,
@@ -150,7 +161,7 @@ export function transformSwitchStatement(state: TransformState, node: ts.SwitchS
 				shouldUpdateFallThroughFlag,
 			);
 
-			luau.list.pushList(statements, prereqs);
+			luau.list.pushList(statements, prereqStatements);
 			luau.list.pushList(statements, clauseStatements);
 
 			canFallThroughTo = canFallThroughFrom;
@@ -174,10 +185,12 @@ export function transformSwitchStatement(state: TransformState, node: ts.SwitchS
 		);
 	}
 
-	return luau.list.make<luau.Statement>(
+	luau.list.push(
+		result,
 		luau.create(luau.SyntaxKind.RepeatStatement, {
 			condition: luau.bool(true),
 			statements,
 		}),
 	);
+	return result;
 }

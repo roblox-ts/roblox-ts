@@ -3,6 +3,7 @@ import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformExpressionStatementInner } from "TSTransformer/nodes/statements/transformExpressionStatement";
@@ -141,11 +142,7 @@ function transformForStatementFallback(state: TransformState, node: ts.ForStatem
 			}
 
 			for (const declaration of initializer.declarations) {
-				const [decStatements, decPrereqs] = state.capture(() =>
-					transformVariableDeclaration(state, declaration),
-				);
-				luau.list.pushList(result, decPrereqs);
-				luau.list.pushList(result, decStatements);
+				luau.list.pushList(result, transformVariableDeclaration(state, declaration));
 			}
 
 			for (const id of variables) {
@@ -194,9 +191,7 @@ function transformForStatementFallback(state: TransformState, node: ts.ForStatem
 				}
 			}
 		} else {
-			const [statements, prereqs] = state.capture(() => transformExpressionStatementInner(state, initializer));
-			luau.list.pushList(result, prereqs);
-			luau.list.pushList(result, statements);
+			luau.list.pushList(result, transformExpressionStatementInner(state, initializer));
 		}
 	}
 
@@ -212,10 +207,7 @@ function transformForStatementFallback(state: TransformState, node: ts.ForStatem
 			}),
 		);
 
-		const incrementorStatements = luau.list.make<luau.Statement>();
-		const [statements, prereqs] = state.capture(() => transformExpressionStatementInner(state, incrementor));
-		luau.list.pushList(incrementorStatements, prereqs);
-		luau.list.pushList(incrementorStatements, statements);
+		const incrementorStatements = transformExpressionStatementInner(state, incrementor);
 
 		// if _shouldIncrement then
 		// 	[incrementorStatements]
@@ -238,15 +230,17 @@ function transformForStatementFallback(state: TransformState, node: ts.ForStatem
 		);
 	}
 
-	let [conditionExp, conditionPrereqs] = state.capture(() => {
-		if (condition) {
-			return createTruthinessChecks(state, transformExpression(state, condition), condition);
-		} else {
-			return luau.bool(true);
-		}
-	});
+	const conditionPrereqs = new Prereqs();
+	let conditionExp = condition
+		? createTruthinessChecks(
+				state,
+				conditionPrereqs,
+				transformExpression(state, conditionPrereqs, condition),
+				condition,
+			)
+		: luau.bool(true);
 
-	luau.list.pushList(whileStatements, conditionPrereqs);
+	luau.list.pushList(whileStatements, conditionPrereqs.statements);
 
 	if (!luau.list.isEmpty(whileStatements)) {
 		if (condition) {
@@ -429,8 +423,12 @@ function transformForStatementOptimized(state: TransformState, node: ts.ForState
 
 	const id = transformIdentifierDefined(state, decName);
 
-	const start = state.noPrereqs(() => transformExpression(state, decInit));
-	let end = state.noPrereqs(() => transformExpression(state, condition.right));
+	const startPrereqs = new Prereqs();
+	const start = transformExpression(state, startPrereqs, decInit);
+	assert(luau.list.isEmpty(startPrereqs.statements));
+	const endPrereqs = new Prereqs();
+	let end = transformExpression(state, endPrereqs, condition.right);
+	assert(luau.list.isEmpty(endPrereqs.statements));
 
 	const step = luau.number(stepValue);
 	const statements = transformStatementList(state, statement, getStatements(statement));
