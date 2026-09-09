@@ -56,8 +56,12 @@ export function transformStatementList(
 			const sourcePos = getOriginalSourcePosition(state.multiTransformState, statement);
 			const sourceEndPos = getOriginalSourcePosition(state.multiTransformState, statement, n => n.getEnd() - 1);
 			luau.list.forEach(transformedStatements, node => {
-				state.sourcePositionMap.set(node, sourcePos);
-				state.sourceEndPositionMap.set(node, sourceEndPos);
+				if (sourcePos) {
+					state.sourcePositionMap.set(node, sourcePos);
+				}
+				if (sourceEndPos) {
+					state.sourceEndPositionMap.set(node, sourceEndPos);
+				}
 			});
 		}
 
@@ -80,10 +84,10 @@ export function transformStatementList(
 						right: luau.id(exportName),
 					});
 					if (state.compilerOptions.sourceMap) {
-						state.sourcePositionMap.set(
-							assignment,
-							getOriginalSourcePosition(state.multiTransformState, statement),
-						);
+						const sourcePos = getOriginalSourcePosition(state.multiTransformState, statement);
+						if (sourcePos) {
+							state.sourcePositionMap.set(assignment, sourcePos);
+						}
 					}
 					luau.list.push(result, assignment);
 				}

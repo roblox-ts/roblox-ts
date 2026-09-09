@@ -5,6 +5,41 @@ import { expectSuccess, ReferenceFixture } from "./referenceFixture";
 
 jest.setTimeout(30000);
 
+it("leaves synthetic plugin statements unmapped", () => {
+	const fixture = new ReferenceFixture();
+	try {
+		fixture.project("game", [], {
+			sourceMap: true,
+			plugins: [{ transform: "../prepend.cjs" }],
+		});
+		fixture.write(
+			"prepend.cjs",
+			`module.exports = (program, config, { ts }) => () => source => {
+				const synthetic = ts.factory.createExpressionStatement(
+					ts.factory.createCallExpression(ts.factory.createIdentifier("print"), undefined, [
+						ts.factory.createStringLiteral("synthetic plugin"),
+					]),
+				);
+				return ts.factory.updateSourceFile(source, [synthetic, ...source.statements]);
+			};`,
+		);
+		fixture.write("game/src/index.ts", 'print("original source");');
+
+		expectSuccess(fixture.createBuild().build());
+
+		const output = fixture.read("out/game/init.luau").split("\n");
+		const map = new TraceMap(fixture.read("out/game/init.luau.map"));
+		const syntheticLine = output.findIndex(line => line.includes("synthetic plugin")) + 1;
+		const originalLine = output.findIndex(line => line.includes("original source")) + 1;
+		expect(syntheticLine).toBeGreaterThan(0);
+		expect(originalLine).toBeGreaterThan(0);
+		expect(originalPositionFor(map, { line: syntheticLine, column: 0 }).source).toBeNull();
+		expect(originalPositionFor(map, { line: originalLine, column: 0 })).toMatchObject({ line: 1, column: 0 });
+	} finally {
+		fixture.close();
+	}
+});
+
 it("preserves plugin-reprinted comments when source maps are disabled", () => {
 	const fixture = new ReferenceFixture();
 	try {

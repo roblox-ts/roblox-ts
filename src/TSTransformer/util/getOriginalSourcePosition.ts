@@ -22,7 +22,7 @@ export function getOriginalSourcePosition(
 	multiTransformState: MultiTransformState,
 	node: ts.Node,
 	positionSelector?: (node: ts.Node) => number,
-): SourcePosition {
+): SourcePosition | undefined {
 	const sf = node.getSourceFile();
 	const pos = positionSelector ? positionSelector(node) : node.getStart();
 	const lc = sf.getLineAndCharacterOfPosition(pos);
@@ -36,12 +36,12 @@ export function getOriginalSourcePosition(
 	const mapped = originalPositionFor(traceMap, { line: lc.line + 1, column: lc.character });
 
 	if (mapped.line === null || mapped.source === null) {
-		return { line: lc.line, column: lc.character };
+		return undefined;
 	}
 
 	// the trace map source may use file:/// URIs or different separators
 	if (normalizeSourcePath(mapped.source) !== path.normalize(sf.fileName)) {
-		return { line: lc.line, column: lc.character };
+		return undefined;
 	}
 
 	// convert back to 0-indexed

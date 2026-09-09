@@ -212,14 +212,18 @@ function handleExports(
 			if (state.compilerOptions.sourceMap) {
 				const anchor = getExportSyntaxAnchor(exportSymbol, sourceFile);
 				if (anchor) {
-					state.sourcePositionMap.set(
-						assignment,
-						getOriginalSourcePosition(state.multiTransformState, anchor),
+					const sourcePos = getOriginalSourcePosition(state.multiTransformState, anchor);
+					const sourceEndPos = getOriginalSourcePosition(
+						state.multiTransformState,
+						anchor,
+						n => n.getEnd() - 1,
 					);
-					state.sourceEndPositionMap.set(
-						assignment,
-						getOriginalSourcePosition(state.multiTransformState, anchor, n => n.getEnd() - 1),
-					);
+					if (sourcePos) {
+						state.sourcePositionMap.set(assignment, sourcePos);
+					}
+					if (sourceEndPos) {
+						state.sourceEndPositionMap.set(assignment, sourceEndPos);
+					}
 				}
 			}
 			luau.list.push(statements, assignment);
