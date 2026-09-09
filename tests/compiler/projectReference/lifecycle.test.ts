@@ -65,25 +65,30 @@ const sourceFile = process.argv[5];
 	expect(output.trim()).toBe("previous program released");
 });
 
-it("preserves nested bundled runtime files while cleaning generated output", () => {
+it.each([false, true])("preserves nested bundled runtime files while cleaning generated output (luau=%s)", luau => {
 	fixture.project("game");
 	fixture.write("game/src/orphan.ts", "export const orphan = 1;");
 	fixture.rojo({ include: { $path: "out/game" } });
 	const runtime = fixture.file("runtime");
 	fs.copySync(constants.INCLUDE_PATH, runtime);
-	fixture.write("runtime/helpers/nested.lua", "return 42");
+	fixture.write("runtime/helpers/nested.luau", "return 42");
+	fixture.write("runtime/helpers/legacy.lua", "return 24");
+	fixture.write("runtime/helpers/data.json", '{"value": 42}');
 	const installation = jest.replaceProperty(constants, "INCLUDE_PATH", runtime);
 
 	try {
-		const build = fixture.createBuild({ includePath: fixture.file("out/game") });
+		const build = fixture.createBuild({ includePath: fixture.file("out/game"), luau });
+		const extension = luau ? "luau" : "lua";
 		expectSuccess(build.build());
 
 		fs.removeSync(fixture.file("game/src/orphan.ts"));
 
 		expectSuccess(build.build());
-		expect(fixture.read("out/game/helpers/nested.lua")).toBe("return 42");
-		expect(fs.existsSync(fixture.file("out/game/orphan.luau"))).toBe(false);
-		expect(fs.existsSync(fixture.file("out/game/RuntimeLib.lua"))).toBe(true);
+		expect(fixture.read(`out/game/helpers/nested.${extension}`)).toBe("return 42");
+		expect(fixture.read("out/game/helpers/legacy.lua")).toBe("return 24");
+		expect(fixture.read("out/game/helpers/data.json")).toBe('{"value": 42}');
+		expect(fs.existsSync(fixture.file(`out/game/orphan.${extension}`))).toBe(false);
+		expect(fs.existsSync(fixture.file(`out/game/RuntimeLib.${extension}`))).toBe(true);
 	} finally {
 		installation.restore();
 	}
