@@ -1,6 +1,6 @@
 import { originalPositionFor } from "@jridgewell/trace-mapping";
+import type { SourcePosition } from "@roblox-ts/luau-ast";
 import path from "path";
-import type { SourcePosition } from "Shared/types";
 import type { MultiTransformState } from "TSTransformer/classes/MultiTransformState";
 import type ts from "typescript";
 
@@ -23,27 +23,26 @@ export function getOriginalSourcePosition(
 	node: ts.Node,
 	positionSelector?: (node: ts.Node) => number,
 ): SourcePosition | undefined {
-	const sf = node.getSourceFile();
-	const pos = positionSelector ? positionSelector(node) : node.getStart();
-	const lc = sf.getLineAndCharacterOfPosition(pos);
+	const sourceFile = node.getSourceFile();
+	const sourceOffset = positionSelector ? positionSelector(node) : node.getStart();
+	const sourcePosition = sourceFile.getLineAndCharacterOfPosition(sourceOffset);
 
-	const traceMap = multiTransformState.reprintTraceMaps.get(sf.fileName);
+	const traceMap = multiTransformState.reprintTraceMaps.get(sourceFile.fileName);
 	if (!traceMap) {
-		return { line: lc.line, column: lc.character };
+		return { line: sourcePosition.line, column: sourcePosition.character };
 	}
 
 	// trace-mapping uses 1-indexed lines
-	const mapped = originalPositionFor(traceMap, { line: lc.line + 1, column: lc.character });
+	const mapped = originalPositionFor(traceMap, { line: sourcePosition.line + 1, column: sourcePosition.character });
 
 	if (mapped.line === null || mapped.source === null) {
 		return undefined;
 	}
 
 	// the trace map source may use file:/// URIs or different separators
-	if (normalizeSourcePath(mapped.source) !== path.normalize(sf.fileName)) {
+	if (normalizeSourcePath(mapped.source) !== path.normalize(sourceFile.fileName)) {
 		return undefined;
 	}
 
-	// convert back to 0-indexed
 	return { line: mapped.line - 1, column: mapped.column ?? 0 };
 }

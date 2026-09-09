@@ -1,5 +1,4 @@
 import { GREATEST_LOWER_BOUND, LEAST_UPPER_BOUND, originalPositionFor, TraceMap } from "@jridgewell/trace-mapping";
-import path from "path";
 
 import { expectSuccess, ReferenceFixture } from "./referenceFixture";
 
@@ -93,7 +92,7 @@ it.each([false, true])(
 			expect(map.sourcesContent).toEqual([source]);
 			for (const bias of [GREATEST_LOWER_BOUND, LEAST_UPPER_BOUND] as const) {
 				expect(originalPositionFor(map, { line, column: 0, bias })).toEqual({
-					source: path.join("..", "..", "game", "src", "index.ts"),
+					source: "../../game/src/index.ts",
 					line: 5,
 					column: 4,
 					name: null,

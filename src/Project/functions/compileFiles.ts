@@ -194,11 +194,12 @@ export function compileFiles(
 
 			if (compilerOptions.sourceMap) {
 				const outPath = pathTranslator.getOutputPath(sourceFile.fileName);
-				const sourceMapSource = path.relative(path.dirname(outPath), sourceFile.fileName).split(path.sep).join("/");
+				const sourceMapSource = path
+					.relative(path.dirname(outPath), sourceFile.fileName)
+					.split(path.sep)
+					.join("/");
 				const result = renderASTWithSourceMap(
 					luauAST,
-					transformState.sourcePositionMap,
-					transformState.sourceEndPositionMap,
 					sourceMapSource,
 					path.basename(outPath),
 					originalSourceTexts.get(sourceFile.fileName) ?? sourceFile.text,

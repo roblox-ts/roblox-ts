@@ -2,7 +2,6 @@ import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer";
 import { transformStatement } from "TSTransformer/nodes/statements/transformStatement";
 import { createHoistDeclaration } from "TSTransformer/util/createHoistDeclaration";
-import { getOriginalSourcePosition } from "TSTransformer/util/getOriginalSourcePosition";
 import ts from "typescript";
 
 function getLastToken(parent: ts.Node | undefined, statements: ReadonlyArray<ts.Statement>) {
@@ -53,16 +52,7 @@ export function transformStatementList(
 		}
 
 		if (state.compilerOptions.sourceMap) {
-			const sourcePos = getOriginalSourcePosition(state.multiTransformState, statement);
-			const sourceEndPos = getOriginalSourcePosition(state.multiTransformState, statement, n => n.getEnd() - 1);
-			luau.list.forEach(transformedStatements, node => {
-				if (sourcePos) {
-					state.sourcePositionMap.set(node, sourcePos);
-				}
-				if (sourceEndPos) {
-					state.sourceEndPositionMap.set(node, sourceEndPos);
-				}
-			});
+			luau.list.forEach(transformedStatements, node => state.setSourceOrigin(node, statement));
 		}
 
 		luau.list.pushList(result, transformedStatements);
@@ -84,10 +74,7 @@ export function transformStatementList(
 						right: luau.id(exportName),
 					});
 					if (state.compilerOptions.sourceMap) {
-						const sourcePos = getOriginalSourcePosition(state.multiTransformState, statement);
-						if (sourcePos) {
-							state.sourcePositionMap.set(assignment, sourcePos);
-						}
+						state.setSourceOrigin(assignment, statement);
 					}
 					luau.list.push(result, assignment);
 				}

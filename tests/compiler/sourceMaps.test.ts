@@ -103,6 +103,67 @@ it("maps generated statements to the original TypeScript positions", () => {
 	}
 });
 
+it("maps each callback closing keyword to its own TypeScript function", () => {
+	const fixture = new ReferenceFixture();
+	try {
+		fixture.project("game", [], { sourceMap: true });
+		fixture.write(
+			"game/src/index.ts",
+			`declare function consumePair(first: () => void, second: () => void): void;
+consumePair(
+	() => {
+		print("first callback");
+	},
+	() => {
+		print("second callback");
+	},
+);`,
+		);
+
+		expectSuccess(fixture.createBuild().build());
+
+		const output = fixture.read("out/game/init.luau").split("\n");
+		const map = new TraceMap(fixture.read("out/game/init.luau.map"));
+		for (const [marker, originalLine] of [
+			["first callback", 5],
+			["second callback", 8],
+		] as const) {
+			const bodyLine = output.findIndex(line => line.includes(marker));
+			expect(bodyLine).toBeGreaterThan(-1);
+			expect(output[bodyLine + 1]?.trimStart()).toMatch(/^end/);
+			expect(originalPositionFor(map, { line: bodyLine + 2, column: 0 })).toMatchObject({
+				line: originalLine,
+				column: 1,
+			});
+		}
+	} finally {
+		fixture.close();
+	}
+});
+
+it("keeps a statement mapping when an inline callback closes on the same line", () => {
+	const fixture = new ReferenceFixture();
+	try {
+		fixture.project("game", [], { sourceMap: true });
+		fixture.write("game/src/index.ts", "export const callback = () => {};");
+
+		expectSuccess(fixture.createBuild().build());
+
+		const output = fixture.read("out/game/init.luau").split("\n");
+		const generatedLine = output.findIndex(line => line.includes("callback = function() end")) + 1;
+		expect(generatedLine).toBeGreaterThan(0);
+		const map = new TraceMap(fixture.read("out/game/init.luau.map"));
+		for (const bias of [GREATEST_LOWER_BOUND, LEAST_UPPER_BOUND] as const) {
+			expect(originalPositionFor(map, { line: generatedLine, column: 0, bias })).toMatchObject({
+				line: 1,
+				column: 0,
+			});
+		}
+	} finally {
+		fixture.close();
+	}
+});
+
 it("removes a stale map only after a successful build with source maps disabled", () => {
 	const fixture = new ReferenceFixture();
 	try {

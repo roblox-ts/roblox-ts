@@ -7,7 +7,6 @@ import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
-import { getOriginalSourcePosition } from "TSTransformer/util/getOriginalSourcePosition";
 import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfNode";
 import { isSymbolMutable } from "TSTransformer/util/isSymbolMutable";
 import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
@@ -212,18 +211,7 @@ function handleExports(
 			if (state.compilerOptions.sourceMap) {
 				const anchor = getExportSyntaxAnchor(exportSymbol, sourceFile);
 				if (anchor) {
-					const sourcePos = getOriginalSourcePosition(state.multiTransformState, anchor);
-					const sourceEndPos = getOriginalSourcePosition(
-						state.multiTransformState,
-						anchor,
-						n => n.getEnd() - 1,
-					);
-					if (sourcePos) {
-						state.sourcePositionMap.set(assignment, sourcePos);
-					}
-					if (sourceEndPos) {
-						state.sourceEndPositionMap.set(assignment, sourceEndPos);
-					}
+					state.setSourceOrigin(assignment, anchor);
 				}
 			}
 			luau.list.push(statements, assignment);
