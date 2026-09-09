@@ -1,5 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformObjectBindingPattern } from "TSTransformer/nodes/binding/transformObjectBindingPattern";
 import { transformVariable } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
@@ -10,6 +11,7 @@ import ts from "typescript";
 
 export function transformArrayBindingPattern(
 	state: TransformState,
+	prereqs: Prereqs,
 	bindingPattern: ts.ArrayBindingPattern,
 	parentId: luau.AnyIdentifier,
 ) {
@@ -22,29 +24,29 @@ export function transformArrayBindingPattern(
 
 	for (const element of bindingPattern.elements) {
 		if (ts.isOmittedExpression(element)) {
-			accessor(state, parentId, index, idStack, true);
+			accessor(prereqs, parentId, index, idStack, true);
 		} else {
 			const name = element.name;
 
 			const isSpreadElement = element.dotDotDotToken !== undefined;
 			const value = isSpreadElement
-				? destructor(state, parentId, index, idStack)
-				: accessor(state, parentId, index, idStack, false);
+				? destructor(prereqs, parentId, index, idStack)
+				: accessor(prereqs, parentId, index, idStack, false);
 
 			if (ts.isIdentifier(name)) {
-				const id = transformVariable(state, name, value);
+				const id = transformVariable(state, prereqs, name, value);
 				if (element.initializer) {
-					state.prereq(transformInitializer(state, id, element.initializer));
+					prereqs.push(transformInitializer(state, id, element.initializer));
 				}
 			} else {
-				const id = state.pushToVar(value, "binding");
+				const id = prereqs.pushToVar(value, "binding");
 				if (element.initializer) {
-					state.prereq(transformInitializer(state, id, element.initializer));
+					prereqs.push(transformInitializer(state, id, element.initializer));
 				}
 				if (ts.isArrayBindingPattern(name)) {
-					transformArrayBindingPattern(state, name, id);
+					transformArrayBindingPattern(state, prereqs, name, id);
 				} else {
-					transformObjectBindingPattern(state, name, id);
+					transformObjectBindingPattern(state, prereqs, name, id);
 				}
 			}
 		}
