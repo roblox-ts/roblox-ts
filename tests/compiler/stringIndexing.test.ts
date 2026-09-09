@@ -1,16 +1,10 @@
 // keep tests alphabetized by name to match Jest's snapshot ordering
-import fs from "fs-extra";
-import path from "path";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 
 import { createTestProject } from "./createTestProject";
 
 function compile(source: string) {
 	const project = createTestProject();
-	project.vfs.writeFile(
-		"/src/stringIndex.d.ts",
-		fs.readFileSync(path.join(__dirname, "../src/stringIndex.d.ts"), "utf8"),
-	);
 	return project.compileSource(source).replace(/^-- Compiled with.*\n/, "");
 }
 
