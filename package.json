@@ -19,7 +19,7 @@
 		"devlink": "npm run build && cd devlink && npm link",
 		"update-test-types": "cd tests && npm install github:roblox-ts/compiler-types @rbxts/types@latest && npm install",
 		"test": "npm run build && npm run test-compile && npm run test-rojo && npm run test-run",
-		"test-compile": "jest --coverage --maxWorkers=100%",
+		"test-compile": "jest --coverage",
 		"test-rojo": "rojo build tests -o ./tests/test.rbxl",
 		"test-run": "lune run ./tests/runTestsWithLune.luau ./tests/test.rbxl",
 		"test-roblox": "npm run build && npm run test-compile && npm run test-rojo && npm run run-in-roblox",

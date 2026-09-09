@@ -3,6 +3,8 @@ import type { Config } from "jest";
 const config: Config = {
 	preset: "ts-jest",
 	testEnvironment: "node",
+	// leave headroom for compiler watch tests on the smaller macOS runners
+	maxWorkers: process.env.GITHUB_ACTIONS === "true" && process.platform === "darwin" ? 2 : "100%",
 	workerIdleMemoryLimit: "512MB",
 	testMatch: ["<rootDir>/tests/compiler/**/*.test.ts"],
 	modulePathIgnorePatterns: ["<rootDir>/out/"],
