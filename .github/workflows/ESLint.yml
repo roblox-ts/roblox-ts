@@ -14,12 +14,6 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v2.3.4
 
-      - name: Setup Node
-        uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          package-manager-cache: false
-
       - name: Install NPM Dependencies
         uses: bahmutov/npm-install@v1
 

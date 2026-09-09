@@ -3,7 +3,6 @@ import type { Config } from "jest";
 const config: Config = {
 	preset: "ts-jest",
 	testEnvironment: "node",
-	workerIdleMemoryLimit: "512MB",
 	testMatch: ["<rootDir>/tests/compiler/**/*.test.ts"],
 	modulePathIgnorePatterns: ["<rootDir>/out/"],
 	moduleNameMapper: {

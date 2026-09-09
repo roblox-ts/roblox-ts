@@ -35,10 +35,8 @@ interface OptionalChainItem<T extends OptionalChainItemKind, U extends ts.Expres
 	optional: boolean;
 }
 
-interface PropertyAccessItem extends OptionalChainItem<
-	OptionalChainItemKind.PropertyAccess,
-	ts.PropertyAccessExpression
-> {
+interface PropertyAccessItem
+	extends OptionalChainItem<OptionalChainItemKind.PropertyAccess, ts.PropertyAccessExpression> {
 	name: string;
 }
 

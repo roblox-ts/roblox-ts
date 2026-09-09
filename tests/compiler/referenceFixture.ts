@@ -180,7 +180,7 @@ export async function startWatch(fixture: ReferenceFixture, usePolling = false, 
 
 	const wait = (previous: number) =>
 		new Promise<void>((resolve, reject) => {
-			const timeout = setTimeout(() => finish(new Error(`Watch did not finish:\n${log}`)), 30000);
+			const timeout = setTimeout(() => finish(new Error(`Watch did not finish:\n${log}`)), 15000);
 
 			const interval = setInterval(() => {
 				if (exited()) {
