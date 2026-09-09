@@ -243,6 +243,10 @@ it("updates a changed map when writeOnlyChanged preserves identical Luau", () =>
 		const mapPath = `${outputPath}.map`;
 		const output = fs.readFileSync(outputPath, "utf8");
 		const previousMap = fs.readFileSync(mapPath, "utf8");
+		const unchanged = build.build([fixture.file(sourcePath)]);
+		expectSuccess(unchanged);
+		expect(unchanged.emittedFiles).not.toContain(outputPath);
+		expect(unchanged.emittedFiles).not.toContain(mapPath);
 
 		fixture.write(sourcePath, 'export const callback = () => {\n\n\tprint("map-only");\n};');
 		const result = build.build([fixture.file(sourcePath)]);

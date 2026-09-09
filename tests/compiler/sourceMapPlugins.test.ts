@@ -39,6 +39,50 @@ it("leaves synthetic plugin statements unmapped", () => {
 	}
 });
 
+it("leaves plugin statements mapped to a different source unmapped", () => {
+	const fixture = new ReferenceFixture();
+	try {
+		fixture.project("game", [], {
+			sourceMap: true,
+			plugins: [{ transform: "../prepend-foreign.cjs" }],
+		});
+		fixture.write(
+			"prepend-foreign.cjs",
+			`module.exports = (program, config, { ts }) => () => source => {
+				const text = 'print("foreign plugin");';
+				const foreign = ts.createSourceFile("foreign-plugin.ts", text, ts.ScriptTarget.Latest, true);
+				const statement = foreign.statements[0];
+				const sourceMapSource = ts.createSourceMapSource(foreign.fileName, foreign.text);
+				const preserveOrigin = node => {
+					ts.setSourceMapRange(node, {
+						pos: node.getStart(foreign),
+						end: node.getEnd(),
+						source: sourceMapSource,
+					});
+					ts.forEachChild(node, preserveOrigin);
+				};
+				preserveOrigin(statement);
+				return ts.factory.updateSourceFile(source, [statement, ...source.statements]);
+			};`,
+		);
+		fixture.write("game/src/index.ts", 'print("foreign plugin");\nprint("original source");');
+
+		expectSuccess(fixture.createBuild().build());
+
+		const output = fixture.read("out/game/init.luau").split("\n");
+		const map = new TraceMap(fixture.read("out/game/init.luau.map"));
+		const foreignLines = output.flatMap((line, index) => (line.includes("foreign plugin") ? [index + 1] : []));
+		const originalLine = output.findIndex(line => line.includes("original source")) + 1;
+		expect(foreignLines).toHaveLength(2);
+		expect(originalLine).toBeGreaterThan(0);
+		expect(originalPositionFor(map, { line: foreignLines[0]!, column: 0 }).source).toBeNull();
+		expect(originalPositionFor(map, { line: foreignLines[1]!, column: 0 })).toMatchObject({ line: 1, column: 0 });
+		expect(originalPositionFor(map, { line: originalLine, column: 0 })).toMatchObject({ line: 2, column: 0 });
+	} finally {
+		fixture.close();
+	}
+});
+
 it("preserves plugin-reprinted comments when source maps are disabled", () => {
 	const fixture = new ReferenceFixture();
 	try {
