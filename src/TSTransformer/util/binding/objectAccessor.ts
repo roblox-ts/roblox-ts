@@ -14,10 +14,11 @@ export const objectAccessor = (
 	state: TransformState,
 	prereqs: Prereqs,
 	parentId: luau.AnyIdentifier,
-	type: ts.Type,
+	receiverType: ts.Type,
 	name: ts.PropertyName,
 ): luau.Expression => {
-	addIndexDiagnostics(state, name, state.getType(name), type);
+	const memberType = state.getType(name);
+	addIndexDiagnostics(state, name, memberType, receiverType);
 
 	// NoSubstitutionTemplateLiteral is part of ts.PropertyName but TS rejects it as a binding key
 	// (TS1180/TS1136), so it can never reach here
@@ -28,7 +29,7 @@ export const objectAccessor = (
 	} else if (ts.isComputedPropertyName(name)) {
 		return luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 			expression: parentId,
-			index: addOneIfArrayType(state, type, transformExpression(state, prereqs, name.expression)),
+			index: addOneIfArrayType(state, receiverType, transformExpression(state, prereqs, name.expression)),
 		});
 	} else if (ts.isNumericLiteral(name) || ts.isStringLiteral(name) || ts.isBigIntLiteral(name)) {
 		return luau.create(luau.SyntaxKind.ComputedIndexExpression, {
