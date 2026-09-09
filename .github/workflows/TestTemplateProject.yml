@@ -18,6 +18,12 @@ jobs:
         with:
           path: roblox-ts
 
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+
       - name: Setup roblox-ts repo
         run: |
           cd roblox-ts

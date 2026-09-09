@@ -35,12 +35,7 @@ type RawPattern = (
 ) => ts.Transformer<ts.SourceFile>;
 
 type PluginFactory =
-	| LSPattern
-	| ProgramPattern
-	| ConfigPattern
-	| CompilerOptionsPattern
-	| TypeCheckerPattern
-	| RawPattern;
+	LSPattern | ProgramPattern | ConfigPattern | CompilerOptionsPattern | TypeCheckerPattern | RawPattern;
 
 function getTransformerFromFactory(factory: PluginFactory, config: TransformerPluginConfig, program: ts.Program) {
 	const { after, afterDeclarations, type, ...manualConfig } = config;
