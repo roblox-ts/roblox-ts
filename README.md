@@ -24,6 +24,8 @@ Set `compilerOptions.sourceMap` to `true` in `tsconfig.json` to emit a V3 source
 
 Generated mappings use column zero for statement starts and block-closing keywords. Expression-level columns are not mapped.
 
+Compiler-generated statements are mapped only when they have a TypeScript syntax anchor. Namespace export assignments inherit the exported declaration's position. Hoists and plugin-generated syntax without an original printer mapping remain unmapped.
+
 Maps update independently of Luau output when `writeOnlyChanged` is enabled. Successful builds remove maps for deleted inputs and remove stale maps when `sourceMap` is disabled. Builds that fail diagnostics preserve existing Luau and map files.
 
 This option produces external JSON files for tools that consume source maps. It does not install a Studio debugger or configure Rojo to synchronize maps. Inline maps and the TypeScript `sourceRoot` and `mapRoot` options are not supported.

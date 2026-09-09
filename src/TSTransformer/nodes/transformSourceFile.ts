@@ -77,43 +77,17 @@ function getIgnoredExportSymbols(state: TransformState, sourceFile: ts.SourceFil
 	return ignoredSymbols;
 }
 
-function getExportSyntaxAnchor(exportSymbol: ts.Symbol, sourceFile: ts.SourceFile): ts.Node | undefined {
-	const declarations = exportSymbol.getDeclarations();
-	if (!declarations || declarations.length === 0) {
+function getExportSyntaxAnchor(exportSymbol: ts.Symbol): ts.Node | undefined {
+	const declaration = exportSymbol.getDeclarations()?.[0];
+	if (!declaration) {
 		return undefined;
 	}
 
-	for (const decl of declarations) {
-		if (decl.getSourceFile() !== sourceFile) {
-			continue;
-		}
-
-		if (ts.isExportSpecifier(decl)) {
-			return decl;
-		}
-
-		if (ts.isExportAssignment(decl)) {
-			return decl;
-		}
-
-		const statement = getAncestor(decl, ts.isStatement);
-		if (statement) {
-			const modifiers = ts.canHaveModifiers(statement) ? ts.getModifiers(statement) : undefined;
-			if (modifiers?.some(m => m.kind === ts.SyntaxKind.ExportKeyword)) {
-				return statement;
-			}
-		}
+	if (ts.isExportSpecifier(declaration) || ts.isExportAssignment(declaration)) {
+		return declaration;
 	}
 
-	// prefer a containing statement in this source file for merged declarations
-	for (const decl of declarations) {
-		if (decl.getSourceFile() !== sourceFile) {
-			continue;
-		}
-		return getAncestor(decl, ts.isStatement) ?? decl;
-	}
-
-	return declarations[0];
+	return getAncestor(declaration, ts.isStatement) ?? declaration;
 }
 
 /**
@@ -209,7 +183,7 @@ function handleExports(
 				right: exportId,
 			});
 			if (state.compilerOptions.sourceMap) {
-				const anchor = getExportSyntaxAnchor(exportSymbol, sourceFile);
+				const anchor = getExportSyntaxAnchor(exportSymbol);
 				if (anchor) {
 					state.setSourceOrigin(assignment, anchor);
 				}

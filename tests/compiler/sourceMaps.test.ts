@@ -17,6 +17,7 @@ interface MappingExpectation {
 const MAPPING_EXPECTATIONS: ReadonlyArray<MappingExpectation> = [
 	{ marker: '"probe:named"', line: 2, column: 4 },
 	{ marker: '"probe:if"', line: 4, column: 8 },
+	{ marker: "elseif not flag then", line: 5, column: 11 },
 	{ marker: '"probe:elseif"', line: 6, column: 8 },
 	{ marker: '"probe:else"', line: 8, column: 8 },
 	{ marker: '"probe:for"', line: 11, column: 8 },
