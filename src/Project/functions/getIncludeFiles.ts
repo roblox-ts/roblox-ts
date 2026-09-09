@@ -1,6 +1,6 @@
 import fs from "fs-extra";
 import path from "path";
-import { INCLUDE_PATH } from "Shared/constants";
+import { INCLUDE_PATH, LUA_EXT, LUAU_EXT } from "Shared/constants";
 import { ProjectOptions } from "Shared/types";
 
 export function getIncludeFiles(options: ProjectOptions) {
@@ -11,8 +11,11 @@ export function getIncludeFiles(options: ProjectOptions) {
 			if (fs.statSync(input).isDirectory()) {
 				visit(input);
 			} else {
-				const relativePath = path.relative(INCLUDE_PATH, input);
-				const outputName = options.luau ? relativePath : relativePath.replace(/\.luau$/, ".lua");
+				let outputName = path.relative(INCLUDE_PATH, input);
+				if (!options.luau && outputName.endsWith(LUAU_EXT)) {
+					outputName = outputName.slice(0, -LUAU_EXT.length) + LUA_EXT;
+				}
+
 				files.push({ input, output: path.join(options.includePath, outputName) });
 			}
 		}
