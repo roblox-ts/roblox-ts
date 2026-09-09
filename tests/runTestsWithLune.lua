@@ -72,6 +72,7 @@ local function runRobloxScript(script: LuaSourceContainer)
 			tick = tick,
 			task = task,
 			SharedTable = SharedTable,
+			vector = { create = vector },
 		}),
 	})
 

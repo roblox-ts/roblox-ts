@@ -1,0 +1,11 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`imports a local module in VirtualProject without project references 1`] = `
+"local TS = _G[script]
+local value = TS.import(script, script.Parent, "value").value
+local result = value
+return {
+	result = result,
+}
+"
+`;

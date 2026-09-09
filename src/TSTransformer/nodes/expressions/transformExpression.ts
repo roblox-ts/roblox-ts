@@ -1,8 +1,10 @@
 import luau from "@roblox-ts/luau-ast";
 import { DiagnosticFactory, errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
+import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformArrayLiteralExpression } from "TSTransformer/nodes/expressions/transformArrayLiteralExpression";
 import { transformAwaitExpression } from "TSTransformer/nodes/expressions/transformAwaitExpression";
 import { transformBinaryExpression } from "TSTransformer/nodes/expressions/transformBinaryExpression";
@@ -38,12 +40,15 @@ import {
 } from "TSTransformer/nodes/expressions/transformUnaryExpression";
 import { transformVoidExpression } from "TSTransformer/nodes/expressions/transformVoidExpression";
 import { transformYieldExpression } from "TSTransformer/nodes/expressions/transformYieldExpression";
+import { markPrimitiveValue } from "TSTransformer/util/evaluation/facts";
 import { getKindName } from "TSTransformer/util/getKindName";
+import { isBooleanType, isDefinitelyType, isNumberType, isStringType, isUndefinedType } from "TSTransformer/util/types";
+import { withoutPrereqs } from "TSTransformer/util/withoutPrereqs";
 import ts from "typescript";
 
 const NO_EMIT = () => luau.none();
 
-const DIAGNOSTIC = (factory: DiagnosticFactory) => (state: TransformState, node: ts.Expression) => {
+const DIAGNOSTIC = (factory: DiagnosticFactory) => (state: TransformState, prereqs: Prereqs, node: ts.Expression) => {
 	DiagnosticService.addDiagnostic(factory(node));
 	return NO_EMIT();
 };
@@ -51,8 +56,8 @@ const DIAGNOSTIC = (factory: DiagnosticFactory) => (state: TransformState, node:
 type Validate<T> = {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any -- typecheck only works with `any`
 	[k in keyof T]: T[k] extends [infer Kind, infer C extends (...args: any) => unknown]
-		? "kind" extends keyof Parameters<C>[1]
-			? Kind extends Parameters<C>[1]["kind"]
+		? "kind" extends keyof Parameters<C>[2]
+			? Kind extends Parameters<C>[2]["kind"]
 				? T[k]
 				: never
 			: T[k]
@@ -61,9 +66,14 @@ type Validate<T> = {
 
 function createTransformerMap<
 	T extends Array<
-		[ts.SyntaxKind, { bivariant(state: TransformState, exp: ts.Expression): luau.Expression }["bivariant"]]
+		[
+			ts.SyntaxKind,
+			{ bivariant(state: TransformState, prereqs: Prereqs, exp: ts.Expression): luau.Expression }["bivariant"],
+		]
 	>,
->(values: Validate<[...T]>): Map<ts.SyntaxKind, (state: TransformState, exp: ts.Expression) => luau.Expression> {
+>(
+	values: Validate<[...T]>,
+): Map<ts.SyntaxKind, (state: TransformState, prereqs: Prereqs, exp: ts.Expression) => luau.Expression> {
 	return new Map(values);
 }
 
@@ -80,7 +90,7 @@ const TRANSFORMER_BY_KIND = createTransformerMap([
 
 	// regular transforms
 	[ts.SyntaxKind.ArrayLiteralExpression, transformArrayLiteralExpression],
-	[ts.SyntaxKind.ArrowFunction, transformFunctionExpression],
+	[ts.SyntaxKind.ArrowFunction, withoutPrereqs(transformFunctionExpression)],
 	[ts.SyntaxKind.AsExpression, transformTypeExpression],
 	[ts.SyntaxKind.AwaitExpression, transformAwaitExpression],
 	[ts.SyntaxKind.BinaryExpression, transformBinaryExpression],
@@ -91,16 +101,16 @@ const TRANSFORMER_BY_KIND = createTransformerMap([
 	[ts.SyntaxKind.ElementAccessExpression, transformElementAccessExpression],
 	[ts.SyntaxKind.ExpressionWithTypeArguments, transformTypeExpression],
 	[ts.SyntaxKind.FalseKeyword, transformFalseKeyword],
-	[ts.SyntaxKind.FunctionExpression, transformFunctionExpression],
-	[ts.SyntaxKind.Identifier, transformIdentifier],
+	[ts.SyntaxKind.FunctionExpression, withoutPrereqs(transformFunctionExpression)],
+	[ts.SyntaxKind.Identifier, withoutPrereqs(transformIdentifier)],
 	[ts.SyntaxKind.JsxElement, transformJsxElement],
 	[ts.SyntaxKind.JsxExpression, transformJsxExpression],
 	[ts.SyntaxKind.JsxFragment, transformJsxFragment],
 	[ts.SyntaxKind.JsxSelfClosingElement, transformJsxSelfClosingElement],
 	[ts.SyntaxKind.NewExpression, transformNewExpression],
 	[ts.SyntaxKind.NonNullExpression, transformTypeExpression],
-	[ts.SyntaxKind.NoSubstitutionTemplateLiteral, transformNoSubstitutionTemplateLiteral],
-	[ts.SyntaxKind.NumericLiteral, transformNumericLiteral],
+	[ts.SyntaxKind.NoSubstitutionTemplateLiteral, withoutPrereqs(transformNoSubstitutionTemplateLiteral)],
+	[ts.SyntaxKind.NumericLiteral, withoutPrereqs(transformNumericLiteral)],
 	[ts.SyntaxKind.ObjectLiteralExpression, transformObjectLiteralExpression],
 	[ts.SyntaxKind.OmittedExpression, transformOmittedExpression],
 	[ts.SyntaxKind.ParenthesizedExpression, transformParenthesizedExpression],
@@ -109,21 +119,30 @@ const TRANSFORMER_BY_KIND = createTransformerMap([
 	[ts.SyntaxKind.PropertyAccessExpression, transformPropertyAccessExpression],
 	[ts.SyntaxKind.SatisfiesExpression, transformTypeExpression],
 	[ts.SyntaxKind.SpreadElement, transformSpreadElement],
-	[ts.SyntaxKind.StringLiteral, transformStringLiteral],
+	[ts.SyntaxKind.StringLiteral, withoutPrereqs(transformStringLiteral)],
 	[ts.SyntaxKind.SuperKeyword, transformSuperKeyword],
 	[ts.SyntaxKind.TaggedTemplateExpression, transformTaggedTemplateExpression],
 	[ts.SyntaxKind.TemplateExpression, transformTemplateExpression],
-	[ts.SyntaxKind.ThisKeyword, transformThisExpression],
+	[ts.SyntaxKind.ThisKeyword, withoutPrereqs(transformThisExpression)],
 	[ts.SyntaxKind.TrueKeyword, transformTrueKeyword],
 	[ts.SyntaxKind.TypeAssertionExpression, transformTypeExpression],
 	[ts.SyntaxKind.VoidExpression, transformVoidExpression],
 	[ts.SyntaxKind.YieldExpression, transformYieldExpression],
 ]);
 
-export function transformExpression(state: TransformState, node: ts.Expression): luau.Expression {
+export function transformExpression(state: TransformState, prereqs: Prereqs, node: ts.Expression): luau.Expression {
 	const transformer = TRANSFORMER_BY_KIND.get(node.kind);
 	if (transformer) {
-		return transformer(state, node);
+		const expression = transformer(state, prereqs, node);
+		const type = state.getType(node);
+		if (
+			getOrSetDefault(state.multiTransformState.isPrimitiveTypeCache, type, () =>
+				isDefinitelyType(type, isBooleanType, isNumberType, isStringType, isUndefinedType),
+			)
+		) {
+			markPrimitiveValue(expression);
+		}
+		return expression;
 	}
 	assert(false, `Unknown expression: ${getKindName(node.kind)}`);
 }

@@ -53,14 +53,15 @@ export function compileFiles(
 	sourceFiles: Array<ts.SourceFile>,
 ): ts.EmitResult {
 	const compilerOptions = program.getCompilerOptions();
+	const emitDeclarations = ts.getEmitDeclarations(compilerOptions);
 
 	const multiTransformState = new MultiTransformState();
 
 	const outDir = compilerOptions.outDir!;
 
-	const rojoResolver = data.rojoConfigPath
-		? RojoResolver.fromPath(data.rojoConfigPath)
-		: RojoResolver.synthetic(outDir);
+	const rojoResolver =
+		data.rojoResolver ??
+		(data.rojoConfigPath ? RojoResolver.fromPath(data.rojoConfigPath) : RojoResolver.synthetic(outDir));
 
 	for (const warning of rojoResolver.getWarnings()) {
 		LogService.warn(warning);
@@ -105,14 +106,18 @@ export function compileFiles(
 	const progressMaxLength = `${sourceFiles.length}/${sourceFiles.length}`.length;
 
 	let proxyProgram = program;
+	let pluginAfterDeclarations: ts.CustomTransformers["afterDeclarations"];
 
 	if (compilerOptions.plugins && compilerOptions.plugins.length > 0) {
 		benchmarkIfVerbose(`running transformers..`, () => {
 			const pluginConfigs = getPluginConfigs(data.tsConfigPath);
 			const transformerList = createTransformerList(program, pluginConfigs, data.projectPath);
+			pluginAfterDeclarations = transformerList.afterDeclarations;
 			const transformers = flattenIntoTransformers(transformerList);
 			if (transformers.length > 0) {
-				const { service, updateFile } = (data.transformerWatcher ??= createTransformerWatcher(program));
+				const { service, updateFile, updateProgram } = (data.transformerWatcher ??=
+					createTransformerWatcher(program));
+				updateProgram(program);
 				const transformResult = ts.transformNodes(
 					undefined,
 					undefined,
@@ -184,12 +189,31 @@ export function compileFiles(
 
 	if (DiagnosticService.hasErrors()) return { emitSkipped: true, diagnostics: DiagnosticService.flush() };
 
+	// declaration errors must not leave Luau and declaration outputs from different builds
+	const declarationWrites = new Map<string, string>();
+	if (emitDeclarations) {
+		const afterDeclarations = [
+			...(pluginAfterDeclarations ?? []),
+			transformTypeReferenceDirectives,
+			transformPathsTransformer(program, {}),
+		];
+		for (const { sourceFile } of fileWriteQueue) {
+			const result = proxyProgram.emit(
+				sourceFile,
+				(fileName, text) => declarationWrites.set(fileName, text),
+				undefined,
+				true,
+				{ afterDeclarations },
+			);
+			DiagnosticService.addDiagnostics(result.diagnostics);
+		}
+	}
+
+	if (DiagnosticService.hasErrors()) return { emitSkipped: true, diagnostics: DiagnosticService.flush() };
+
 	const emittedFiles = new Array<string>();
 	if (fileWriteQueue.length > 0) {
 		benchmarkIfVerbose("writing compiled files", () => {
-			const afterDeclarations = compilerOptions.declaration
-				? [transformTypeReferenceDirectives, transformPathsTransformer(program, {})]
-				: undefined;
 			for (const { sourceFile, source } of fileWriteQueue) {
 				const outPath = pathTranslator.getOutputPath(sourceFile.fileName);
 				if (
@@ -200,8 +224,15 @@ export function compileFiles(
 					fs.outputFileSync(outPath, source);
 					emittedFiles.push(outPath);
 				}
-				if (compilerOptions.declaration) {
-					proxyProgram.emit(sourceFile, ts.sys.writeFile, undefined, true, { afterDeclarations });
+			}
+
+			for (const [fileName, text] of declarationWrites) {
+				if (
+					!data.projectOptions.writeOnlyChanged ||
+					!fs.pathExistsSync(fileName) ||
+					fs.readFileSync(fileName, "utf8") !== text
+				) {
+					fs.outputFileSync(fileName, text);
 				}
 			}
 		});
