@@ -24,7 +24,9 @@ export function createStringIndexExpression(
 				if (!Number.isInteger(literalIndex) || literalIndex < 0) {
 					return luau.nil();
 				}
-				index = luau.number(literalIndex);
+				if (indexType.isStringLiteral()) {
+					index = luau.number(literalIndex);
+				}
 			}
 
 			const conditions = new Array<luau.Expression>();

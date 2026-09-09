@@ -21,7 +21,6 @@ export * from "TSTransformer/util/spreadDestructuring/spreadDestructureArray";
 export * from "TSTransformer/util/spreadDestructuring/spreadDestructureMap";
 export * from "TSTransformer/util/spreadDestructuring/spreadDestructureObject";
 export * from "TSTransformer/util/spreadDestructuring/spreadDestructureSet";
-export * from "TSTransformer/util/spreadDestructuring/spreadDestructureString";
 
 type SpreadDestructor = (
 	prereqs: Prereqs,

@@ -37,7 +37,7 @@ export const objectAccessor = (
 			prereqs,
 			parentId,
 			{ expression: index, prereqs: indexPrereqs.statements },
-			state.getType(key),
+			ts.isStringLiteral(key) ? state.typeChecker.getStringLiteralType(key.text) : state.getType(key),
 		);
 	}
 

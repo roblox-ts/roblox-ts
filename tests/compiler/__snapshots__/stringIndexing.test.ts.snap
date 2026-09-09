@@ -120,8 +120,7 @@ return {
 exports[`uses byte indexing for numeric object destructuring keys 1`] = `
 "local _binding = value
 local first = if 0 < #_binding then string.sub(_binding, 1, 1) else nil
-local _index = tonumber("1")
-local second = if _index ~= nil and _index >= 0 and _index % 1 == 0 and _index < #_binding then string.sub(_binding, _index + 1, _index + 1) else nil
+local second = if 1 < #_binding then string.sub(_binding, 2, 2) else nil
 local missing = if 5 < #_binding then string.sub(_binding, 6, 6) else nil
 if missing == nil then
 	missing = "fallback"
@@ -139,7 +138,7 @@ exports[`uses byte offsets for literal indices 1`] = `
 	return if 0 < #value then string.sub(value, 1, 1) else nil
 end
 local function readOffset(value)
-	return if 10 < #value then string.sub(value, 11, 11) else nil
+	return if 1_0 < #value then string.sub(value, 11, 11) else nil
 end
 return {
 	read = read,
