@@ -128,7 +128,9 @@ export function compileFiles(
 					false,
 				);
 
-				if (transformResult.diagnostics) DiagnosticService.addDiagnostics(transformResult.diagnostics);
+				// TypeScript initializes this array even when no transformer reports a diagnostic
+				assert(transformResult.diagnostics);
+				DiagnosticService.addDiagnostics(transformResult.diagnostics);
 
 				for (const sourceFile of transformResult.transformed) {
 					if (ts.isSourceFile(sourceFile)) {

@@ -75,7 +75,7 @@ export class VirtualProject {
 
 		const system = {
 			getExecutingFilePath: () => __filename,
-			getCurrentDirectory: () => "/",
+			getCurrentDirectory: () => PATH_SEP,
 		} as ts.System;
 
 		this.compilerHost = ts.createCompilerHostWorker(this.compilerOptions, undefined, system);
@@ -84,7 +84,6 @@ export class VirtualProject {
 		this.compilerHost.directoryExists = dirPath => this.vfs.directoryExists(dirPath);
 		this.compilerHost.getDirectories = dirPath => this.vfs.getDirectories(dirPath);
 		this.compilerHost.useCaseSensitiveFileNames = () => true;
-		this.compilerHost.getCurrentDirectory = () => PATH_SEP;
 
 		this.rojoResolver = RojoResolver.fromTree(PROJECT_DIR, {
 			$path: OUT_DIR,

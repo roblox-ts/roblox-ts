@@ -12,7 +12,11 @@ const config: Config = {
 		"^(Project|Shared|CLI|TSTransformer)/(.*)$": "<rootDir>/src/$1/$2",
 		"^(Project|Shared|CLI|TSTransformer)$": "<rootDir>/src/$1",
 	},
-	collectCoverageFrom: ["src/**/*.ts"],
+	collectCoverageFrom: [
+		"src/**/*.ts",
+		// keep the vendored transformer outside the local coverage target
+		"!src/Project/transformers/builtin/transformPaths.ts",
+	],
 	coverageDirectory: "coverage",
 	coverageReporters: ["json", "lcov", "text"],
 	verbose: true,
