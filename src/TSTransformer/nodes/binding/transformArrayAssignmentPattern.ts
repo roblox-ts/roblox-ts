@@ -24,7 +24,8 @@ export function transformArrayAssignmentPattern(
 	const idStack = new Array<luau.Identifier>();
 	const patternType = state.typeChecker.getTypeOfAssignmentPattern(assignmentPattern);
 
-	const accessor = getAccessorForBindingType(state, assignmentPattern, patternType);
+	const hasRest = assignmentPattern.elements.some(ts.isSpreadElement);
+	const accessor = getAccessorForBindingType(state, assignmentPattern, patternType, hasRest);
 	const destructor = getSpreadDestructorForType(state, assignmentPattern, patternType);
 
 	for (let element of assignmentPattern.elements) {

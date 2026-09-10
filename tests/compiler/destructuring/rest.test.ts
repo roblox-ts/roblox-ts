@@ -54,3 +54,14 @@ it.each([
 
 	expect(output.replace(/^-- Compiled with.*\n/, "")).toMatchSnapshot();
 });
+
+it.each(["number", "LuaTuple<[number, string]>"])("guards iterator assignment targets after exhaustion (%s)", type => {
+	const output = createTestProject().compileSource(`
+			declare const iterator: IterableFunction<${type}>;
+			declare function target(): { value: ${type}; rest: Array<${type}> };
+			declare function fallback(): ${type};
+			[target().value = fallback(), , ...target().rest] = iterator;
+		`);
+
+	expect(output.replace(/^-- Compiled with.*\n/, "")).toMatchSnapshot();
+});

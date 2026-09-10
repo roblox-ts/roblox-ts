@@ -30,7 +30,8 @@ export function transformArrayBindingPattern(
 
 	let index = 0;
 	const idStack = new Array<luau.AnyIdentifier>();
-	const accessor = getAccessorForBindingType(state, bindingPattern, type);
+	const hasRest = bindingPattern.elements.some(element => ts.isBindingElement(element) && element.dotDotDotToken);
+	const accessor = getAccessorForBindingType(state, bindingPattern, type, hasRest);
 	const destructor = getSpreadDestructorForType(state, bindingPattern, type);
 
 	for (const element of bindingPattern.elements) {

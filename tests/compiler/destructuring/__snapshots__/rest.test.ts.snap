@@ -2,7 +2,12 @@
 
 exports[`captures iterators before nested defaults can reassign them 1`] = `
 "local _binding = iterator
-local _binding_1 = { _binding() }
+local _value = { _binding() }
+local _done = _value[1] == nil
+if _done then
+	_value = nil
+end
+local _binding_1 = _value
 local first = _binding_1[1]
 local value = _binding_1[2]
 if value == nil then
@@ -10,17 +15,27 @@ if value == nil then
 	local _ = iterator
 	value = 99
 end
-local second = { _binding() }
-local _rest = {}
-local _length = 0
-local _iterFunc = _binding
-while true do
-	local _results = { _iterFunc() }
-	if _results[1] == nil then
-		break
+local _value_1
+if not _done then
+	_value_1 = { _binding() }
+	_done = _value_1[1] == nil
+	if _done then
+		_value_1 = nil
 	end
-	_length += 1
-	_rest[_length] = _results
+end
+local second = _value_1
+local _rest = {}
+if not _done then
+	local _length = 0
+	local _iterFunc = _binding
+	while true do
+		local _results = { _iterFunc() }
+		if _results[1] == nil then
+			break
+		end
+		_length += 1
+		_rest[_length] = _results
+	end
 end
 local rest = _rest
 print(first, value, second, rest)
@@ -39,13 +54,22 @@ iterator = (function()
 	return if calls <= 3 then calls else nil
 end)
 local _iterator = iterator
-local first = _iterator()
-local second = _iterator()
+local _value = _iterator()
+local _done = _value == nil
+local first = _value
+local _value_1
+if not _done then
+	_value_1 = _iterator()
+	_done = _value_1 == nil
+end
+local second = _value_1
 local _rest = {}
-local _length = 0
-for _result in _iterator do
-	_length += 1
-	_rest[_length] = _result
+if not _done then
+	local _length = 0
+	for _result in _iterator do
+		_length += 1
+		_rest[_length] = _result
+	end
 end
 local rest = _rest
 print(first, second, rest)
@@ -89,18 +113,27 @@ return nil
 `;
 
 exports[`collects iterator rest bindings with fixed tuples after preceding elements 1`] = `
-"local first = { iterator() }
-iterator()
+"local _value = { iterator() }
+local _done = _value[1] == nil
+if _done then
+	_value = nil
+end
+local first = _value
+if not _done then
+	_done = iterator() == nil
+end
 local _rest = {}
-local _length = 0
-local _iterFunc = iterator
-while true do
-	local _results = { _iterFunc() }
-	if _results[1] == nil then
-		break
+if not _done then
+	local _length = 0
+	local _iterFunc = iterator
+	while true do
+		local _results = { _iterFunc() }
+		if _results[1] == nil then
+			break
+		end
+		_length += 1
+		_rest[_length] = _results
 	end
-	_length += 1
-	_rest[_length] = _results
 end
 local rest = _rest
 return {
@@ -111,13 +144,19 @@ return {
 `;
 
 exports[`collects iterator rest bindings with single values after preceding elements 1`] = `
-"local first = iterator()
-iterator()
+"local _value = iterator()
+local _done = _value == nil
+local first = _value
+if not _done then
+	_done = iterator() == nil
+end
 local _rest = {}
-local _length = 0
-for _result in iterator do
-	_length += 1
-	_rest[_length] = _result
+if not _done then
+	local _length = 0
+	for _result in iterator do
+		_length += 1
+		_rest[_length] = _result
+	end
 end
 local rest = _rest
 return {
@@ -128,23 +167,92 @@ return {
 `;
 
 exports[`collects iterator rest bindings with variadic tuples after preceding elements 1`] = `
-"local first = { iterator() }
-iterator()
+"local _value = { iterator() }
+local _done = _value[1] == nil
+if _done then
+	_value = nil
+end
+local first = _value
+if not _done then
+	_done = iterator() == nil
+end
 local _rest = {}
-local _length = 0
-local _iterFunc = iterator
-while true do
-	local _results = { _iterFunc() }
-	if _results[1] == nil then
-		break
+if not _done then
+	local _length = 0
+	local _iterFunc = iterator
+	while true do
+		local _results = { _iterFunc() }
+		if _results[1] == nil then
+			break
+		end
+		_length += 1
+		_rest[_length] = _results
 	end
-	_length += 1
-	_rest[_length] = _results
 end
 local rest = _rest
 return {
 	first = first,
 	rest = rest,
 }
+"
+`;
+
+exports[`guards iterator assignment targets after exhaustion (LuaTuple<[number, string]>) 1`] = `
+"local _binding = iterator
+local _exp = target()
+local _value = { _binding() }
+local _done = _value[1] == nil
+if _done then
+	_value = nil
+end
+_exp.value = _value
+if _exp.value == nil then
+	_exp.value = { fallback() }
+end
+if not _done then
+	_done = _binding() == nil
+end
+local _exp_1 = target()
+local _rest = {}
+if not _done then
+	local _length = 0
+	local _iterFunc = _binding
+	while true do
+		local _results = { _iterFunc() }
+		if _results[1] == nil then
+			break
+		end
+		_length += 1
+		_rest[_length] = _results
+	end
+end
+_exp_1.rest = _rest
+return nil
+"
+`;
+
+exports[`guards iterator assignment targets after exhaustion (number) 1`] = `
+"local _binding = iterator
+local _exp = target()
+local _value = _binding()
+local _done = _value == nil
+_exp.value = _value
+if _exp.value == nil then
+	_exp.value = fallback()
+end
+if not _done then
+	_done = _binding() == nil
+end
+local _exp_1 = target()
+local _rest = {}
+if not _done then
+	local _length = 0
+	for _result in _binding do
+		_length += 1
+		_rest[_length] = _result
+	end
+end
+_exp_1.rest = _rest
+return nil
 "
 `;

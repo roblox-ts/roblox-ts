@@ -46,7 +46,7 @@ export function getSpreadDestructorForType(state: TransformState, node: ts.Node,
 		return spreadDestructureString;
 	}
 
-	return (prereqs, parentId) => {
+	return (prereqs, parentId, index, idStack) => {
 		if (!isDefinitelyType(type, isIterableFunctionType(state))) {
 			DiagnosticService.addDiagnostic(
 				isDefinitelyType(type, isIterableType(state))
@@ -58,9 +58,23 @@ export function getSpreadDestructorForType(state: TransformState, node: ts.Node,
 
 		// iterator functions retain the position advanced by preceding bindings
 		const restId = prereqs.pushToVar(luau.array(), "rest");
-		const lengthId = prereqs.pushToVar(luau.number(0), "length");
+		const restPrereqs = new Prereqs();
+		const lengthId = restPrereqs.pushToVar(luau.number(0), "length");
 		const addIterable = getAddIterableToArrayBuilder(state, node, type);
-		prereqs.pushList(addIterable(prereqs, parentId, restId, lengthId, 0, false));
+		restPrereqs.pushList(addIterable(restPrereqs, parentId, restId, lengthId, 0, false));
+
+		const doneId = idStack[0];
+		if (doneId) {
+			prereqs.push(
+				luau.create(luau.SyntaxKind.IfStatement, {
+					condition: luau.unary("not", doneId),
+					statements: restPrereqs.statements,
+					elseBody: luau.list.make(),
+				}),
+			);
+		} else {
+			prereqs.pushList(restPrereqs.statements);
+		}
 		return restId;
 	};
 }
