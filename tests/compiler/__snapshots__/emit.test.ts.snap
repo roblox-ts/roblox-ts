@@ -8,6 +8,47 @@ return {
 "
 `;
 
+exports[`formats JSDoc comments without delimiters or gutters 1`] = `
+"--[[
+	Adds two numbers.
+
+	@example
+	  add(1, 2)
+]]
+local function add(a, b)
+	-- One line
+	return a + b
+end
+--[[
+	Text after the delimiter
+	continues here
+]]
+print(add(1, 2))
+return {
+	add = add,
+}
+"
+`;
+
+exports[`formats plain block comments without source indentation 1`] = `
+"-- Copyright
+--[[
+	first line
+	second line
+]]
+local function run()
+	--[[
+		indented content
+
+		after a blank line
+	]]
+	print(1)
+end
+run()
+return nil
+"
+`;
+
 exports[`places Luau directives before the compiler header 1`] = `
 "--!strict
 --!native

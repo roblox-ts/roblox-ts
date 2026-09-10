@@ -15,6 +15,7 @@ import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName
 import { TransformServices, TryUses } from "TSTransformer/types";
 import { createGetService } from "TSTransformer/util/createGetService";
 import { propertyAccessExpressionChain } from "TSTransformer/util/expressionChain";
+import { getBlockCommentText } from "TSTransformer/util/getBlockCommentText";
 import { getModuleAncestor, skipUpwards } from "TSTransformer/util/traversal";
 import ts from "typescript";
 
@@ -104,16 +105,14 @@ export class TransformState {
 	public getLeadingComments(node: ts.Node) {
 		const commentRanges = ts.getLeadingCommentRanges(this.sourceFileText, node.pos) ?? [];
 		return luau.list.make(
-			...commentRanges.map(commentRange =>
-				luau.comment(
-					this.sourceFileText.substring(
-						commentRange.pos + 2,
-						commentRange.kind === ts.SyntaxKind.SingleLineCommentTrivia
-							? commentRange.end
-							: commentRange.end - 2,
-					),
-				),
-			),
+			...commentRanges.map(commentRange => {
+				const source = this.sourceFileText.substring(commentRange.pos, commentRange.end);
+				return luau.comment(
+					commentRange.kind === ts.SyntaxKind.SingleLineCommentTrivia
+						? source.slice(2)
+						: getBlockCommentText(source),
+				);
+			}),
 		);
 	}
 
