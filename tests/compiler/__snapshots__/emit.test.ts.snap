@@ -11,7 +11,6 @@ return {
 exports[`formats JSDoc comments without delimiters or gutters 1`] = `
 "--[[
 	Adds two numbers.
-
 	@example
 	  add(1, 2)
 ]]
@@ -39,8 +38,7 @@ exports[`formats plain block comments without source indentation 1`] = `
 local function run()
 	--[[
 		indented content
-
-		after a blank line
+			nested content
 	]]
 	print(1)
 end

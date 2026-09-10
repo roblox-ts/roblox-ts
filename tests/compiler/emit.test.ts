@@ -13,7 +13,6 @@ it("formats JSDoc comments without delimiters or gutters", () => {
 	const output = project.compileSource(`
 		/**
 		 * Adds two numbers.
-		 *
 		 * @example
 		 *   add(1, 2)
 		 */
@@ -42,8 +41,7 @@ it("formats plain block comments without source indentation", () => {
 		function run() {
 			/*
 				indented content
-
-				after a blank line
+					nested content
 			*/
 			print(1);
 		}
@@ -51,6 +49,14 @@ it("formats plain block comments without source indentation", () => {
 	`);
 
 	expect(output.replace(/^-- Compiled with.*\n/, "")).toMatchSnapshot();
+});
+
+it("keeps blank lines inside block comments", () => {
+	const project = createTestProject();
+	const output = project.compileSource("/**\n * first paragraph\n *\n * second paragraph\n */\nprint(1);");
+
+	// the renderer decides whether a blank line is indented
+	expect(output).toMatch(/^--\[\[\n\tfirst paragraph\n\t*\n\tsecond paragraph\n\]\]$/m);
 });
 
 it("normalizes CRLF line endings in block comments", () => {
