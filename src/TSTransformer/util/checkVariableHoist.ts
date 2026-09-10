@@ -1,3 +1,4 @@
+import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import { getAncestor, isAncestorOf } from "TSTransformer/util/traversal";
@@ -35,4 +36,3 @@ export function checkVariableHoist(state: TransformState, node: ts.Identifier, s
 		state.isHoisted.set(symbol, true);
 	}
 }
-import { assert } from "Shared/util/assert";

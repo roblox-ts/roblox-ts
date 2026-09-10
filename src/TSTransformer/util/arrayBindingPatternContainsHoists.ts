@@ -1,3 +1,4 @@
+import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import { checkVariableHoist } from "TSTransformer/util/checkVariableHoist";
 import ts from "typescript";
@@ -22,4 +23,3 @@ export function arrayBindingPatternContainsHoists(
 	}
 	return false;
 }
-import { assert } from "Shared/util/assert";
