@@ -1,3 +1,4 @@
+import { assert } from "Shared/util/assert";
 import { getCanonicalFileName } from "Shared/util/getCanonicalFileName";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import ts from "typescript";
@@ -21,7 +22,9 @@ export function getChangedFilePaths(program: ts.BuilderProgram, pathHints?: Arra
 
 	if (referencedMap) {
 		for (const filePath of ts.arrayFrom(referencedMap.keys())) {
-			referencedMap.getValues(filePath)?.forEach((_, refFilePath) => {
+			const references = referencedMap.getValues(filePath);
+			assert(references);
+			references.forEach((_, refFilePath) => {
 				getOrSetDefault(reversedReferencedMap, refFilePath, () => new Set()).add(filePath);
 			});
 		}
@@ -46,8 +49,11 @@ export function getChangedFilePaths(program: ts.BuilderProgram, pathHints?: Arra
 			search(getCanonicalFileName(hint));
 		}
 	} else {
-		buildState.changedFilesSet?.forEach((_, fileName) => search(fileName));
-		buildState.changedFilesSet?.clear();
+		// both fresh builders and restored build info initialize this set
+		const changed = buildState.changedFilesSet;
+		assert(changed);
+		changed.forEach((_, fileName) => search(fileName));
+		changed.clear();
 	}
 
 	return changedFilesSet;

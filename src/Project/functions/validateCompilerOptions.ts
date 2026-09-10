@@ -6,7 +6,6 @@ import { ProjectError } from "Shared/errors/ProjectError";
 import ts from "typescript";
 
 const ENFORCED_OPTIONS = {
-	target: ts.ScriptTarget.ESNext,
 	module: ts.ModuleKind.CommonJS,
 	moduleDetection: ts.ModuleDetectionKind.Force,
 	moduleResolution: ts.ModuleResolutionKind.Node10,
@@ -42,10 +41,6 @@ export function validateCompilerOptions(opts: ts.CompilerOptions, projectPath: s
 
 	if (opts.strict !== ENFORCED_OPTIONS.strict) {
 		errors.push(`${y(`"strict"`)} must be ${y(`true`)}`);
-	}
-
-	if (opts.target !== ENFORCED_OPTIONS.target) {
-		// errors.push(`${y(`"target"`)} must be ${y(`"ESNext"`)}`);
 	}
 
 	if (opts.module !== ENFORCED_OPTIONS.module) {

@@ -128,18 +128,18 @@ export function compileFiles(
 					false,
 				);
 
-				if (transformResult.diagnostics) DiagnosticService.addDiagnostics(transformResult.diagnostics);
+				// TypeScript initializes this array even when no transformer reports a diagnostic
+				assert(transformResult.diagnostics);
+				DiagnosticService.addDiagnostics(transformResult.diagnostics);
 
 				for (const sourceFile of transformResult.transformed) {
-					if (ts.isSourceFile(sourceFile)) {
-						// transformed nodes don't have symbol or type information (or they have out of date information)
-						// there's no way to "rebind" an existing file, so we have to reprint it
-						const source = ts.createPrinter().printFile(sourceFile);
-						updateFile(sourceFile.fileName, source);
-						if (data.projectOptions.writeTransformedFiles) {
-							const outPath = pathTranslator.getOutputTransformedPath(sourceFile.fileName);
-							fs.outputFileSync(outPath, source);
-						}
+					// transformed nodes don't have symbol or type information (or they have out of date information)
+					// there's no way to "rebind" an existing file, so we have to reprint it
+					const source = ts.createPrinter().printFile(sourceFile);
+					updateFile(sourceFile.fileName, source);
+					if (data.projectOptions.writeTransformedFiles) {
+						const outPath = pathTranslator.getOutputTransformedPath(sourceFile.fileName);
+						fs.outputFileSync(outPath, source);
 					}
 				}
 
@@ -195,7 +195,7 @@ export function compileFiles(
 		const afterDeclarations = [
 			...(pluginAfterDeclarations ?? []),
 			transformTypeReferenceDirectives,
-			transformPathsTransformer(program, {}),
+			transformPathsTransformer(program),
 		];
 		for (const { sourceFile } of fileWriteQueue) {
 			const result = proxyProgram.emit(
