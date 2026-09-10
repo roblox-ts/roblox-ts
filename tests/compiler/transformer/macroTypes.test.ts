@@ -14,26 +14,73 @@ function changeCompilerTypes(file: string, rewrite: (source: string) => string) 
 	return project;
 }
 
-it("resolves an aliased constructor interface", () => {
-	const source = "export const values = new Array<number>();";
-	const expected = createTestProject().compileSource(source);
-	const project = changeCompilerTypes("Array", source => {
-		const sourceFile = ts.createSourceFile("Array.d.ts", source, ts.ScriptTarget.Latest, true);
-		const declaration = sourceFile.statements.find(
-			statement => ts.isInterfaceDeclaration(statement) && statement.name.text === "ArrayConstructor",
+function aliasCompilerType(file: string, name: string, targetName = name) {
+	return changeCompilerTypes(file, source => {
+		const sourceFile = ts.createSourceFile(`${file}.d.ts`, source, ts.ScriptTarget.Latest, true);
+		const declarations = sourceFile.statements.filter(statement => {
+			if (ts.isVariableStatement(statement)) {
+				return statement.declarationList.declarations.some(
+					declaration => ts.isIdentifier(declaration.name) && declaration.name.text === name,
+				);
+			}
+			return (
+				(ts.isInterfaceDeclaration(statement) ||
+					ts.isFunctionDeclaration(statement) ||
+					ts.isModuleDeclaration(statement) ||
+					ts.isTypeAliasDeclaration(statement)) &&
+				statement.name?.text === name
+			);
+		});
+
+		expect(declarations.length).toBeGreaterThan(0);
+
+		const moved = declarations.map(
+			declaration =>
+				`export ${declaration
+					.getText()
+					.replace(/^declare /, "")
+					.replace(name, targetName)}`,
 		);
-		assert(declaration);
-		const start = declaration.getStart();
-		const end = declaration.getEnd();
-		return (
-			source.slice(0, start) +
-			`declare namespace Constructors { export ${source.slice(start, end)} }\n` +
-			"import ArrayConstructor = Constructors.ArrayConstructor;" +
-			source.slice(end)
-		);
+		for (const declaration of declarations.reverse()) {
+			source = source.slice(0, declaration.getStart()) + source.slice(declaration.getEnd());
+		}
+
+		return `${source}\ndeclare namespace AliasedTypes { ${moved.join("\n")} }\nimport ${name} = AliasedTypes.${targetName};`;
 	});
+}
+
+it.each([
+	["Array", "ArrayConstructor", "export const values = new Array<number>();"],
+	["Set", "ReadonlySet", "declare const values: ReadonlySet<number>; print(values.size());"],
+	["callMacros", "identity", "export const value = identity(123);"],
+	["callMacros", "$tuple", "export function values() { return $tuple(1, 2); }"],
+	["core", "LuaTuple", "declare function values(): LuaTuple<[number, string]>; export const [a, b] = values();"],
+	["Promise", "Promise", "export const value = Promise.resolve(1);"],
+])("resolves aliased %s declarations for %s", (file, name, source) => {
+	const expected = createTestProject().compileSource(source);
+	const project = aliasCompilerType(file, name);
 
 	expect(project.compileSource(source)).toBe(expected);
+});
+
+it("rejects unimplemented methods through a renamed interface alias", () => {
+	const project = aliasCompilerType("Set", "ReadonlySet", "RenamedReadonlySet");
+	project.vfs.writeFile(
+		"/src/augmentation.d.ts",
+		"declare namespace AliasedTypes { interface RenamedReadonlySet<T> { custom(): void; } }",
+	);
+
+	expect(() => project.compileSource("declare const values: ReadonlySet<number>; values.custom();")).toThrow(
+		"Macro RenamedReadonlySet.custom() is not implemented!",
+	);
+});
+
+it("rejects references to an aliased call-only macro", () => {
+	const project = aliasCompilerType("callMacros", "identity");
+
+	expect(() => project.compileSource("const callback = identity;")).toThrow(
+		"Cannot index a method without calling it!",
+	);
 });
 
 it.each([
