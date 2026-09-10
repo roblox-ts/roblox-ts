@@ -277,7 +277,8 @@ export class TransformState {
 
 	/** attempts to reverse symlink lookup */
 	public guessVirtualPath(fsPath: string) {
-		const reverseSymlinkMap = this.program.getSymlinkCache?.().getSymlinkedDirectoriesByRealpath();
+		assert(this.program.getSymlinkCache);
+		const reverseSymlinkMap = this.program.getSymlinkCache().getSymlinkedDirectoriesByRealpath();
 		if (!reverseSymlinkMap) return;
 
 		const original = fsPath;

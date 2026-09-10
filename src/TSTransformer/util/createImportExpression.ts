@@ -49,11 +49,10 @@ function getRelativeImport(sourceRbxPath: RbxPath, moduleRbxPath: RbxPath) {
 
 function validateModule(state: TransformState, scope: string) {
 	const scopedModules = path.join(state.data.nodeModulesPath, scope);
-	if (state.compilerOptions.typeRoots) {
-		for (const typeRoot of state.compilerOptions.typeRoots) {
-			if (path.normalize(scopedModules) === path.normalize(typeRoot)) {
-				return true;
-			}
+	assert(state.compilerOptions.typeRoots);
+	for (const typeRoot of state.compilerOptions.typeRoots) {
+		if (path.normalize(scopedModules) === path.normalize(typeRoot)) {
+			return true;
 		}
 	}
 	return false;

@@ -291,10 +291,12 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 			staticDeclarations.push(member);
 		} else if (ts.isAccessor(member)) {
 			DiagnosticService.addDiagnostic(errors.noGetterSetter(member));
-		} else if (ts.isClassStaticBlockDeclaration(member)) {
-			staticDeclarations.push(member);
 		} else {
-			assert(false, `ClassMember kind not implemented: ${getKindName(member.kind)}`);
+			assert(
+				ts.isClassStaticBlockDeclaration(member),
+				`ClassMember kind not implemented: ${getKindName(member.kind)}`,
+			);
+			staticDeclarations.push(member);
 		}
 	}
 

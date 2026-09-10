@@ -17,11 +17,7 @@ import ts from "typescript";
 
 function makeMathMethod(operator: luau.BinaryOperator): PropertyCallMacro {
 	return (state, prereqs, node, expression, args) => {
-		let rhs = args[0];
-		if (!luau.isSimple(rhs)) {
-			rhs = luau.create(luau.SyntaxKind.ParenthesizedExpression, { expression: rhs });
-		}
-		return luau.binary(expression, operator, rhs);
+		return luau.binary(expression, operator, args[0]);
 	};
 }
 
