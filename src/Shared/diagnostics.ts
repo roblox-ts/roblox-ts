@@ -265,7 +265,6 @@ export const errors = {
 
 export const warnings = {
 	truthyChange: (checksStr: string) => warning(`Value will be checked against ${checksStr}`),
-	stringOffsetChange: (text: string) => warning(`String macros no longer offset inputs: ${text}`),
 	transformerNotFound: (name: string, err: unknown) =>
 		warningText(
 			`Transformer \`${name}\` was not found!`,

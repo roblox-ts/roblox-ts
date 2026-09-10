@@ -1,5 +1,6 @@
 import kleur from "kleur";
 import { LogService } from "Shared/classes/LogService";
+import { benchmarkIfVerbose } from "Shared/util/benchmark";
 
 const originalVerbose = LogService.verbose;
 const originalColors = kleur.enabled;
@@ -75,4 +76,44 @@ it("writes a fatal message before exiting with status one", () => {
 	expect(() => LogService.fatal("fatal message")).toThrow(exitSignal);
 	expect(exit).toHaveBeenCalledTimes(1);
 	expect(exit).toHaveBeenCalledWith(1);
+});
+
+it("runs callbacks without logging or reading the clock when verbose logging is disabled", () => {
+	const now = jest.spyOn(Date, "now");
+	const callback = jest.fn(() => LogService.writeLine("callback"));
+
+	benchmarkIfVerbose("compile", callback);
+
+	expect(callback).toHaveBeenCalledTimes(1);
+	expect(output()).toBe("callback\n");
+	expect(now).not.toHaveBeenCalled();
+});
+
+it("measures the callback and writes its elapsed time after it completes", () => {
+	LogService.verbose = true;
+	let time = 1000;
+	jest.spyOn(Date, "now").mockImplementation(() => time);
+	const callback = jest.fn(() => {
+		expect(output()).toBe("compile");
+		time += 25;
+	});
+
+	benchmarkIfVerbose("compile", callback);
+
+	expect(callback).toHaveBeenCalledTimes(1);
+	expect(output()).toBe("compile ( 25 ms )\n");
+});
+
+it.each([false, true])("propagates callback failures with verbose logging %s", verbose => {
+	LogService.verbose = verbose;
+	const error = new Error("compile failed");
+	const callback = jest.fn(() => {
+		throw error;
+	});
+
+	expect(() => benchmarkIfVerbose("compile", callback)).toThrow(error);
+	LogService.writeLine("failed");
+
+	expect(callback).toHaveBeenCalledTimes(1);
+	expect(output()).toBe(verbose ? "compile\nfailed\n" : "failed\n");
 });
