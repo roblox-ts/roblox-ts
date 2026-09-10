@@ -46,7 +46,7 @@ export function getChangedFilePaths(program: ts.BuilderProgram, pathHints?: Arra
 
 	if (pathHints) {
 		for (const hint of pathHints) {
-			search(getCanonicalFileName(hint));
+			search(getCanonicalFileName(ts.normalizePath(hint)));
 		}
 	} else {
 		// both fresh builders and restored build info initialize this set

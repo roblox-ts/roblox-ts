@@ -23,13 +23,14 @@ it.each([false, true])("expands path hints with direct dependencies only=%s", di
 	const data = createProjectData(fixture.file("game/tsconfig.json"), { ...DEFAULT_PROJECT_OPTIONS });
 	const { fileNames, options } = getParsedCommandLine(data);
 	const builder = createProgramFactory(data, options)(fileNames, undefined);
-	const leaf = fixture.file("game/src/leaf.ts");
-	const middle = fixture.file("game/src/middle.ts");
-	const index = fixture.file("game/src/index.ts");
+	const leaf = ts.normalizePath(fixture.file("game/src/leaf.ts"));
+	const middle = ts.normalizePath(fixture.file("game/src/middle.ts"));
+	const index = ts.normalizePath(fixture.file("game/src/index.ts"));
 
 	const changed = getChangedFilePaths(builder, [leaf]);
 
 	expect(changed).toEqual(new Set((direct ? [leaf, middle] : [leaf, middle, index]).map(getCanonicalFileName)));
+	expect(getChangedFilePaths(builder, [leaf.replace(/\//g, "\\")])).toEqual(changed);
 	expect(getChangedFilePaths(builder)).toContain(getCanonicalFileName(index));
 	expect(getChangedFilePaths(builder)).toEqual(new Set());
 });
@@ -51,6 +52,8 @@ it("tracks changed scripts in builders without a module dependency map", () => {
 		ts.createIncrementalCompilerHost(options),
 	);
 
-	expect(getChangedFilePaths(builder)).toEqual(new Set([getCanonicalFileName(fixture.file("script.ts"))]));
+	expect(getChangedFilePaths(builder)).toEqual(
+		new Set([getCanonicalFileName(ts.normalizePath(fixture.file("script.ts")))]),
+	);
 	expect(getChangedFilePaths(builder)).toEqual(new Set());
 });
