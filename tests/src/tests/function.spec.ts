@@ -23,6 +23,29 @@ namespace N {
 }
 
 export = () => {
+	it("should honor instantiated generic this types", () => {
+		type Callable<T> = (this: T, value: number) => number;
+		const callback: Callable<void> = value => value + 1;
+		expect(callback(41)).to.equal(42);
+
+		const object: { value: number; callback: Callable<void>; method: Callable<{ value: number }> } = {
+			value: 10,
+			callback,
+			method(value) {
+				return this.value + value;
+			},
+		};
+
+		expect(object.callback(41)).to.equal(42);
+		expect(object.method(32)).to.equal(42);
+		expect(object["callback"](41)).to.equal(42);
+		expect(object["method"](32)).to.equal(42);
+
+		const optional: typeof object | undefined = (() => object)();
+		expect(optional?.callback(41)).to.equal(42);
+		expect(optional?.method(32)).to.equal(42);
+	});
+
 	it("should destructure nested rest parameters without defaults", () => {
 		function add(...[[first], { second }]: [[number], { second: number }]) {
 			return first + second;

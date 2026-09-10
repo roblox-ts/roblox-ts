@@ -83,6 +83,20 @@ return nil
 "
 `;
 
+exports[`generic receiver instantiations stay distinct when the callback comes first 1`] = `
+"object.callback(123)
+object:method(123)
+return nil
+"
+`;
+
+exports[`generic receiver instantiations stay distinct when the method comes first 1`] = `
+"object:method(123)
+object.callback(123)
+return nil
+"
+`;
+
 exports[`instantiated interface signatures honor explicit receivers 1`] = `
 "numbers.callback(123)
 numbers:method(123)

@@ -53,6 +53,24 @@ it.each([
 		`,
 	},
 	{
+		name: "generic receiver instantiations stay distinct when the callback comes first",
+		source: `
+			type Callable<T> = (this: T, value: number) => number;
+			declare const object: { callback: Callable<void>; method: Callable<{ value: number }>; value: number };
+			object.callback(123);
+			object.method(123);
+		`,
+	},
+	{
+		name: "generic receiver instantiations stay distinct when the method comes first",
+		source: `
+			type Callable<T> = (this: T, value: number) => number;
+			declare const object: { callback: Callable<void>; method: Callable<{ value: number }>; value: number };
+			object.method(123);
+			object.callback(123);
+		`,
+	},
+	{
 		name: "instantiated interface signatures honor explicit receivers",
 		source: `
 			interface API<T> {
