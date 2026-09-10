@@ -112,7 +112,10 @@ export class MacroManager {
 
 		for (const [className, macro] of Object.entries(CONSTRUCTOR_MACROS)) {
 			const symbol = getGlobalSymbolByNameOrThrow(typeChecker, className, ts.SymbolFlags.Interface);
-			const interfaceDec = getFirstDeclarationOrThrow(symbol, ts.isInterfaceDeclaration);
+			const interfaceDec = getFirstDeclarationOrThrow(
+				ts.skipAlias(symbol, typeChecker),
+				ts.isInterfaceDeclaration,
+			);
 			const constructSymbol = getConstructorSymbol(interfaceDec);
 			this.constructorMacros.set(constructSymbol, macro);
 		}

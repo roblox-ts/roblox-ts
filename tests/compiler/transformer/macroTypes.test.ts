@@ -1,4 +1,5 @@
 import { assert } from "Shared/util/assert";
+import ts from "typescript";
 
 import { createTestProject } from "../createTestProject";
 
@@ -12,6 +13,28 @@ function changeCompilerTypes(file: string, rewrite: (source: string) => string) 
 	project.vfs.writeFile(path, changed);
 	return project;
 }
+
+it("resolves an aliased constructor interface", () => {
+	const source = "export const values = new Array<number>();";
+	const expected = createTestProject().compileSource(source);
+	const project = changeCompilerTypes("Array", source => {
+		const sourceFile = ts.createSourceFile("Array.d.ts", source, ts.ScriptTarget.Latest, true);
+		const declaration = sourceFile.statements.find(
+			statement => ts.isInterfaceDeclaration(statement) && statement.name.text === "ArrayConstructor",
+		);
+		assert(declaration);
+		const start = declaration.getStart();
+		const end = declaration.getEnd();
+		return (
+			source.slice(0, start) +
+			`declare namespace Constructors { export ${source.slice(start, end)} }\n` +
+			"import ArrayConstructor = Constructors.ArrayConstructor;" +
+			source.slice(end)
+		);
+	});
+
+	expect(project.compileSource(source)).toBe(expected);
+});
 
 it.each([
 	["Promise", "Promise", "declare const Promise: PromiseConstructor;", ""],
