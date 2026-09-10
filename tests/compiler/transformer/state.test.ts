@@ -1,8 +1,18 @@
+import luau from "@roblox-ts/luau-ast";
 import { assert } from "Shared/util/assert";
+import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { hasMultipleDefinitions } from "TSTransformer/util/hasMultipleDefinitions";
 import ts from "typescript";
 
 import { createTransformState } from "./createTransformState";
+
+it("emits no statements for an empty list without a parent", () => {
+	const state = createTransformState();
+
+	const statements = transformStatementList(state, undefined, []);
+
+	expect(luau.list.isEmpty(statements)).toBe(true);
+});
 
 it("tracks only the active try statement and clears it after popping", () => {
 	const state = createTransformState();
