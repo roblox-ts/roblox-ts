@@ -16,12 +16,10 @@ function isTupleReturningCall(state: TransformState, tsExpression: ts.Expression
 	);
 }
 
-function isTupleMacro(state: TransformState, expression: ts.Expression) {
-	if (ts.isCallExpression(expression)) {
-		const symbol = getFirstDefinedSymbol(state, state.getType(expression.expression));
-		if (symbol && symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.$tuple)) {
-			return true;
-		}
+function isTupleMacro(state: TransformState, expression: ts.CallExpression) {
+	const symbol = getFirstDefinedSymbol(state, state.getType(expression.expression));
+	if (symbol && symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.$tuple)) {
+		return true;
 	}
 	return false;
 }

@@ -47,7 +47,8 @@ function addFinalizers(
 
 		if (node.prev) {
 			node.prev.next = finalizersClone.head;
-		} else if (node === list.head) {
+		} else {
+			assert(node === list.head);
 			list.head = finalizersClone.head;
 		}
 

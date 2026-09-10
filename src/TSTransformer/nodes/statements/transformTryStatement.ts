@@ -84,7 +84,7 @@ function createFlowControlCondition(
 	return luau.binary(exitTypeId, "==", state.TS(node, flowControlConstant));
 }
 
-type FlowControlCase = { condition?: luau.Expression; statements: luau.List<luau.Statement> };
+type FlowControlCase = { condition: luau.Expression; statements: luau.List<luau.Statement> };
 
 function collapseFlowControlCases(exitTypeId: luau.TemporaryIdentifier, cases: Array<FlowControlCase>) {
 	assert(cases.length > 0);
@@ -97,7 +97,7 @@ function collapseFlowControlCases(exitTypeId: luau.TemporaryIdentifier, cases: A
 
 	for (let i = cases.length - 2; i >= 0; i--) {
 		nextStatements = luau.create(luau.SyntaxKind.IfStatement, {
-			condition: cases[i].condition || exitTypeId,
+			condition: cases[i].condition,
 			statements: cases[i].statements,
 			elseBody: nextStatements,
 		});
@@ -160,6 +160,7 @@ function transformFlowControl(
 	if (tryUses.usesBreak || tryUses.usesContinue) {
 		if (breakBlocked) {
 			flowControlCases.push({
+				condition: exitTypeId,
 				statements: luau.list.make(
 					luau.create(luau.SyntaxKind.ReturnStatement, {
 						expression: exitTypeId,

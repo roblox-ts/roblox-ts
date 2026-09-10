@@ -254,5 +254,5 @@ export function getFirstDefinedSymbol(state: TransformState, type: ts.Type) {
 }
 
 export function getTypeArguments(state: TransformState, type: ts.Type) {
-	return state.typeChecker.getTypeArguments(type as ts.TypeReference) ?? [];
+	return state.typeChecker.getTypeArguments(type as ts.TypeReference);
 }
