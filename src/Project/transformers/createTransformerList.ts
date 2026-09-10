@@ -92,9 +92,7 @@ export function createTransformerList(
 		afterDeclarations: [],
 	};
 	for (const config of configs) {
-		if (!config.transform) {
-			continue;
-		}
+		if (!config.transform) continue;
 
 		try {
 			const modulePath = resolve.sync(config.transform, { basedir: baseDir });
@@ -105,9 +103,7 @@ export function createTransformerList(
 			const factoryModule = typeof commonjsModule === "function" ? { default: commonjsModule } : commonjsModule;
 			const factory = factoryModule[config.import ?? "default"];
 
-			if (!factory || typeof factory !== "function") {
-				throw new Error("factory not a function");
-			}
+			if (!factory || typeof factory !== "function") throw new Error("factory not a function");
 
 			const transformer = getTransformerFromFactory(factory, config, program);
 			if (transformer) {
