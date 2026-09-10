@@ -103,6 +103,26 @@ it("explains a missing constructor signature", () => {
 	);
 });
 
+it.each(["Metadata.create", "MissingConstructor"])("explains an incompatible constructor alias to %s", target => {
+	const project = changeCompilerTypes(
+		"Array",
+		source =>
+			`${source}\ndeclare namespace Metadata { function create(): void; }\nimport ArrayConstructor = ${target};`,
+	);
+
+	expect(() => project.compileSource("export const value = 1;")).toThrow(
+		"MacroManager could not find interface for ArrayConstructor",
+	);
+});
+
+it("explains an unresolved alias in macro method declarations", () => {
+	const project = changeCompilerTypes("Array", source => `${source}\nimport ReadonlyArray = MissingArray;`);
+
+	expect(() => project.compileSource("export const value = 1;")).toThrow(
+		"MacroManager could not find method for ReadonlyArray.isEmpty",
+	);
+});
+
 it("explains a missing macro method", () => {
 	const project = changeCompilerTypes("Array", source => source.replace("push(", "missingPush("));
 
@@ -144,6 +164,7 @@ it("finds a constructor interface after its merged namespace", () => {
 it.each([
 	["an interface", "interface LuaTuple<T extends Array<any>> {}"],
 	["an unbranded alias", "type LuaTuple<T extends Array<any>> = T;"],
+	["an unresolved import alias", "import LuaTuple = MissingLuaTuple;"],
 ])("allows unrelated compilation when LuaTuple is %s", (description, declaration) => {
 	const project = changeCompilerTypes("core", source =>
 		source.replace(/type LuaTuple<T extends Array<any>> = T & \{[^}]*\};/, declaration),
