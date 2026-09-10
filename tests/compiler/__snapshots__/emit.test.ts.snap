@@ -8,6 +8,28 @@ return {
 "
 `;
 
+exports[`omits blank lines left by block comment delimiters 1`] = `
+"--[[
+	*
+	 * indented closing delimiter
+]]
+print(1)
+--[[
+	*
+	* unindented closing delimiter
+]]
+print(2)
+--[[
+		opening delimiter on its own line
+		second line
+]]
+print(3)
+--single line
+print(4)
+return nil
+"
+`;
+
 exports[`places Luau directives before the compiler header 1`] = `
 "--!strict
 --!native

@@ -104,16 +104,24 @@ export class TransformState {
 	public getLeadingComments(node: ts.Node) {
 		const commentRanges = ts.getLeadingCommentRanges(this.sourceFileText, node.pos) ?? [];
 		return luau.list.make(
-			...commentRanges.map(commentRange =>
-				luau.comment(
-					this.sourceFileText.substring(
-						commentRange.pos + 2,
-						commentRange.kind === ts.SyntaxKind.SingleLineCommentTrivia
-							? commentRange.end
-							: commentRange.end - 2,
-					),
-				),
-			),
+			...commentRanges.map(commentRange => {
+				if (commentRange.kind === ts.SyntaxKind.SingleLineCommentTrivia) {
+					return luau.comment(this.sourceFileText.substring(commentRange.pos + 2, commentRange.end));
+				}
+
+				const source = this.sourceFileText.substring(commentRange.pos + 2, commentRange.end - 2);
+
+				// drop edge lines left by delimiters on their own lines, e.g. the " " before " */" in a JSDoc comment
+				let text = source.replace(/^[ \t]*\r?\n/, "");
+				text = text.replace(/\r?\n[ \t]*$/, "");
+
+				// one line renders as `--text`, where `--!` is a Luau directive and `--[[` comments out later code
+				if (!text.includes("\n") && /^(!|\[=*\[)/.test(text)) {
+					return luau.comment(source);
+				}
+
+				return luau.comment(text);
+			}),
 		);
 	}
 
