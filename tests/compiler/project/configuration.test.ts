@@ -42,6 +42,17 @@ it("accepts rootDirs without rootDir", () => {
 	expectSuccess(fixture.createBuild().build());
 });
 
+it("keeps sibling rootDirs with a shared name prefix under their common output directory", () => {
+	fixture.project("game", [], { rootDir: undefined, rootDirs: ["src", "src-extra"] });
+	fs.removeSync(fixture.file("game/src/index.ts"));
+	fixture.write("game/src/nested/value.ts", "export const value = 42;");
+
+	expectSuccess(fixture.createBuild().build());
+
+	expect(fixture.read("out/game/src/nested/value.luau")).toContain("local value = 42");
+	expect(fs.existsSync(fixture.file("out/game/nested/value.luau"))).toBe(false);
+});
+
 it("ignores additional missing type roots", () => {
 	fixture.project("game", [], { typeRoots: ["../node_modules/@rbxts", "../missing"] });
 

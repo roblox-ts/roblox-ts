@@ -81,6 +81,18 @@ it("reports warnings without making the command fail", async () => {
 	expect(process.exitCode).toBeUndefined();
 });
 
+it("reports compile timings during a verbose build", async () => {
+	const stdout = jest.spyOn(process.stdout, "write").mockReturnValue(true);
+
+	await build("game", { verbose: true });
+
+	const timings = stdout.mock.calls.map(([message]) => message).join("");
+	expect(timings).toMatch(/compile [^\n]*index\.ts \( \d+ ms \)\n/);
+	expect(timings).toMatch(/writing compiled files \( \d+ ms \)\n/);
+	expect(fixture.read("out/game/init.luau")).toContain("local value = 1");
+	expect(process.exitCode).toBeUndefined();
+});
+
 it.each([false, true])("passes polling=%s to watch mode and leaves the build open", async usePolling => {
 	const setup = jest.spyOn(watch, "setupProjectWatchProgram").mockImplementation(build => {
 		return { close: async () => build.close() };
