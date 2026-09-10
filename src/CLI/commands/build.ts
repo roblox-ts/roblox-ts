@@ -1,33 +1,15 @@
 import { CLIError } from "CLI/errors/CLIError";
 import fs from "fs-extra";
 import path from "path";
-import { cleanup } from "Project/functions/cleanup";
-import { compileFiles } from "Project/functions/compileFiles";
-import { copyFiles } from "Project/functions/copyFiles";
-import { copyInclude } from "Project/functions/copyInclude";
-import { createPathTranslator } from "Project/functions/createPathTranslator";
-import { createProjectData } from "Project/functions/createProjectData";
-import { createProjectProgram } from "Project/functions/createProjectProgram";
-import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
+import { ProjectBuild } from "Project/classes/ProjectBuild";
 import { setupProjectWatchProgram } from "Project/functions/setupProjectWatchProgram";
-import { transformAndWriteDeclarationFiles } from "Project/functions/transformAndWriteDeclarationFiles";
 import { LogService } from "Shared/classes/LogService";
-import { DEFAULT_PROJECT_OPTIONS, ProjectType } from "Shared/constants";
+import { ProjectType } from "Shared/constants";
 import { LoggableError } from "Shared/errors/LoggableError";
 import { ProjectOptions } from "Shared/types";
-import { getRootDirs } from "Shared/util/getRootDirs";
 import { hasErrors } from "Shared/util/hasErrors";
 import ts from "typescript";
 import type yargs from "yargs";
-
-function getTsConfigProjectOptions(tsConfigPath?: string): Partial<ProjectOptions> | undefined {
-	if (tsConfigPath !== undefined) {
-		const rawJson = ts.sys.readFile(tsConfigPath);
-		if (rawJson !== undefined) {
-			return ts.parseConfigFileTextToJson(tsConfigPath, rawJson).config.rbxts;
-		}
-	}
-}
 
 function findTsConfigPath(projectPath: string) {
 	let tsConfigPath: string | undefined = path.resolve(projectPath);
@@ -122,41 +104,27 @@ export = ts.identity<yargs.CommandModule<object, BuildFlags & Partial<ProjectOpt
 		try {
 			const tsConfigPath = findTsConfigPath(argv.project);
 
-			// parse the contents of the retrieved JSON path as a partial `ProjectOptions`
-			const projectOptions: ProjectOptions = Object.assign(
-				{},
-				DEFAULT_PROJECT_OPTIONS,
-				getTsConfigProjectOptions(tsConfigPath),
-				argv,
-			);
+			const build = new ProjectBuild(tsConfigPath, argv);
+			const projectOptions = build.graph.root.data.projectOptions;
+			LogService.verbose = projectOptions.verbose;
 
-			LogService.verbose = projectOptions.verbose === true;
-
-			const diagnosticReporter = ts.createDiagnosticReporter(ts.sys, true);
-
-			const data = createProjectData(tsConfigPath, projectOptions);
 			if (projectOptions.watch) {
-				setupProjectWatchProgram(data, projectOptions.usePolling);
+				setupProjectWatchProgram(build, projectOptions.usePolling);
 			} else {
-				const program = createProjectProgram(data);
-				const compilerOptions = program.getCompilerOptions();
-				const pathTranslator = createPathTranslator(program, data);
-				cleanup(pathTranslator);
-				copyInclude(data);
-				copyFiles(data, pathTranslator, new Set(getRootDirs(compilerOptions)));
+				const diagnosticReporter = ts.createDiagnosticReporter(ts.sys, true);
 
-				const changedSourceFiles = getChangedSourceFiles(program);
-				const changedCompilableFiles = changedSourceFiles.filter(v => !v.isDeclarationFile);
-				if (compilerOptions.declaration) {
-					const changedDeclarationFiles = changedSourceFiles.filter(v => v.isDeclarationFile);
-					transformAndWriteDeclarationFiles(program.getProgram(), pathTranslator, changedDeclarationFiles);
-				}
-				const emitResult = compileFiles(program.getProgram(), data, pathTranslator, changedCompilableFiles);
-				for (const diagnostic of emitResult.diagnostics) {
-					diagnosticReporter(diagnostic);
-				}
-				if (hasErrors(emitResult.diagnostics)) {
-					process.exitCode = 1;
+				try {
+					const result = build.build();
+
+					for (const diagnostic of result.diagnostics) {
+						diagnosticReporter(diagnostic);
+					}
+
+					if (hasErrors(result.diagnostics)) {
+						process.exitCode = 1;
+					}
+				} finally {
+					build.close();
 				}
 			}
 		} catch (e) {

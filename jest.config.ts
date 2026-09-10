@@ -3,7 +3,10 @@ import type { Config } from "jest";
 const config: Config = {
 	preset: "ts-jest",
 	testEnvironment: "node",
-	testRegex: "/src/CLI/test\\.ts$",
+	// leave headroom for compiler watch tests on the smaller macOS runners
+	maxWorkers: process.env.GITHUB_ACTIONS === "true" && process.platform === "darwin" ? 2 : "100%",
+	workerIdleMemoryLimit: "512MB",
+	testMatch: ["<rootDir>/tests/compiler/**/*.test.ts"],
 	modulePathIgnorePatterns: ["<rootDir>/out/"],
 	moduleNameMapper: {
 		"^(Project|Shared|CLI|TSTransformer)/(.*)$": "<rootDir>/src/$1/$2",
@@ -11,18 +14,14 @@ const config: Config = {
 	},
 	collectCoverageFrom: [
 		"src/**/*.ts",
-		"!src/CLI/**",
-		"!src/Project/**",
-		"!src/Shared/classes/LogService.ts",
-		"!src/TSTransformer/util/getFlags.ts",
-		"!src/TSTransformer/util/getKindName.ts",
-		"!src/TSTransformer/util/jsx/constants.ts",
+		// keep the vendored transformer outside the local coverage target
+		"!src/Project/transformers/builtin/transformPaths.ts",
 	],
 	coverageDirectory: "coverage",
-	coverageReporters: ["lcov", "text"],
+	coverageReporters: ["json", "lcov", "text"],
 	verbose: true,
 	transform: {
-		"^.+\\.tsx?$": ["ts-jest", { tsconfig: "src/CLI/tsconfig.json" }],
+		"^.+\\.tsx?$": ["ts-jest", { tsconfig: "tests/compiler/tsconfig.json" }],
 	},
 };
 

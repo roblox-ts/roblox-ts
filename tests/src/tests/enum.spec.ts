@@ -79,6 +79,7 @@ export = () => {
 	it("should support numeric const enums", () => {
 		expect(Person.Validark).to.equal(0);
 		expect(Person.Osyris).to.equal(1);
+		expect(Person["Osyris"]).to.equal(1);
 		expect(Person.Evaera).to.equal(2);
 		expect(Person.Vorlias).to.equal(3);
 		expect(Person.DataBrain).to.equal(4);
@@ -88,6 +89,7 @@ export = () => {
 	it("should support string const enums", () => {
 		expect(Animal.Bear).to.equal("BEAR");
 		expect(Animal.Dog).to.equal("DOG");
+		expect(Animal["Dog"]).to.equal("DOG");
 		expect(Animal.Snake).to.equal("SNAKE");
 		expect(Animal.$).to.equal("SCARAB");
 	});

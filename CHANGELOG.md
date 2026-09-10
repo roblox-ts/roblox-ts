@@ -1,3 +1,55 @@
+## 3.1.0
+- Improved temporary variable optimization for cleaner Luau output ([#3028][3028])
+	- macro calls and expressions now avoid unnecessary locals while preserving evaluation order and side effects
+	- for example, `array.push(value())` can now emit:
+		```diff
+		-local _array = array
+		-local _arg0 = value()
+		-table.insert(_array, _arg0)
+		+table.insert(array, value())
+		```
+- TypeScript dependency updated to 5.9.3 ([#2984][2984])
+- Added support for TypeScript project references ([#3041][3041])
+	- `rbxtsc -p game` now builds referenced projects in dependency order, including in watch mode
+	- based on [#3002][3002] by [@jackTabsCode](https://github.com/jackTabsCode)
+- Added support for rest destructuring of arrays, objects, maps, sets, and generators ([#2761][2761])
+- Added support for string indexing and rest destructuring ([#2849][2849])
+	- string indexing uses zero-based UTF-8 byte offsets; invalid or out-of-bounds indices return `undefined`
+	- string destructuring follows UTF-8 character iteration
+- Added support for iterating over `SharedTable` ([#2938][2938])
+- Added math macros for the `vector` type ([#2916][2916])
+	- requires an updated `@rbxts/types` package
+- Improved destructuring emit to avoid unnecessary temporaries ([#2946][2946])
+- Improved chained bitwise operations to use a single `bit32.band()`, `bit32.bor()`, or `bit32.bxor()` call ([#2940][2940])
+- Fixed evaluation order bugs with macro operands, binary expressions, and assignments ([#3028][3028])
+- Fixed numeric loop optimization changing behavior when bounds or the loop variable change ([#3038][3038])
+- Fixed numeric separators causing compilation errors in array indices and loop bounds ([#3039][3039])
+- Removed unnecessary `or 1` from constant `$range` steps, including negative steps ([#3045][3045])
+- Fixed `switch` operands and case expressions being evaluated more than once ([#2917][2917])
+	- also addresses [#3020][3020] by [@zhsj0089944](https://github.com/zhsj0089944)
+- Removed unnecessary temporaries and parentheses for enum `switch` cases ([#2917][2917], [#3043][3043])
+	- also addresses [#3022][3022] by [@zhsj0089944](https://github.com/zhsj0089944)
+- Fixed escaping for string-literal import and export names, ordinary strings, and template strings ([#3033][3033])
+- Fixed optional chaining and rest destructuring of `LuaTuple` values ([#2929][2929], [#2933][2933])
+- Fixed using `$tuple()` with a type assertion ([#2809][2809])
+- Fixed `for...of` loops dropping variadic elements from `IterableFunction<LuaTuple<T>>` ([#3044][3044])
+- Fixed async functions continuing to run after cancellation ([#2957][2957])
+- Fixed modules with dotted filenames, such as `module.require.ts`, missing `return nil` ([#3053][3053])
+	- based on [#2887][2887] by [@camren-m](https://github.com/camren-m)
+- Added recognition of `.plugin.lua` and `.plugin.luau` scripts through the rojo-resolver update ([#3053][3053])
+- Added a diagnostic for unsupported iteration types instead of crashing during `for...of` loops or array spreads ([#3052][3052])
+	- based on [#2972][2972] by [@evilbocchi](https://github.com/evilbocchi)
+- Improved module import diagnostics for unscoped packages, disallowed scopes, and invalid package entry points ([#2738][2738])
+
+### **Breaking Changes**
+- The CLI now requires Node.js `^20.19.0 || ^22.12.0 || >=23` due to the yargs update ([#2935][2935])
+- The TypeScript update includes new diagnostics and type-checking changes: [5.6](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-5-6.html), [5.7](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-5-7.html), [5.8](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-5-8.html), and [5.9](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-5-9.html)
+	- custom TypeScript transformer plugins may also need updates for TypeScript 5.9.3
+- Accessing a tuple's `length` property now reports an error. Use `.size()` instead ([#2962][2962])
+- Bundled runtime files are now named `RuntimeLib.luau` and `Promise.luau` ([#2810][2810])
+	- update any Rojo mappings or tooling that explicitly reference the old `.lua` filenames
+	- `--luau=false` copies the runtime files with `.lua` extensions to preserve the old behavior
+
 ## 3.0.0
 - TypeScript dependency updated to 5.5.3 ([#2617][2617], [#2648][2648], [#2716][2716], [#2736][2736])
 - Generic JSX ([#2404][2404])
@@ -708,9 +760,40 @@ Changes prior to 1.0.0-beta.0 have been removed from this page since the entire 
 [2728]: https://github.com/roblox-ts/roblox-ts/pull/2728
 [2736]: https://github.com/roblox-ts/roblox-ts/pull/2736
 [2737]: https://github.com/roblox-ts/roblox-ts/pull/2737
+[2738]: https://github.com/roblox-ts/roblox-ts/pull/2738
 [2759]: https://github.com/roblox-ts/roblox-ts/pull/2759
+[2761]: https://github.com/roblox-ts/roblox-ts/pull/2761
 [2778]: https://github.com/roblox-ts/roblox-ts/pull/2778
 [2796]: https://github.com/roblox-ts/roblox-ts/pull/2796
 [2800]: https://github.com/roblox-ts/roblox-ts/pull/2800
 [2802]: https://github.com/roblox-ts/roblox-ts/pull/2802
+[2809]: https://github.com/roblox-ts/roblox-ts/pull/2809
+[2810]: https://github.com/roblox-ts/roblox-ts/pull/2810
+[2849]: https://github.com/roblox-ts/roblox-ts/pull/2849
+[2887]: https://github.com/roblox-ts/roblox-ts/pull/2887
+[2916]: https://github.com/roblox-ts/roblox-ts/pull/2916
+[2917]: https://github.com/roblox-ts/roblox-ts/pull/2917
+[2929]: https://github.com/roblox-ts/roblox-ts/pull/2929
+[2933]: https://github.com/roblox-ts/roblox-ts/pull/2933
+[2935]: https://github.com/roblox-ts/roblox-ts/pull/2935
+[2938]: https://github.com/roblox-ts/roblox-ts/pull/2938
+[2940]: https://github.com/roblox-ts/roblox-ts/pull/2940
+[2946]: https://github.com/roblox-ts/roblox-ts/pull/2946
+[2957]: https://github.com/roblox-ts/roblox-ts/pull/2957
+[2962]: https://github.com/roblox-ts/roblox-ts/pull/2962
+[2972]: https://github.com/roblox-ts/roblox-ts/pull/2972
+[2984]: https://github.com/roblox-ts/roblox-ts/pull/2984
+[3002]: https://github.com/roblox-ts/roblox-ts/pull/3002
+[3020]: https://github.com/roblox-ts/roblox-ts/pull/3020
+[3022]: https://github.com/roblox-ts/roblox-ts/pull/3022
+[3028]: https://github.com/roblox-ts/roblox-ts/pull/3028
+[3033]: https://github.com/roblox-ts/roblox-ts/pull/3033
+[3038]: https://github.com/roblox-ts/roblox-ts/pull/3038
+[3039]: https://github.com/roblox-ts/roblox-ts/pull/3039
+[3041]: https://github.com/roblox-ts/roblox-ts/pull/3041
+[3043]: https://github.com/roblox-ts/roblox-ts/pull/3043
+[3044]: https://github.com/roblox-ts/roblox-ts/pull/3044
+[3045]: https://github.com/roblox-ts/roblox-ts/pull/3045
+[3052]: https://github.com/roblox-ts/roblox-ts/pull/3052
+[3053]: https://github.com/roblox-ts/roblox-ts/pull/3053
 [roblox-ts/luau-ast#483]: https://github.com/roblox-ts/luau-ast/pull/483

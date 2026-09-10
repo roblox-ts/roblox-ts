@@ -4,6 +4,22 @@ import { isSymbolMutable } from "TSTransformer/util/isSymbolMutable";
 import { skipDownwards } from "TSTransformer/util/traversal";
 import ts from "typescript";
 
+function isEnumMemberAccess(state: TransformState, node: ts.Expression) {
+	if (!ts.isPropertyAccessExpression(node) && !ts.isElementAccessExpression(node)) {
+		return false;
+	}
+
+	const memberNode = ts.isPropertyAccessExpression(node) ? node.name : node.argumentExpression;
+	const memberSymbol = state.typeChecker.getSymbolAtLocation(memberNode);
+	const enumSymbol = state.typeChecker.getSymbolAtLocation(skipDownwards(node.expression));
+	return (
+		memberSymbol !== undefined &&
+		(memberSymbol.flags & ts.SymbolFlags.EnumMember) !== 0 &&
+		enumSymbol !== undefined &&
+		(ts.skipAlias(enumSymbol, state.typeChecker).flags & ts.SymbolFlags.Enum) !== 0
+	);
+}
+
 export function expressionMightMutate(
 	state: TransformState,
 	expression: luau.Expression,
@@ -41,7 +57,9 @@ export function expressionMightMutate(
 	} else {
 		if (node) {
 			node = skipDownwards(node);
-			if (ts.isIdentifier(node)) {
+			if (isEnumMemberAccess(state, node)) {
+				return false;
+			} else if (ts.isIdentifier(node)) {
 				const symbol = state.typeChecker.getSymbolAtLocation(node);
 				if (symbol && !isSymbolMutable(state, symbol)) {
 					return false;

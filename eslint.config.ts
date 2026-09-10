@@ -1,10 +1,11 @@
 import eslint from "@eslint/js";
 import comments from "@eslint-community/eslint-plugin-eslint-comments";
+import { defineConfig } from "eslint/config";
 import prettier from "eslint-plugin-prettier/recommended";
 import simpleImportSort from "eslint-plugin-simple-import-sort";
 import tseslint from "typescript-eslint";
 
-export default tseslint.config(
+export default defineConfig(
 	eslint.configs.recommended,
 	...tseslint.configs.recommended,
 	prettier,
@@ -14,7 +15,12 @@ export default tseslint.config(
 			parserOptions: {
 				ecmaVersion: "latest",
 				sourceType: "module",
-				project: ["./tsconfig.json", "./tsconfig.eslint.json", "./src/*/tsconfig.json"],
+				project: [
+					"./tsconfig.json",
+					"./tsconfig.eslint.json",
+					"./src/*/tsconfig.json",
+					"./tests/compiler/tsconfig.json",
+				],
 				ecmaFeatures: { jsx: true },
 			},
 		},
@@ -23,6 +29,12 @@ export default tseslint.config(
 			"eslint-comments": comments,
 		},
 		rules: {
+			// keep the existing lint policy when recommended presets change
+			"no-shadow-restricted-names": ["error", { reportGlobalThis: false }],
+			"no-unassigned-vars": "off",
+			"no-useless-assignment": "off",
+			"preserve-caught-error": "off",
+
 			// off
 			"@typescript-eslint/explicit-function-return-type": "off",
 			"@typescript-eslint/explicit-module-boundary-types": "off",
@@ -58,6 +70,24 @@ export default tseslint.config(
 		},
 	},
 	{
-		ignores: ["node_modules/", "tests/", "out/", "coverage/", "devlink/", "jest.config.ts"],
+		files: ["tests/compiler/**/*.ts"],
+		rules: {
+			"no-restricted-imports": "off",
+		},
+	},
+	{
+		ignores: [
+			".local/",
+			"node_modules/",
+			"tests/src/",
+			"tests/projects/",
+			"tests/out/",
+			"tests/include/",
+			"tests/node_modules/",
+			"out/",
+			"coverage/",
+			"devlink/",
+			"jest.config.ts",
+		],
 	},
 );

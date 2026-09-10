@@ -1,3 +1,4 @@
+import { RojoResolver } from "@roblox-ts/rojo-resolver";
 import { ProjectType } from "Shared/constants";
 import ts from "typescript";
 
@@ -23,13 +24,18 @@ export interface ProjectData {
 	projectOptions: ProjectOptions;
 	projectPath: string;
 	rojoConfigPath: string | undefined;
+	rojoResolver?: RojoResolver;
+	rojoConfigFiles?: ReadonlyMap<string, string>;
+	rojoConfigDirectories?: ReadonlyArray<string>;
 	tsConfigPath: string;
+	projectReferencePaths?: ReadonlyMap<string, string>;
 	transformerWatcher?: TransformerWatcher;
 }
 
 export interface TransformerWatcher {
 	service: ts.LanguageService;
 	updateFile: (fileName: string, text: string) => void;
+	updateProgram: (program: ts.Program) => void;
 }
 
 export interface TransformerPluginConfig {

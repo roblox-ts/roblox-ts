@@ -23,7 +23,7 @@ function isDeclarationOfNamespace(declaration: ts.Declaration) {
 		return true;
 	} else if (ts.isFunctionDeclaration(declaration) && declaration.body) {
 		return true;
-	} else if (ts.isClassDeclaration(declaration)) {
+	} else if (ts.isClassDeclaration(declaration) || ts.isEnumDeclaration(declaration)) {
 		return true;
 	}
 	return false;
@@ -47,7 +47,7 @@ function transformNamespace(state: TransformState, name: ts.Identifier, body: ts
 	const symbol = state.typeChecker.getSymbolAtLocation(name);
 	assert(symbol);
 
-	validateIdentifier(state, name);
+	validateIdentifier(name);
 
 	const nameExp = transformIdentifierDefined(state, name);
 

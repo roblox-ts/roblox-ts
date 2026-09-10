@@ -1,4 +1,26 @@
 export = () => {
+	it("should discard tuple results in for clauses and void expressions", () => {
+		let calls = 0;
+		function values() {
+			return $tuple(++calls, "value");
+		}
+		for (values(); calls < 3; values()) {
+			expect(calls < 3).to.equal(true);
+		}
+		const ignored = void values();
+
+		expect(calls).to.equal(4);
+		expect(ignored).to.equal(undefined);
+	});
+
+	it("should support numeric separators in tuple return indices", () => {
+		function values(): LuaTuple<[number, number]> {
+			return $tuple(123, 456);
+		}
+		expect(values()[0x0_0]).to.equal(123);
+		expect(values()[0x0_1]).to.equal(456);
+	});
+
 	it("should unpack function return tuples", () => {
 		function foo(): [number, number] {
 			return [101, 203];
