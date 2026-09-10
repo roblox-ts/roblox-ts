@@ -14,6 +14,137 @@ function difference<T>(set1: Set<T>, set2: Set<T>): Set<T> {
 }
 
 export = () => {
+	it("should retain loop finalizers around empty blocks and branches", () => {
+		const callbacks = new Array<() => number>();
+		const limit = 3;
+		for (let i = 0; i < limit; i++) {
+			if (i === 1) {
+			}
+			{
+			}
+			callbacks.push(() => i);
+		}
+		expect(callbacks.map(callback => callback()).join(",")).to.equal("0,1,2");
+	});
+
+	it("should iterate inferred tuples through declarations and assignment targets", () => {
+		let index = 0;
+		function advance() {
+			index++;
+			assert(index <= 3, "iterator was called after its first return value became nil");
+			return $tuple(index <= 2 ? index : undefined, index * 10);
+		}
+		const iterator = advance as IterableFunction<ReturnType<typeof advance>>;
+		let total = 0;
+		for (const pair of iterator) {
+			total += pair[1];
+		}
+		expect(total).to.equal(30);
+
+		index = 0;
+		let pair: ReturnType<typeof advance>;
+		for (pair of iterator) {
+			total += pair[1];
+		}
+		expect(total).to.equal(60);
+	});
+
+	it("should run loop increments around empty branches and blocks", () => {
+		const limit = 3;
+		let visits = 0;
+		for (let i = 0; i < limit; i++) {
+			if (i === 0) {
+			} else {
+				visits++;
+			}
+			{
+			}
+		}
+
+		expect(visits).to.equal(2);
+	});
+
+	it("should finalize captured loop variables before nested continues", () => {
+		const values = new Array<() => number>();
+		const visited = new Array<number>();
+		const limit = 4;
+		for (let i = 0; i < limit; i++) {
+			values.push(() => i);
+			if (i === 0) {
+				visited.push(i);
+				continue;
+			} else if (i === 1) {
+				continue;
+			} else {
+				{
+					if (i === 2) {
+						continue;
+					}
+					visited.push(i);
+					continue;
+				}
+			}
+		}
+
+		expect(values.map(read => read()).join(",")).to.equal("0,1,2,3");
+		expect(visited.join(",")).to.equal("0,3");
+	});
+
+	it("should retain the initializer binding captured by a loop initializer", () => {
+		const initial = new Array<() => number>();
+		const iterations = new Array<() => number>();
+		for (let i = 0, read = () => i; i < 3; i++) {
+			initial.push(read);
+			iterations.push(() => i);
+		}
+
+		expect(initial.map(read => read()).join(",")).to.equal("0,0,0");
+		expect(iterations.map(read => read()).join(",")).to.equal("0,1,2");
+	});
+
+	it("should collect nested loop bindings and omit skipped elements", () => {
+		const values = new Array<number>();
+		for (let [{ value }, , [other]] = [{ value: 0 }, 100, [2]] as const; value < 2; value++) {
+			values.push(value + other);
+		}
+
+		expect(values.join(",")).to.equal("2,3");
+	});
+
+	it("should retain loops with missing initializers or incrementors", () => {
+		const values = new Array<number>();
+		for (let i; (i = values.size()) < 2; i++) {
+			values.push(i);
+		}
+		for (let i = 2; i < 4; ) {
+			values.push(i++);
+		}
+		for (let i = 0; i > 10; i++) {
+			values.push(100);
+		}
+		for (let i = 0; i !== 2; i++) {
+			values.push(i);
+		}
+
+		expect(values.join(",")).to.equal("0,1,2,3,0,1");
+	});
+
+	it("should evaluate a negated do-while condition after each iteration", () => {
+		let iterations = 0;
+		let checks = 0;
+		function finished() {
+			checks++;
+			return iterations === 3 ? "done" : "";
+		}
+
+		do {
+			iterations++;
+		} while (!finished());
+
+		expect(iterations).to.equal(3);
+		expect(checks).to.equal(3);
+	});
+
 	it("should support numeric separators in loop bounds and steps", () => {
 		const ascending = new Array<number>();
 		for (let i = 0x0_0; i < 3_0; i += 1_0) {
@@ -476,7 +607,8 @@ export = () => {
 	});
 
 	it("should support iterator function with single return when indexing tuple as array", () => {
-		const shortIterator: IterableFunction<LuaTuple<[boolean]>> = (() => [true] as LuaTuple<[boolean]>) as never;
+		const shortIterator: IterableFunction<LuaTuple<[value: boolean]>> = (() =>
+			[true] as LuaTuple<[value: boolean]>) as never;
 
 		for (const tuple of shortIterator) {
 			expect(tuple.size()).to.equal(1);

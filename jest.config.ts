@@ -12,16 +12,9 @@ const config: Config = {
 		"^(Project|Shared|CLI|TSTransformer)/(.*)$": "<rootDir>/src/$1/$2",
 		"^(Project|Shared|CLI|TSTransformer)$": "<rootDir>/src/$1",
 	},
-	collectCoverageFrom: [
-		"src/**/*.ts",
-		"!src/CLI/**",
-		"!src/Shared/classes/LogService.ts",
-		"!src/TSTransformer/util/getFlags.ts",
-		"!src/TSTransformer/util/getKindName.ts",
-		"!src/TSTransformer/util/jsx/constants.ts",
-	],
+	collectCoverageFrom: ["src/**/*.ts", "!src/CLI/**", "!src/Shared/classes/LogService.ts"],
 	coverageDirectory: "coverage",
-	coverageReporters: ["lcov", "text"],
+	coverageReporters: ["json", "lcov", "text"],
 	verbose: true,
 	transform: {
 		"^.+\\.tsx?$": ["ts-jest", { tsconfig: "tests/compiler/tsconfig.json" }],

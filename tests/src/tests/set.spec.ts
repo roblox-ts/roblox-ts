@@ -164,7 +164,7 @@ export = () => {
 		let hitC = 0;
 
 		const set = new Set<string>().add("a").add("b").add("c");
-		set.forEach((value, value2, obj) => {
+		const result = set.forEach((value, value2, obj) => {
 			expect(value).to.equal(value2);
 			expect(obj).to.equal(set);
 			if (value === "a") {
@@ -178,6 +178,8 @@ export = () => {
 		expect(hitA).to.equal(1);
 		expect(hitB).to.equal(1);
 		expect(hitC).to.equal(1);
+		expect(result).to.equal(undefined);
+		set.forEach(value => expect(set.has(value)).to.equal(true));
 	});
 
 	it("should support size", () => {

@@ -123,6 +123,64 @@ const iterableFunctionAccessor: BindingAccessor = (prereqs, parentId, index, idS
 	}
 };
 
+function createExhaustibleIterableFunctionAccessor(isTuple: boolean): BindingAccessor {
+	return (prereqs, parentId, index, idStack, isOmitted) => {
+		const previousDoneId = idStack[0];
+		const stepPrereqs = new Prereqs();
+		let value: luau.Expression = luau.call(parentId);
+		let valueId: luau.TemporaryIdentifier | undefined;
+		if (!isOmitted) {
+			valueId = luau.tempId("value");
+			const right = isTuple ? luau.array([value]) : value;
+			if (previousDoneId) {
+				prereqs.push(luau.create(luau.SyntaxKind.VariableDeclaration, { left: valueId, right: undefined }));
+				stepPrereqs.push(luau.create(luau.SyntaxKind.Assignment, { left: valueId, operator: "=", right }));
+			} else {
+				stepPrereqs.push(luau.create(luau.SyntaxKind.VariableDeclaration, { left: valueId, right }));
+			}
+			value = isTuple
+				? luau.create(luau.SyntaxKind.ComputedIndexExpression, { expression: valueId, index: luau.number(1) })
+				: valueId;
+		}
+
+		const isDone = luau.binary(value, "==", luau.nil());
+		let doneId = previousDoneId;
+		if (doneId) {
+			stepPrereqs.push(luau.create(luau.SyntaxKind.Assignment, { left: doneId, operator: "=", right: isDone }));
+		} else {
+			doneId = stepPrereqs.pushToVar(isDone, "done");
+			// the rest collector shares this state with named and omitted prefix elements
+			idStack.push(doneId);
+		}
+
+		if (isTuple && valueId) {
+			// trailing returns do not produce a tuple after the first return ends iteration
+			stepPrereqs.push(
+				luau.create(luau.SyntaxKind.IfStatement, {
+					condition: doneId,
+					statements: luau.list.make(
+						luau.create(luau.SyntaxKind.Assignment, { left: valueId, operator: "=", right: luau.nil() }),
+					),
+					elseBody: luau.list.make(),
+				}),
+			);
+		}
+
+		if (previousDoneId) {
+			prereqs.push(
+				luau.create(luau.SyntaxKind.IfStatement, {
+					condition: luau.unary("not", previousDoneId),
+					statements: stepPrereqs.statements,
+					elseBody: luau.list.make(),
+				}),
+			);
+		} else {
+			prereqs.pushList(stepPrereqs.statements);
+		}
+		return valueId ?? luau.none();
+	};
+}
+
 const iterAccessor: BindingAccessor = (prereqs, parentId, index, idStack, isOmitted) => {
 	const callExp = luau.call(luau.property(parentId, "next"));
 	if (isOmitted) {
@@ -133,7 +191,12 @@ const iterAccessor: BindingAccessor = (prereqs, parentId, index, idStack, isOmit
 	}
 };
 
-export function getAccessorForBindingType(state: TransformState, node: ts.Node, type: ts.Type): BindingAccessor {
+export function getAccessorForBindingType(
+	state: TransformState,
+	node: ts.Node,
+	type: ts.Type,
+	hasRest: boolean,
+): BindingAccessor {
 	if (isDefinitelyType(type, isArrayType(state))) {
 		return arrayAccessor;
 	} else if (isDefinitelyType(type, isStringType)) {
@@ -143,9 +206,9 @@ export function getAccessorForBindingType(state: TransformState, node: ts.Node, 
 	} else if (isDefinitelyType(type, isMapType(state)) || isDefinitelyType(type, isSharedTableType(state))) {
 		return mapAccessor;
 	} else if (isDefinitelyType(type, isIterableFunctionLuaTupleType(state))) {
-		return iterableFunctionLuaTupleAccessor;
+		return hasRest ? createExhaustibleIterableFunctionAccessor(true) : iterableFunctionLuaTupleAccessor;
 	} else if (isDefinitelyType(type, isIterableFunctionType(state))) {
-		return iterableFunctionAccessor;
+		return hasRest ? createExhaustibleIterableFunctionAccessor(false) : iterableFunctionAccessor;
 	} else if (isDefinitelyType(type, isIterableType(state))) {
 		DiagnosticService.addDiagnostic(errors.noIterableIteration(node));
 		return () => luau.none();

@@ -1,4 +1,34 @@
 export = () => {
+	it("should inherit from an abstract class without a base", () => {
+		abstract class Base {
+			value = 41;
+			abstract read(): number;
+		}
+		class Derived extends Base {
+			read() {
+				return this.value + 1;
+			}
+		}
+
+		expect(new Derived().read()).to.equal(42);
+	});
+
+	it("should preserve the receiver for computed super calls", () => {
+		class Base {
+			value = 42;
+			read() {
+				return this.value;
+			}
+		}
+		class Derived extends Base {
+			read() {
+				return super["read"]() + 1;
+			}
+		}
+
+		expect(new Derived().read()).to.equal(43);
+	});
+
 	it("should properly initialize static properties and use `this` in a static context correctly", () => {
 		class X {
 			static value1 = "a";
@@ -344,7 +374,8 @@ export = () => {
 
 	it("should support methods keys that emit prereqs", () => {
 		let i = 0;
-		class A {
+		class Base {}
+		class A extends Base {
 			[++i]() {
 				return "first";
 			}

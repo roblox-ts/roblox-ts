@@ -5,6 +5,18 @@ type fruits = {
 };
 
 export = () => {
+	it("should delete optional properties only when the receiver exists", () => {
+		function remove(object?: { value?: number }) {
+			delete object?.value;
+			return delete object?.value;
+		}
+		const object = { value: 42 };
+
+		expect(remove(object)).to.equal(true);
+		expect(object.value).to.equal(undefined);
+		expect(remove()).to.equal(true);
+	});
+
 	describe("should work for objects", () => {
 		it("should delete from the object with property acccess", () => {
 			const myTrolly: fruits = {

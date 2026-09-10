@@ -1,6 +1,247 @@
 /* eslint-disable prefer-const */
 
+function makePair(first: number, second: number) {
+	return $tuple(first, second);
+}
+
 export = () => {
+	it("should evaluate empty destructuring initializers exactly once", () => {
+		let calls = 0;
+		function value() {
+			calls++;
+			return 42;
+		}
+		const [] = [];
+		const [] = [value()];
+		const {} = {};
+		expect(calls).to.equal(1);
+	});
+
+	it("should assign a nested object without a default initializer", () => {
+		let value = 0;
+		function read() {
+			return [{ value: 42 }];
+		}
+		[{ value }] = read();
+		expect(value).to.equal(42);
+	});
+
+	it("should stop advancing short scalar iterators before collecting rest bindings", () => {
+		for (const length of [0, 1, 2, 3, 5]) {
+			let calls = 0;
+			const iterator = (() => {
+				calls++;
+				assert(calls <= length + 1, "advanced after exhaustion");
+				return calls <= length ? calls : undefined;
+			}) as IterableFunction<number>;
+
+			const [first = 10, second = 20, , ...rest] = iterator;
+
+			expect(first).to.equal(length >= 1 ? 1 : 10);
+			expect(second).to.equal(length >= 2 ? 2 : 20);
+			expect(rest.join(",")).to.equal(length === 5 ? "4,5" : "");
+			expect(calls).to.equal(length + 1);
+		}
+	});
+
+	it("should remember exhaustion in an omitted first iterator binding", () => {
+		let calls = 0;
+		const iterator = (() => {
+			calls++;
+			assert(calls === 1, "advanced after exhaustion");
+			return undefined as number | undefined;
+		}) as IterableFunction<number>;
+
+		const [, , value = 42, ...rest] = iterator;
+
+		expect(value).to.equal(42);
+		expect(rest.size()).to.equal(0);
+		expect(calls).to.equal(1);
+	});
+
+	it("should evaluate assignment targets and defaults after iterator exhaustion", () => {
+		const events = new Array<string>();
+		const target = { first: 0, second: 0, rest: new Array<number>() };
+		let calls = 0;
+		const iterator = (() => {
+			events.push("next");
+			calls++;
+			assert(calls === 1, "advanced after exhaustion");
+			return undefined as number | undefined;
+		}) as IterableFunction<number>;
+		function getTarget(name: string) {
+			events.push(name);
+			return target;
+		}
+		function initialize(name: string) {
+			events.push(`default:${name}`);
+			return 42;
+		}
+
+		[
+			getTarget("first").first = initialize("first"),
+			,
+			getTarget("second").second = initialize("second"),
+			...getTarget("rest").rest
+		] = iterator;
+
+		expect(events.join(",")).to.equal("first,next,default:first,second,default:second,rest");
+		expect(target.first).to.equal(42);
+		expect(target.second).to.equal(42);
+		expect(target.rest.size()).to.equal(0);
+		expect(calls).to.equal(1);
+	});
+
+	it("should stop short tuple iterators even when their trailing returns are populated", () => {
+		for (const length of [0, 1, 2, 3, 5]) {
+			let calls = 0;
+			const iterator = (() => {
+				calls++;
+				assert(calls <= length + 1, "advanced after exhaustion");
+				return $tuple(calls <= length ? calls : undefined, 99);
+			}) as IterableFunction<LuaTuple<[number, number]>>;
+
+			const [first = makePair(10, 11), second = makePair(20, 21), , ...rest] = iterator;
+
+			expect(first[0]).to.equal(length >= 1 ? 1 : 10);
+			expect(first[1]).to.equal(length >= 1 ? 99 : 11);
+			expect(second[0]).to.equal(length >= 2 ? 2 : 20);
+			expect(rest.size()).to.equal(length === 5 ? 2 : 0);
+			expect(calls).to.equal(length + 1);
+		}
+	});
+
+	it("should preserve tuple assignment defaults after an omitted element exhausts the iterator", () => {
+		let calls = 0;
+		const iterator = (() => {
+			calls++;
+			assert(calls === 1, "advanced after exhaustion");
+			return $tuple(undefined as number | undefined, 99);
+		}) as IterableFunction<LuaTuple<[number, number]>>;
+		let value: LuaTuple<[number, number]>;
+		let rest: Array<LuaTuple<[number, number]>>;
+
+		[, value = makePair(42, 43), , ...rest] = iterator;
+
+		expect(value[0]).to.equal(42);
+		expect(value[1]).to.equal(43);
+		expect(rest.size()).to.equal(0);
+		expect(calls).to.equal(1);
+	});
+
+	it("should collect the remaining values from iterator functions", () => {
+		let calls = 0;
+		const iterator = (() => {
+			calls++;
+			return calls <= 4 ? calls : undefined;
+		}) as IterableFunction<number>;
+		const [first, , ...rest] = iterator;
+
+		expect(first).to.equal(1);
+		expect(rest.join(",")).to.equal("3,4");
+		expect(calls).to.equal(5);
+	});
+
+	it("should retain the iterator when advancing it rebinds its source", () => {
+		let calls = 0;
+		let iterator: IterableFunction<number>;
+		iterator = (() => {
+			calls++;
+			iterator = ((): number => {
+				throw "replacement iterator must not be called";
+			}) as IterableFunction<number>;
+			return calls <= 3 ? calls : undefined;
+		}) as IterableFunction<number>;
+
+		const [first, second, ...rest] = iterator;
+
+		expect(first).to.equal(1);
+		expect(second).to.equal(2);
+		expect(rest.join(",")).to.equal("3");
+		expect(calls).to.equal(4);
+	});
+
+	it("should retain the iterator when a nested default rebinds its source", () => {
+		let calls = 0;
+		const original = (() => {
+			calls++;
+			return $tuple(calls <= 3 ? calls : undefined, undefined);
+		}) as IterableFunction<LuaTuple<[number, number?]>>;
+		const replacement = ((): LuaTuple<[number, number?]> => {
+			throw "replacement iterator must not be called";
+		}) as IterableFunction<LuaTuple<[number, number?]>>;
+		let iterator = original;
+
+		const [[first, value = ((iterator = replacement), 99)], second, ...rest] = iterator;
+
+		expect(first).to.equal(1);
+		expect(value).to.equal(99);
+		expect(second[0]).to.equal(2);
+		expect(rest[0][0]).to.equal(3);
+		expect(rest.size()).to.equal(1);
+		expect(calls).to.equal(4);
+		expect(iterator).to.equal(replacement);
+	});
+
+	it("should evaluate a rest assignment target before consuming its iterator", () => {
+		let calls = 0;
+		const events = new Array<string>();
+		const original = new Array<Array<number>>();
+		const replacement = new Array<Array<number>>();
+		let target = original;
+		const iterator = (() => {
+			events.push("next");
+			target = replacement;
+			return ++calls <= 2 ? calls : undefined;
+		}) as IterableFunction<number>;
+		function key() {
+			events.push("key");
+			return 0;
+		}
+
+		[...target[key()]] = iterator;
+
+		expect(events.join(",")).to.equal("key,next,next,next");
+		expect(original[0].join(",")).to.equal("1,2");
+		expect(replacement.size()).to.equal(0);
+	});
+
+	it("should collect remaining tuples from iterator functions", () => {
+		const [[first], , ...rest] = "a,b,c,d".gmatch("[^,]+");
+
+		expect(first).to.equal("a");
+		expect(rest.size()).to.equal(2);
+		expect(rest[0][0]).to.equal("c");
+		expect(rest[1][0]).to.equal("d");
+
+		let head: LuaTuple<Array<string | number>>;
+		let tail: Array<LuaTuple<Array<string | number>>>;
+		[head, ...tail] = "e,f,g".gmatch("[^,]+");
+
+		expect(head[0]).to.equal("e");
+		expect(tail.size()).to.equal(2);
+		expect(tail[0][0]).to.equal("f");
+		expect(tail[1][0]).to.equal("g");
+	});
+
+	it("should stop tuple iterator rest bindings at the first nil return", () => {
+		const values = [false, 0] as const;
+		let calls = 0;
+		const iterator = (() => {
+			calls++;
+			assert(calls <= 3, "iterator was called after its first return became nil");
+			return $tuple(calls <= 2 ? values[calls - 1] : undefined, calls * 10);
+		}) as IterableFunction<LuaTuple<[boolean | number | undefined, number]>>;
+
+		const [first, ...rest] = iterator;
+
+		expect(first[0]).to.equal(false);
+		expect(rest.size()).to.equal(1);
+		expect(rest[0][0]).to.equal(0);
+		expect(rest[0][1]).to.equal(20);
+		expect(calls).to.equal(3);
+	});
+
 	it("should destructure simple arrays", () => {
 		const [a, b] = [1, 2];
 		expect(a).to.equal(1);
@@ -262,6 +503,7 @@ export = () => {
 	it("should support nested object destructure assignment with length property", () => {
 		let length: number;
 
+		// prettier-ignore
 		([{ length }] = [{ length: 42 }] as const);
 
 		expect(length).to.equal(42);
@@ -964,6 +1206,15 @@ export = () => {
 		let x = 0;
 		[] = pcall(() => (x = 123));
 		expect(x).to.equal(123);
+
+		[] = [];
+		({} = {});
+		const array = [1];
+		const object = { value: 2 };
+		expect(([] = array)).to.equal(array);
+		expect(({} = object)).to.equal(object);
+		({} = pcall(() => x++));
+		expect(x).to.equal(124);
 	});
 
 	it("should support function destructuring if not a method", () => {

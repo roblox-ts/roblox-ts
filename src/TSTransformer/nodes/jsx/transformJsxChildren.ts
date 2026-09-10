@@ -32,8 +32,16 @@ export function transformJsxChildren(state: TransformState, prereqs: Prereqs, ch
 			.filter(v => !ts.isJsxExpression(v) || v.expression !== undefined),
 		(state, prereqs, node) => {
 			if (ts.isJsxText(node)) {
-				const text = fixupWhitespaceAndDecodeEntities(node.text) ?? "";
-				return luau.string(text.replace(/\\/g, "\\\\"));
+				let text = fixupWhitespaceAndDecodeEntities(node.text) ?? "";
+				text = text.replace(/\\/g, "\\\\");
+				text = text.replace(/"/g, '\\"');
+				text = text.replace(
+					// eslint-disable-next-line no-control-regex -- decoded entities can contain literal control characters
+					/[\x00-\x1f\x7f]/g,
+					character => `\\x${character.charCodeAt(0).toString(16).padStart(2, "0")}`,
+				);
+				// decoded text needs quoted escapes even when it contains both quote characters
+				return luau.string(text, '"');
 			}
 			return transformExpression(state, prereqs, node);
 		},

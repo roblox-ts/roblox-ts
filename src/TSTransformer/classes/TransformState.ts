@@ -206,7 +206,14 @@ export class TransformState {
 
 	public getModuleExports(moduleSymbol: ts.Symbol) {
 		return getOrSetDefault(this.multiTransformState.getModuleExportsCache, moduleSymbol, () =>
-			this.typeChecker.getExportsOfModule(moduleSymbol),
+			this.typeChecker.getExportsOfModule(moduleSymbol).filter(exportSymbol => {
+				const typeOnlyDeclaration = this.typeChecker.getTypeOnlyAliasDeclaration(exportSymbol);
+				// erased aliases must not redirect mutable locals to properties on the exports table
+				return (
+					!typeOnlyDeclaration ||
+					(this.compilerOptions.verbatimModuleSyntax && !ts.isTypeOnlyExportDeclaration(typeOnlyDeclaration))
+				);
+			}),
 		);
 	}
 

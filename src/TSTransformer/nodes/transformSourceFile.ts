@@ -112,7 +112,11 @@ function handleExports(
 
 	let mustPushExports = state.hasExportFrom;
 	const exportPairs = new Array<[luau.Expression, luau.AnyIdentifier]>();
-	if (!state.hasExportEquals) {
+	// even an erased export = replaces the module's named exports
+	const hasExportEquals = sourceFile.statements.some(
+		statement => ts.isExportAssignment(statement) && statement.isExportEquals,
+	);
+	if (!hasExportEquals) {
 		for (const exportSymbol of state.getModuleExports(symbol)) {
 			if (ignoredExportSymbols.has(exportSymbol)) continue;
 

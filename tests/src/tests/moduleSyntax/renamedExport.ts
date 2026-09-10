@@ -7,3 +7,14 @@ export { renamed as renamedValue };
 export { plain };
 
 export type RenamedType = number;
+
+export declare const absent: number;
+declare const game: DataModel;
+export { game };
+
+export let later: number | undefined;
+export function initializeLater() {
+	later = 42;
+}
+
+export const prototype = 42;

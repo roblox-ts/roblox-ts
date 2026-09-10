@@ -236,6 +236,21 @@ return nil
 "
 `;
 
+exports[`fallback tuple iterator assignment target 1`] = `
+"local pair
+local _iterator = iterator
+while true do
+	local _v = { _iterator() }
+	if _v[1] == nil then
+		break
+	end
+	pair = _v
+	print(pair[2])
+end
+return nil
+"
+`;
+
 exports[`fallback unsafe integer bound 1`] = `
 "do
 	local i = 0

@@ -340,7 +340,15 @@ const buildIterableFunctionLuaTupleLoop: (type: ts.Type) => LoopBuilder =
 			luau.list.push(
 				loopStatements,
 				luau.create(luau.SyntaxKind.IfStatement, {
-					condition: luau.binary(luau.unary("#", valueId), "==", luau.number(0)),
+					// Luau stops an iterator when its first return is nil, regardless of later returns
+					condition: luau.binary(
+						luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+							expression: valueId,
+							index: luau.number(1),
+						}),
+						"==",
+						luau.nil(),
+					),
 					statements: luau.list.make(luau.create(luau.SyntaxKind.BreakStatement, {})),
 					elseBody: luau.list.make(),
 				}),

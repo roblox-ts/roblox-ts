@@ -9,15 +9,23 @@ import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
 import ts from "typescript";
 
 export function transformImportEqualsDeclaration(state: TransformState, node: ts.ImportEqualsDeclaration) {
+	if (node.isTypeOnly) {
+		return luau.list.make<luau.Statement>();
+	}
+
 	const { moduleReference } = node;
 	if (ts.isExternalModuleReference(moduleReference)) {
 		const statements = luau.list.make<luau.Statement>();
-		assert(ts.isStringLiteral(moduleReference.expression));
-		const importExp = createImportExpression(state, node.getSourceFile(), moduleReference.expression);
-
 		const aliasSymbol = state.typeChecker.getSymbolAtLocation(node.name);
 		assert(aliasSymbol);
-		if (isSymbolOfValue(ts.skipAlias(aliasSymbol, state.typeChecker))) {
+		const isValue = isSymbolOfValue(ts.skipAlias(aliasSymbol, state.typeChecker));
+		if (!isValue && !state.compilerOptions.verbatimModuleSyntax) {
+			return statements;
+		}
+
+		assert(ts.isStringLiteral(moduleReference.expression));
+		const importExp = createImportExpression(state, node.getSourceFile(), moduleReference.expression);
+		if (isValue) {
 			const importPrereqs = new Prereqs();
 			transformVariable(state, importPrereqs, node.name, importExp);
 			luau.list.pushList(statements, importPrereqs.statements);
