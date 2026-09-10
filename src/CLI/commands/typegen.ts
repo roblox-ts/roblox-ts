@@ -1,55 +1,52 @@
-import { findTsConfigPath } from "CLI/util/findTsConfigPath";
+import { createRojoProject } from "CLI/util/createRojoProject";
 import { getRojoSourceMap, RojoSourceMap } from "CLI/util/getRojoSourceMap";
-import { getTsConfigProjectOptions } from "CLI/util/getTsConfigProjectOptions";
 import fs from "fs-extra";
 import path from "path";
-import { createProjectData, createProjectProgram, ProjectOptions } from "Project";
-import { createPathTranslator } from "Project/functions/createPathTranslator";
-import { DEFAULT_PROJECT_OPTIONS } from "Shared/constants";
 import ts from "typescript";
-import yargs from "yargs";
+import type yargs from "yargs";
 
 const BANNED_SERVICES = new Set([
-	// StarterPlayer contents are cloned elsewhere at runtime. They should not be accessed directly.
+	// StarterPlayer contents are cloned elsewhere at runtime and should not be accessed directly
 	"StarterPlayer",
-	// Plugins in the debugger should not be accessed directly
+	// plugins in the debugger should not be accessed directly
 	"PluginDebugService",
 ]);
 
-function buildSignatures(children: ReadonlyArray<RojoSourceMap>, path: ReadonlyArray<string>) {
+function buildSignatures(children: ReadonlyArray<RojoSourceMap>) {
 	const seen = new Set<string>();
 	const members = new Array<ts.PropertySignature>();
 	for (const child of children) {
-		if (child.name === "node_modules") continue;
-		if (seen.has(child.name)) continue;
+		if (child.name === "node_modules" || seen.has(child.name)) {
+			continue;
+		}
 		seen.add(child.name);
-		members.push(buildPropertySignature(child, path.concat(child.name)));
+		members.push(buildPropertySignature(child));
 	}
 	return members;
 }
 
-function buildTypeNode(sourceMap: RojoSourceMap, path: ReadonlyArray<string>) {
+function buildTypeNode(sourceMap: RojoSourceMap) {
 	const types = new Array<ts.TypeNode>();
 	types.push(ts.factory.createTypeReferenceNode(sourceMap.className, undefined));
 	if (sourceMap.children) {
-		types.push(ts.factory.createTypeLiteralNode(buildSignatures(sourceMap.children, path)));
+		types.push(ts.factory.createTypeLiteralNode(buildSignatures(sourceMap.children)));
 	}
 	return ts.factory.createIntersectionTypeNode(types);
 }
 
-function buildPropertySignature(sourceMap: RojoSourceMap, path: ReadonlyArray<string>) {
-	// Workspace.Terrain is `readonly` and TypeScript will complain that all declarations must have identical modifiers
-	const modifiers = new Array<ts.Modifier>();
-	if (path[0] === "Workspace" && path[1] === "Terrain") {
-		modifiers.push(ts.factory.createModifier(ts.SyntaxKind.ReadonlyKeyword));
-	}
-
+function buildPropertySignature(sourceMap: RojoSourceMap) {
 	return ts.factory.createPropertySignature(
-		modifiers,
-		ts.isIdentifierText(sourceMap.name, undefined) ? sourceMap.name : `"${sourceMap.name}"`,
 		undefined,
-		buildTypeNode(sourceMap, path),
+		ts.isIdentifierText(sourceMap.name, undefined)
+			? sourceMap.name
+			: ts.factory.createStringLiteral(sourceMap.name),
+		undefined,
+		buildTypeNode(sourceMap),
 	);
+}
+
+function buildInterface(name: string, children: ReadonlyArray<RojoSourceMap>) {
+	return ts.factory.createInterfaceDeclaration(undefined, name, undefined, undefined, buildSignatures(children));
 }
 
 interface TypeGenFlags {
@@ -57,16 +54,13 @@ interface TypeGenFlags {
 	rojo?: string;
 }
 
-/**
- * Defines the behavior for the `rbxtsc typegen` command.
- */
 export = ts.identity<yargs.CommandModule<object, TypeGenFlags>>({
 	command: ["typegen"],
 
 	describe: "Creates a `src/services.d.ts` file from `rojo sourcemap`",
 
-	builder: () =>
-		yargs
+	builder: parser =>
+		parser
 			.option("project", {
 				alias: "p",
 				string: true,
@@ -79,30 +73,32 @@ export = ts.identity<yargs.CommandModule<object, TypeGenFlags>>({
 			}),
 
 	handler: async argv => {
-		const tsConfigPath = findTsConfigPath(argv.project);
-
-		// parse the contents of the retrieved JSON path as a partial `ProjectOptions`
-		const projectOptions: ProjectOptions = Object.assign(
-			{},
-			DEFAULT_PROJECT_OPTIONS,
-			getTsConfigProjectOptions(tsConfigPath),
-			argv,
-		);
-
-		const data = createProjectData(tsConfigPath, projectOptions);
-		const program = createProjectProgram(data);
-		const pathTranslator = createPathTranslator(program, data);
-
-		const rojoSourceMap = getRojoSourceMap(argv.rojo, true);
+		const { rojoConfigPath, pathTranslator } = createRojoProject(argv);
+		const rojoSourceMap = getRojoSourceMap(rojoConfigPath, true);
 
 		const statements = new Array<ts.Statement>();
 
 		if (rojoSourceMap.children) {
 			for (const service of rojoSourceMap.children) {
-				if (BANNED_SERVICES.has(service.name)) continue;
-				if (!service.children) continue;
-				const members = buildSignatures(service.children, [service.name]);
-				statements.push(ts.factory.createInterfaceDeclaration([], service.name, undefined, undefined, members));
+				if (BANNED_SERVICES.has(service.className) || !service.children) {
+					continue;
+				}
+
+				const children = service.children.filter(child => {
+					if (
+						service.className === "Workspace" &&
+						child.name === "Terrain" &&
+						child.className === "Terrain"
+					) {
+						// Workspace.Terrain already has a fixed type, so add its children to Terrain itself
+						if (child.children) {
+							statements.push(buildInterface("Terrain", child.children));
+						}
+						return false;
+					}
+					return true;
+				});
+				statements.push(buildInterface(service.className, children));
 			}
 		}
 

@@ -3,7 +3,6 @@ import kleur from "kleur";
 class Logger {
 	constructor(private readonly writeStream: NodeJS.WriteStream) {}
 
-	public verbose = false;
 	private partial = false;
 
 	write(message: string) {
@@ -42,7 +41,7 @@ export class LogService {
 	}
 
 	static warn(message: string) {
-		this.stdout.writeLine(`${kleur.yellow("Compiler Warning:")} ${message}`);
+		this.stderr.writeLine(`${kleur.yellow("Compiler Warning:")} ${message}`);
 	}
 
 	static fatal(message: string): never {

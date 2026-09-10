@@ -4,6 +4,7 @@ import path from "path";
 import { COMPILER_VERSION, PACKAGE_ROOT } from "Shared/constants";
 
 import { ReferenceFixture } from "../referenceFixture";
+import { RojoFixture } from "./rojoFixture";
 
 jest.setTimeout(30000);
 
@@ -92,6 +93,112 @@ it.each([false, true])("prints build errors and exits unsuccessfully (missing co
 			missing ? "Unable to find tsconfig.json!" : "Type 'string' is not assignable to type 'number'",
 		);
 		expect(fs.existsSync(fixture.file("out/game/init.luau"))).toBe(false);
+	} finally {
+		fixture.close();
+	}
+});
+
+it.each(["sourcemap", "typegen"])("prints help for %s", command => {
+	const result = run([command, "--help"]);
+
+	expect(result.status).toBe(0);
+	expect(result.output).toContain("--project");
+	expect(result.output).toContain("--rojo");
+});
+
+it.each(["positional", "project flag", "config file"])("generates sourcemaps through the CLI using %s", selection => {
+	const fixture = new RojoFixture();
+	try {
+		const args =
+			selection === "positional"
+				? [fixture.file("game")]
+				: ["-p", fixture.file(selection === "config file" ? "game/tsconfig.json" : "game")];
+		const result = fixture.run(["sourcemap", ...args]);
+
+		expect(result.status).toBe(0);
+		expect(result.stderr).toBe("");
+		expect(JSON.parse(result.stdout).children[0].children[0].filePaths).toEqual([path.join("src", "index.ts")]);
+	} finally {
+		fixture.close();
+	}
+});
+
+it("honors sourcemap output, Rojo selection, and non-script flags through the CLI", () => {
+	const fixture = new RojoFixture();
+	try {
+		fixture.tree(
+			{ $className: "DataModel", Workspace: { $className: "Workspace", Part: { $className: "Part" } } },
+			"custom.project.json",
+		);
+
+		const result = fixture.run([
+			"sourcemap",
+			"-p",
+			fixture.file("game"),
+			"--rojo",
+			"custom.project.json",
+			"--include-non-scripts",
+			"-o",
+			"map.json",
+		]);
+
+		expect(result.status).toBe(0);
+		expect(result.stdout).toBe("");
+		expect(fs.readJsonSync(fixture.file("map.json")).children[0].children[0].name).toBe("Part");
+	} finally {
+		fixture.close();
+	}
+});
+
+it("generates service declarations through the CLI", () => {
+	const fixture = new RojoFixture();
+	try {
+		fixture.tree(
+			{
+				$className: "DataModel",
+				Workspace: {
+					$className: "Workspace",
+					Terrain: { $className: "Terrain", Attachment: { $className: "Attachment" } },
+				},
+			},
+			"custom.project.json",
+		);
+
+		const result = fixture.run(["typegen", "-p", fixture.file("game"), "--rojo", "custom.project.json"]);
+
+		expect(result.status).toBe(0);
+		expect(fixture.read("game/src/services.d.ts")).toContain("interface Terrain");
+		expect(fixture.read("game/src/services.d.ts")).not.toContain("readonly Terrain:");
+	} finally {
+		fixture.close();
+	}
+});
+
+it.each(["sourcemap", "typegen"])("reports a missing Rojo project through %s", command => {
+	const fixture = new RojoFixture();
+	try {
+		fs.removeSync(fixture.file("game/default.project.json"));
+
+		const result = fixture.run([command, "-p", fixture.file("game")]);
+
+		expect(result.status).toBe(1);
+		expect(result.stdout + result.stderr).toContain("Unable to find a Rojo project file");
+	} finally {
+		fixture.close();
+	}
+});
+
+it("reports a missing Rojo executable through the CLI", () => {
+	const fixture = new RojoFixture();
+	try {
+		const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => key.toLowerCase() !== "path"));
+		const result = fixture.run(["typegen", "-p", fixture.file("game")], fixture.directory, {
+			...env,
+			PATH: fixture.file("missing-bin"),
+		});
+
+		expect(result.status).toBe(1);
+		expect(result.stdout + result.stderr).toContain("Rojo is not installed");
 	} finally {
 		fixture.close();
 	}

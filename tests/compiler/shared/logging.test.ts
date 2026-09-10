@@ -56,13 +56,18 @@ it("only interrupts a partial line for verbose messages when enabled", () => {
 	expect(output()).toBe("progress\nfirst\n42\n");
 });
 
-it("formats warnings with and without terminal colors", () => {
+it("writes warnings to stderr without interrupting stdout", () => {
+	const stderr = jest.spyOn(process.stderr, "write").mockReturnValue(true);
+	LogService.write("progress");
 	kleur.enabled = false;
 	LogService.warn("plain");
 	kleur.enabled = true;
 	LogService.warn("warning message");
 
-	expect(output()).toBe("Compiler Warning: plain\n\u001b[33mCompiler Warning:\u001b[39m warning message\n");
+	expect(stderr.mock.calls.map(([message]) => message).join("")).toBe(
+		"Compiler Warning: plain\n\u001b[33mCompiler Warning:\u001b[39m warning message\n",
+	);
+	expect(output()).toBe("progress");
 });
 
 it("writes a fatal message before exiting with status one", () => {
