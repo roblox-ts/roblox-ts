@@ -53,6 +53,31 @@ export function transformWritableExpression(
 	}
 }
 
+export function transformWritableAssignment(
+	state: TransformState,
+	prereqs: Prereqs,
+	writeNode: ts.Expression,
+	valueNode: ts.Expression,
+	readAfterWrite = false,
+	readBeforeWrite = false,
+) {
+	let writable = transformWritableExpression(state, prereqs, writeNode, readAfterWrite);
+	const valuePrereqs = new Prereqs();
+	const value = transformExpression(state, valuePrereqs, valueNode);
+	const prereqEffects = getEffects(valuePrereqs.statements);
+	const valueEffects = getEffects(value);
+	const effects = joinEffects(prereqEffects, valueEffects);
+	writable = captureWritableAssignmentTarget(prereqs, writable, prereqEffects, valueEffects);
+	// the assignment target and its old value may need separate snapshots
+	const readable =
+		readBeforeWrite && !effectsCommute(getEffects(writable), effects)
+			? prereqs.pushToVar(writable, "readable")
+			: writable;
+	prereqs.pushList(valuePrereqs.statements);
+
+	return { writable, readable, value };
+}
+
 export function captureWritableAssignmentTarget(
 	prereqs: Prereqs,
 	writable: luau.WritableExpression,
@@ -79,29 +104,4 @@ export function captureWritableAssignmentTarget(
 		}
 	}
 	return writable;
-}
-
-export function transformWritableAssignment(
-	state: TransformState,
-	prereqs: Prereqs,
-	writeNode: ts.Expression,
-	valueNode: ts.Expression,
-	readAfterWrite = false,
-	readBeforeWrite = false,
-) {
-	let writable = transformWritableExpression(state, prereqs, writeNode, readAfterWrite);
-	const valuePrereqs = new Prereqs();
-	const value = transformExpression(state, valuePrereqs, valueNode);
-	const prereqEffects = getEffects(valuePrereqs.statements);
-	const valueEffects = getEffects(value);
-	const effects = joinEffects(prereqEffects, valueEffects);
-	writable = captureWritableAssignmentTarget(prereqs, writable, prereqEffects, valueEffects);
-	// the assignment target and its old value may need separate snapshots
-	const readable =
-		readBeforeWrite && !effectsCommute(getEffects(writable), effects)
-			? prereqs.pushToVar(writable, "readable")
-			: writable;
-	prereqs.pushList(valuePrereqs.statements);
-
-	return { writable, readable, value };
 }
