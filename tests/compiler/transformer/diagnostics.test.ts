@@ -1,7 +1,27 @@
+import { assert } from "Shared/util/assert";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
+import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import ts from "typescript";
 
+import { createTransformState } from "./createTransformState";
+
 afterEach(() => DiagnosticService.flush());
+
+it("checks a parenthesized spread operand without flattening its element type twice", () => {
+	const state = createTransformState("declare const values: Array<Array<any>>; const copy = [...((values))];");
+	const source = state.program.getSourceFile("/src/playground.tsx");
+	assert(source);
+	const statement = source.statements[1];
+	assert(ts.isVariableStatement(statement));
+	const array = statement.declarationList.declarations[0].initializer;
+	assert(array && ts.isArrayLiteralExpression(array));
+	const spread = array.elements[0];
+	assert(ts.isSpreadElement(spread));
+
+	validateNotAnyType(state, spread);
+
+	expect(DiagnosticService.flush()).toEqual([]);
+});
 
 function diagnostic(code: number, category = ts.DiagnosticCategory.Error): ts.Diagnostic {
 	return { code, category, messageText: `diagnostic ${code}`, file: undefined, start: undefined, length: undefined };
