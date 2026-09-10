@@ -354,9 +354,7 @@ function transformForStatementOptimized(state: TransformState, node: ts.ForState
 	}
 
 	const idSymbol = state.typeChecker.getSymbolAtLocation(decName);
-	if (!idSymbol) {
-		return undefined;
-	}
+	assert(idSymbol);
 
 	const startValue = getIntegerLiteral(decInit);
 	if (startValue === undefined) {

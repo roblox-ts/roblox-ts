@@ -9,9 +9,7 @@ export function checkVariableHoist(state: TransformState, node: ts.Identifier, s
 	}
 
 	const statement = getAncestor(node, ts.isStatement);
-	if (!statement) {
-		return;
-	}
+	assert(statement);
 
 	const caseClause = statement.parent;
 	if (!ts.isCaseClause(caseClause)) {
@@ -37,3 +35,4 @@ export function checkVariableHoist(state: TransformState, node: ts.Identifier, s
 		state.isHoisted.set(symbol, true);
 	}
 }
+import { assert } from "Shared/util/assert";
