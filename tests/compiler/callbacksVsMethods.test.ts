@@ -119,8 +119,22 @@ it.each([
 			optional?.method(123);
 		`,
 	},
-])("$name", ({ source }) => {
+	{
+		name: "synthetic callback signatures from evolving arrays have no receiver",
+		declarations: "interface Array<T> { push<U>(callback: () => (value: number) => U): number; }",
+		source: `
+			const callbacks = [];
+			callbacks.push(() => value => value);
+			const object = { callback: callbacks[0] };
+			const callback = object.callback() as (value: number) => number;
+			assert(callback(123) === 123);
+		`,
+	},
+])("$name", ({ source, declarations }) => {
 	const project = createTestProject();
+	if (declarations) {
+		project.vfs.writeFile("/src/augmentation.d.ts", declarations);
+	}
 	const output = project.compileSource(source);
 	expect(output.replace(/^-- Compiled with.*\n/, "")).toMatchSnapshot();
 });

@@ -144,3 +144,19 @@ end
 return nil
 "
 `;
+
+exports[`synthetic callback signatures from evolving arrays have no receiver 1`] = `
+"local callbacks = {}
+table.insert(callbacks, function()
+	return function(value)
+		return value
+	end
+end)
+local object = {
+	callback = callbacks[1],
+}
+local callback = object.callback()
+assert(callback(123) == 123)
+return nil
+"
+`;
