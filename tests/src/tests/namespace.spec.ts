@@ -66,7 +66,32 @@ namespace Nested.Self {
 	}
 }
 
+enum EnumBeforeNamespace {
+	Value = 3,
+}
+namespace EnumBeforeNamespace {
+	export interface Shape {
+		value: number;
+	}
+}
+
+namespace NamespaceBeforeEnum {
+	export type Label = string;
+}
+enum NamespaceBeforeEnum {
+	Value = 4,
+}
+
 export = () => {
+	it("should preserve enums merged with namespaces containing only types", () => {
+		const shape: EnumBeforeNamespace.Shape = { value: EnumBeforeNamespace.Value };
+		const label: NamespaceBeforeEnum.Label = NamespaceBeforeEnum[NamespaceBeforeEnum.Value];
+
+		expect(shape.value).to.equal(3);
+		expect(EnumBeforeNamespace[3]).to.equal("Value");
+		expect(label).to.equal("Value");
+	});
+
 	it("should execute namespaces without exports", () => {
 		expect(namespaceEffects).to.equal(1);
 		expect(WithFunction.value()).to.equal(42);

@@ -23,7 +23,7 @@ function isDeclarationOfNamespace(declaration: ts.Declaration) {
 		return true;
 	} else if (ts.isFunctionDeclaration(declaration) && declaration.body) {
 		return true;
-	} else if (ts.isClassDeclaration(declaration)) {
+	} else if (ts.isClassDeclaration(declaration) || ts.isEnumDeclaration(declaration)) {
 		return true;
 	}
 	return false;
