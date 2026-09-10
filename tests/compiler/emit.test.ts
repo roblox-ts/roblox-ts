@@ -51,6 +51,16 @@ it("formats plain block comments without source indentation", () => {
 	expect(output.replace(/^-- Compiled with.*\n/, "")).toMatchSnapshot();
 });
 
+it("handles block comments longer than JavaScript's argument limit", () => {
+	const project = createTestProject();
+	const source = `/*\n${" content\n".repeat(150_000)}*/\nprint(1);`;
+
+	const output = project.compileSource(source);
+
+	expect(output.startsWith("-- Compiled with roblox-ts")).toBe(true);
+	expect(output.endsWith("\tcontent\n]]\nprint(1)\nreturn nil\n")).toBe(true);
+});
+
 it("keeps blank lines inside block comments", () => {
 	const project = createTestProject();
 	const output = project.compileSource("/**\n * first paragraph\n *\n * second paragraph\n */\nprint(1);");

@@ -20,7 +20,12 @@ export function getBlockCommentText(source: string) {
 	}
 
 	// remove the indentation shared by later lines, since the renderer indents them inside --[[ ]]
-	const indent = Math.min(...rest.filter(line => line !== "").map(line => line.length - line.trimStart().length));
+	let indent = Infinity;
+	for (const line of rest) {
+		if (line !== "") {
+			indent = Math.min(indent, line.length - line.trimStart().length);
+		}
+	}
 	rest = rest.map(line => line.slice(indent));
 
 	// drop the lines left empty by delimiters on their own lines, e.g. /** and */
