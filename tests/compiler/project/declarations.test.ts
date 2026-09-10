@@ -15,7 +15,7 @@ afterEach(() => fs.removeSync(directory));
 function rewrite(source: string, options: ts.CompilerOptions = { baseUrl: directory }) {
 	const file = ts.createSourceFile(path.join(directory, "index.d.ts"), source, ts.ScriptTarget.Latest, true);
 	const program = ts.createProgram([], options);
-	const result = ts.transform(file, [transformPaths(program)]);
+	const result = ts.transform(file, [transformPaths(program, {})]);
 	const output = ts.createPrinter().printFile(result.transformed[0] as ts.SourceFile);
 	result.dispose();
 	return output;
@@ -44,7 +44,7 @@ it("resolves paths without a baseUrl and preserves parent-relative imports", () 
 		'export { Shape } from "../parent";',
 		ts.ScriptTarget.Latest,
 	);
-	const result = ts.transform(file, [transformPaths(ts.createProgram([], { baseUrl: directory }))]);
+	const result = ts.transform(file, [transformPaths(ts.createProgram([], { baseUrl: directory }), {})]);
 
 	expect(ts.createPrinter().printFile(result.transformed[0] as ts.SourceFile)).toContain('from "../parent"');
 	result.dispose();
@@ -97,7 +97,7 @@ it.each([
 it("passes through declaration bundles", () => {
 	const source = ts.createSourceFile("index.d.ts", "export {};", ts.ScriptTarget.Latest);
 	const bundle = ts.factory.createBundle([source]);
-	const result = ts.transform(bundle, [transformPaths(ts.createProgram([], {}))]);
+	const result = ts.transform(bundle, [transformPaths(ts.createProgram([], {}), {})]);
 
 	expect(result.transformed[0]).toBe(bundle);
 	expect(transformTypeReferenceDirectives()(bundle)).toBe(bundle);

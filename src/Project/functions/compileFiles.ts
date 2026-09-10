@@ -195,7 +195,7 @@ export function compileFiles(
 		const afterDeclarations = [
 			...(pluginAfterDeclarations ?? []),
 			transformTypeReferenceDirectives,
-			transformPathsTransformer(program),
+			transformPathsTransformer(program, {}),
 		];
 		for (const { sourceFile } of fileWriteQueue) {
 			const result = proxyProgram.emit(
