@@ -99,7 +99,7 @@ export class MacroManager {
 	private constructorMacros = new Map<ts.Symbol, ConstructorMacro>();
 	private propertyCallMacros = new Map<ts.Symbol, PropertyCallMacro>();
 
-	constructor(typeChecker: ts.TypeChecker) {
+	constructor(private readonly typeChecker: ts.TypeChecker) {
 		for (const [name, macro] of Object.entries(IDENTIFIER_MACROS)) {
 			const symbol = getGlobalSymbolByNameOrThrow(typeChecker, name, ts.SymbolFlags.Variable);
 			this.identifierMacros.set(symbol, macro);
@@ -190,13 +190,12 @@ export class MacroManager {
 
 	public getPropertyCallMacro(symbol: ts.Symbol) {
 		const macro = this.propertyCallMacros.get(symbol);
-		if (
-			!macro &&
-			symbol.parent &&
-			this.symbols.get(symbol.parent.name) === symbol.parent &&
-			this.isMacroOnlyClass(symbol.parent)
-		) {
-			assert(false, `Macro ${symbol.parent.name}.${symbol.name}() is not implemented!`);
+		if (!macro && symbol.parent) {
+			// augmented interface members retain their original, unmerged parent symbol
+			const parent = this.typeChecker.getMergedSymbol(symbol.parent);
+			if (this.symbols.get(parent.name) === parent && this.isMacroOnlyClass(parent)) {
+				assert(false, `Macro ${parent.name}.${symbol.name}() is not implemented!`);
+			}
 		}
 		return macro;
 	}

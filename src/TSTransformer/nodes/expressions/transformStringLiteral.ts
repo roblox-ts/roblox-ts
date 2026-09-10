@@ -4,5 +4,6 @@ import { createStringFromLiteral } from "TSTransformer/util/createStringFromLite
 import ts from "typescript";
 
 export function transformStringLiteral(state: TransformState, node: ts.StringLiteral) {
-	return luau.string(createStringFromLiteral(node));
+	const quote = node.getText()[0] === "'" ? "'" : '"';
+	return luau.string(createStringFromLiteral(node), quote);
 }

@@ -10,6 +10,12 @@ interface TransformerBasePlugin {
 	afterDeclarations?: ts.TransformerFactory<ts.SourceFile | ts.Bundle>;
 }
 
+interface TransformerList {
+	before: Array<ts.TransformerFactory<ts.SourceFile>>;
+	after: Array<ts.TransformerFactory<ts.SourceFile>>;
+	afterDeclarations: Array<ts.TransformerFactory<ts.SourceFile | ts.Bundle>>;
+}
+
 type TransformerPlugin = TransformerBasePlugin | ts.TransformerFactory<ts.SourceFile>;
 
 type LSPattern = (ls: ts.LanguageService, config: unknown) => TransformerPlugin;
@@ -29,12 +35,7 @@ type RawPattern = (
 ) => ts.Transformer<ts.SourceFile>;
 
 type PluginFactory =
-	| LSPattern
-	| ProgramPattern
-	| ConfigPattern
-	| CompilerOptionsPattern
-	| TypeCheckerPattern
-	| RawPattern;
+	LSPattern | ProgramPattern | ConfigPattern | CompilerOptionsPattern | TypeCheckerPattern | RawPattern;
 
 function getTransformerFromFactory(factory: PluginFactory, config: TransformerPluginConfig, program: ts.Program) {
 	const { after, afterDeclarations, type, ...manualConfig } = config;
@@ -71,24 +72,16 @@ function getTransformerFromFactory(factory: PluginFactory, config: TransformerPl
 	return transformer;
 }
 
-export function flattenIntoTransformers(
-	transformers: ts.CustomTransformers,
-): Array<ts.TransformerFactory<ts.SourceFile | ts.Bundle>> {
-	const result: Array<ts.TransformerFactory<ts.SourceFile | ts.Bundle>> = [];
-	result.push(
-		...(transformers.after as Array<ts.TransformerFactory<ts.SourceFile | ts.Bundle>>),
-		...(transformers.before as Array<ts.TransformerFactory<ts.SourceFile | ts.Bundle>>),
-		...(transformers.afterDeclarations as Array<ts.TransformerFactory<ts.SourceFile | ts.Bundle>>),
-	);
-	return result;
+export function flattenIntoTransformers(transformers: TransformerList) {
+	return [...transformers.before, ...transformers.after];
 }
 
 export function createTransformerList(
 	program: ts.Program,
 	configs: Array<TransformerPluginConfig>,
 	baseDir: string,
-): ts.CustomTransformers {
-	const transforms: ts.CustomTransformers = {
+): TransformerList {
+	const transforms: TransformerList = {
 		before: [],
 		after: [],
 		afterDeclarations: [],
@@ -110,13 +103,13 @@ export function createTransformerList(
 			const transformer = getTransformerFromFactory(factory, config, program);
 			if (transformer) {
 				if (transformer.afterDeclarations) {
-					transforms.afterDeclarations?.push(transformer.afterDeclarations);
+					transforms.afterDeclarations.push(transformer.afterDeclarations);
 				}
 				if (transformer.after) {
-					transforms.after?.push(transformer.after);
+					transforms.after.push(transformer.after);
 				}
 				if (transformer.before) {
-					transforms.before?.push(transformer.before);
+					transforms.before.push(transformer.before);
 				}
 			}
 		} catch (err) {

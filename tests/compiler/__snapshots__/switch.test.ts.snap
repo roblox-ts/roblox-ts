@@ -1,0 +1,28 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`emits enum case values directly 1`] = `
+"local Kind = {
+	A = "A",
+	B = "B",
+}
+local function handle(value, enumAlias)
+	local _exp = value
+	repeat
+		if _exp == "missing" then
+			break
+		end
+		if _exp == Kind.A then
+			break
+		end
+		if _exp == Kind.B then
+			break
+		end
+		local _caseValue = enumAlias.B
+		if _exp == _caseValue then
+			break
+		end
+	until true
+end
+return nil
+"
+`;

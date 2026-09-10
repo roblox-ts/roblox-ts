@@ -1,4 +1,30 @@
 export = () => {
+	it("should stop tuple iterator spreads at the first nil return", () => {
+		const values = [false, 0] as const;
+		let calls = 0;
+		const iterator = (() => {
+			calls++;
+			assert(calls <= 3, "iterator was called after its first return became nil");
+			return $tuple(calls <= 2 ? values[calls - 1] : undefined, calls * 10);
+		}) as IterableFunction<LuaTuple<[boolean | number | undefined, number]>>;
+
+		const result = [...iterator];
+
+		expect(result.size()).to.equal(2);
+		expect(result[0][0]).to.equal(false);
+		expect(result[1][0]).to.equal(0);
+		expect(result[1][1]).to.equal(20);
+		expect(calls).to.equal(3);
+	});
+
+	it("should preserve omitted array elements at their written indices", () => {
+		const values = [1, , 3];
+
+		expect(values[0]).to.equal(1);
+		expect(values[1]).to.equal(undefined);
+		expect(values[2]).to.equal(3);
+	});
+
 	it("should support optional chain call on array index", () => {
 		let v: { onEnd: Array<(arg?: string) => void> } = {
 			onEnd: [
@@ -88,6 +114,42 @@ export = () => {
 			const a = [];
 			a[v] = 3; // shouldn't make a compiler error
 		}
+	});
+
+	it("should support numeric separators in element access", () => {
+		const values = new Array<number>();
+		values[10] = 123;
+		values[-10] = 456;
+		expect(values[1_0]).to.equal(123);
+		// prettier-ignore
+		expect(values[0x0_A]).to.equal(123);
+		expect(values[0b1_010]).to.equal(123);
+		expect(values[0o1_2]).to.equal(123);
+		expect(values[1_0.0_0e0_0]).to.equal(123);
+		expect(values[-1_0]).to.equal(456);
+	});
+
+	it("should support numeric separators in index arithmetic", () => {
+		const values = new Array<number>();
+		values[1] = 123;
+		values[10] = 456;
+		values[21] = 789;
+		let index = 11;
+		expect(values[index + 1_0]).to.equal(789);
+		expect(values[index - 1_0]).to.equal(123);
+		expect(values[index + -1_0]).to.equal(123);
+		expect(values[index - 0x0_1]).to.equal(456);
+	});
+
+	it("should support numeric separators in array method indices", () => {
+		const values = [1, 2, 3, 2];
+		values.insert(0x0_1, 9);
+		expect(values.join(",")).to.equal("1,9,2,3,2");
+		expect(values.remove(0x0_1)).to.equal(9);
+		expect(values.includes(2, 0b1_0)).to.equal(true);
+		expect(values.indexOf(2, 0b1_0)).to.equal(3);
+		values.move(0x0_1, 0b1_0, 0x0_0);
+		expect(values.join(",")).to.equal("2,3,3,2");
 	});
 
 	it("should support.size()", () => {
@@ -241,7 +303,7 @@ export = () => {
 	it("should support forEach", () => {
 		const bin = [1, 2, 3];
 		let str = "";
-		bin.forEach(v => (str += v));
+		expect(bin.forEach(v => (str += v))).to.equal(undefined);
 		expect(str).to.equal("123");
 	});
 
@@ -342,9 +404,16 @@ export = () => {
 	});
 
 	it("should allow spread 2", () => {
-		const c = [...[1], ...[2]];
-		expect(c[0]).to.equal(1);
-		expect(c[1]).to.equal(2);
+		const c = [0, ...[1], ...[2]];
+		expect(c[0]).to.equal(0);
+		expect(c[1]).to.equal(1);
+		expect(c[2]).to.equal(2);
+	});
+
+	it("should preserve elements between array and tuple iterator spreads", () => {
+		const chunks = [...[["a"]], ["b"], ..."cd".gmatch(".")];
+
+		expect(chunks.map(chunk => chunk[0]).join("")).to.equal("abcd");
 	});
 
 	it("should allow spread 3", () => {
@@ -446,6 +515,9 @@ export = () => {
 		expect(arr.size()).to.equal(7);
 		expect(arr[4]).to.equal(7);
 		expect(arr[6]).to.equal(6);
+		arr.unorderedRemove(0);
+		expect(arr.size()).to.equal(6);
+		expect(arr[0]).to.equal(6);
 	});
 
 	it("should support spreading non-apparent types", () => {

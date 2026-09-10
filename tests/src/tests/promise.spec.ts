@@ -1,4 +1,13 @@
 export = () => {
+	it("should lower Promise.then to andThen", () => {
+		const [success, value] = Promise.resolve(1)
+			.then(value => value + 1)
+			.await();
+
+		expect(success).to.equal(true);
+		expect(value).to.equal(2);
+	});
+
 	it("should allow async function declarations", () => {
 		async function foo() {
 			return "foo";
@@ -48,6 +57,22 @@ export = () => {
 		const [success, value] = X.bar().await();
 		expect(success).to.equal(true);
 		expect(value).to.equal("foobar");
+	});
+
+	it("should not run code after cancellation", () => {
+		let thread!: thread;
+
+		const foo = async function () {
+			thread = coroutine.running();
+			coroutine.yield();
+		};
+
+		const promise = foo();
+		promise.cancel();
+
+		const [success] = promise.await();
+		expect(success).to.equal(false);
+		expect(coroutine.status(thread) === "dead").to.equal(true);
 	});
 
 	it("should allow async class methods", () => {

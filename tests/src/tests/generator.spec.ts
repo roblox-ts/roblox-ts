@@ -1,4 +1,34 @@
 export = () => {
+	it("should distinguish a bare yield from completion", () => {
+		function* generate() {
+			yield;
+			return 42;
+		}
+
+		const iterator = generate();
+		const yielded = iterator.next();
+		expect(yielded.done).to.equal(false);
+		expect(yielded.value).to.equal(undefined);
+
+		const completed = iterator.next();
+		expect(completed.done).to.equal(true);
+		expect(completed.value).to.equal(42);
+	});
+
+	it("should support generator methods", () => {
+		class Counter {
+			constructor(private value: number) {}
+
+			*values() {
+				yield this.value;
+				yield ++this.value;
+			}
+		}
+
+		const values = [...new Counter(4).values()];
+		expect(values.join(",")).to.equal("4,5");
+	});
+
 	it("should support generator function declarations", () => {
 		function* foo() {
 			yield 1;

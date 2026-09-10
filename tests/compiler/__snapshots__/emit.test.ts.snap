@@ -1,0 +1,19 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`emits a module export 1`] = `
+"local message = "hello"
+return {
+	message = message,
+}
+"
+`;
+
+exports[`places Luau directives before the compiler header 1`] = `
+"--!strict
+--!native
+local value = 1
+return {
+	value = value,
+}
+"
+`;

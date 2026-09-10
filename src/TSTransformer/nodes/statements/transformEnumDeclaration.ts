@@ -3,6 +3,7 @@ import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
@@ -37,92 +38,105 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 		return luau.list.make<luau.Statement>();
 	}
 
-	validateIdentifier(state, node.name);
+	validateIdentifier(node.name);
 
 	const left = transformIdentifierDefined(state, node.name);
 	const isHoisted = symbol !== undefined && state.isHoisted.get(symbol) === true;
+	const statements = luau.list.make<luau.Statement>();
 
 	if (node.members.every(member => !needsInverseEntry(state, member))) {
+		const prereqs = new Prereqs();
 		const right = luau.map(
 			node.members.map(member => [
-				state.pushToVarIfComplex(transformPropertyName(state, member.name)),
+				prereqs.pushToVarIfComplex(transformPropertyName(state, prereqs, member.name)),
 				luau.string(state.typeChecker.getConstantValue(member) as string),
 			]),
 		);
-		return luau.list.make<luau.Statement>(
+		luau.list.pushList(statements, prereqs.statements);
+		luau.list.push(
+			statements,
 			isHoisted
 				? luau.create(luau.SyntaxKind.Assignment, { left, operator: "=", right })
 				: luau.create(luau.SyntaxKind.VariableDeclaration, { left, right }),
 		);
+		return statements;
 	}
 
-	const statements = state.capturePrereqs(() => {
-		const inverseId = state.pushToVar(luau.map(), "inverse");
-		state.prereq(
+	const enumStatements = luau.list.make<luau.Statement>();
+	const inverseId = luau.tempId("inverse");
+	luau.list.push(
+		enumStatements,
+		luau.create(luau.SyntaxKind.VariableDeclaration, { left: inverseId, right: luau.map() }),
+	);
+	luau.list.push(
+		enumStatements,
+		luau.create(luau.SyntaxKind.Assignment, {
+			left,
+			operator: "=",
+			right: luau.call(luau.globals.setmetatable, [luau.map(), luau.map([[luau.strings.__index, inverseId]])]),
+		}),
+	);
+
+	for (const member of node.members) {
+		const memberPrereqs = new Prereqs();
+		const name = transformPropertyName(state, memberPrereqs, member.name);
+		const index = expressionMightMutate(
+			state,
+			name,
+			ts.isComputedPropertyName(member.name) ? member.name.expression : member.name,
+		)
+			? // note: we don't use pushToVarIfComplex here
+				// because identifier also needs to be pushed
+				// since the value calculation might reassign the variable
+				memberPrereqs.pushToVar(name)
+			: name;
+
+		const value = state.typeChecker.getConstantValue(member);
+		let valueExp: luau.Expression;
+		if (typeof value === "string") {
+			valueExp = luau.string(value);
+		} else if (typeof value === "number") {
+			valueExp = luau.number(value);
+		} else {
+			// constantValue is always number without initializer, so assert is safe
+			assert(member.initializer);
+			valueExp = memberPrereqs.pushToVarIfComplex(
+				transformExpression(state, memberPrereqs, member.initializer),
+				"value",
+			);
+		}
+
+		luau.list.pushList(enumStatements, memberPrereqs.statements);
+		luau.list.push(
+			enumStatements,
 			luau.create(luau.SyntaxKind.Assignment, {
-				left,
+				left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+					expression: left,
+					index,
+				}),
 				operator: "=",
-				right: luau.call(luau.globals.setmetatable, [
-					luau.map(),
-					luau.map([[luau.strings.__index, inverseId]]),
-				]),
+				right: valueExp,
 			}),
 		);
 
-		for (const member of node.members) {
-			const name = transformPropertyName(state, member.name);
-			const index = expressionMightMutate(
-				state,
-				name,
-				ts.isComputedPropertyName(member.name) ? member.name.expression : member.name,
-			)
-				? // note: we don't use pushToVarIfComplex here
-					// because identifier also needs to be pushed
-					// since the value calculation might reassign the variable
-					state.pushToVar(name)
-				: name;
-
-			const value = state.typeChecker.getConstantValue(member);
-			let valueExp: luau.Expression;
-			if (typeof value === "string") {
-				valueExp = luau.string(value);
-			} else if (typeof value === "number") {
-				valueExp = luau.number(value);
-			} else {
-				// constantValue is always number without initializer, so assert is safe
-				assert(member.initializer);
-				valueExp = state.pushToVarIfComplex(transformExpression(state, member.initializer), "value");
-			}
-
-			state.prereq(
+		if (needsInverseEntry(state, member)) {
+			luau.list.push(
+				enumStatements,
 				luau.create(luau.SyntaxKind.Assignment, {
 					left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-						expression: left,
-						index,
+						expression: inverseId,
+						index: valueExp,
 					}),
 					operator: "=",
-					right: valueExp,
+					right: index,
 				}),
 			);
-
-			if (needsInverseEntry(state, member)) {
-				state.prereq(
-					luau.create(luau.SyntaxKind.Assignment, {
-						left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-							expression: inverseId,
-							index: valueExp,
-						}),
-						operator: "=",
-						right: index,
-					}),
-				);
-			}
 		}
-	});
-
-	const list = luau.list.make<luau.Statement>(luau.create(luau.SyntaxKind.DoStatement, { statements }));
-	if (!isHoisted) {
-		luau.list.unshift(list, luau.create(luau.SyntaxKind.VariableDeclaration, { left, right: undefined }));
 	}
-	return list;
+
+	luau.list.push(statements, luau.create(luau.SyntaxKind.DoStatement, { statements: enumStatements }));
+	if (!isHoisted) {
+		luau.list.unshift(statements, luau.create(luau.SyntaxKind.VariableDeclaration, { left, right: undefined }));
+	}
+	return statements;
 }

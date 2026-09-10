@@ -139,4 +139,282 @@ export = () => {
 		const str2 = `A string with a " and ' ending in a ]] ]=`;
 		expect(str2.size()).to.equal(41);
 	});
+
+	it("should support string indexing", () => {
+		const str1 = "Hello, world!";
+		expect(str1[0]).to.equal("H");
+		expect(str1[13]).to.equal(undefined);
+
+		const str2 = "I like 苺";
+		expect(str2[7]).to.equal(string.char(0xe8));
+
+		const str3 = "However, 西瓜 is awesome too";
+		expect(str3[9]).to.equal(string.char(0xe8));
+		expect(str3[16]).to.equal("i");
+
+		const str4 = "😂 that was fun!";
+		expect(str4[5]).to.equal("t");
+	});
+
+	it("should return undefined for invalid string indices", () => {
+		function read(value: string, index: number) {
+			return value[index];
+		}
+
+		expect(read("abc", -1)).to.equal(undefined);
+		expect(read("abc", -2)).to.equal(undefined);
+		expect(read("abc", -0.5)).to.equal(undefined);
+		expect(read("abc", 0.5)).to.equal(undefined);
+		expect(read("abc", 3)).to.equal(undefined);
+		expect(read("abc", math.huge)).to.equal(undefined);
+		expect(read("abc", -math.huge)).to.equal(undefined);
+		expect(read("abc", 0 / 0)).to.equal(undefined);
+		expect(read("", 0)).to.equal(undefined);
+		expect(read("abc", -0)).to.equal("a");
+		expect(read("abc", 2)).to.equal("c");
+		expect("abc"[-2]).to.equal(undefined);
+		expect("abc"[0.5]).to.equal(undefined);
+		expect("abc"[3] ?? "fallback").to.equal("fallback");
+	});
+
+	it("should index every UTF-8 byte including null bytes", () => {
+		const value = "🍓\0";
+
+		expect(value[0]).to.equal(string.char(0xf0));
+		expect(value[1]).to.equal(string.char(0x9f));
+		expect(value[2]).to.equal(string.char(0x8d));
+		expect(value[3]).to.equal(string.char(0x93));
+		expect(value[4]).to.equal(string.char(0));
+		expect(value[5]).to.equal(undefined);
+	});
+
+	it("should evaluate a string index call once", () => {
+		let calls = 0;
+		function getIndex() {
+			return calls++;
+		}
+
+		const value = "abcd"[getIndex()];
+
+		expect(value).to.equal("a");
+		expect(calls).to.equal(1);
+	});
+
+	it("should evaluate a string receiver before its index", () => {
+		let events = "";
+		function getValue() {
+			events += "s";
+			return "abc";
+		}
+		function getIndex() {
+			events += "i";
+			return 0;
+		}
+
+		const value = getValue()[getIndex()];
+
+		expect(value).to.equal("a");
+		expect(events).to.equal("si");
+	});
+
+	it("should preserve a string receiver when the index rebinds it", () => {
+		let value = "abc";
+		function getIndex() {
+			value = "xyz";
+			return 0;
+		}
+
+		const byte = value[getIndex()];
+
+		expect(byte).to.equal("a");
+		expect(value).to.equal("xyz");
+	});
+
+	it("should preserve receiver order before string index prerequisites", () => {
+		let index = 0;
+		function getValue() {
+			expect(index).to.equal(0);
+			return "abc";
+		}
+
+		const byte = getValue()[index++];
+
+		expect(byte).to.equal("a");
+		expect(index).to.equal(1);
+	});
+
+	it("should preserve side effects of discarded string indexing", () => {
+		let events = "";
+		function getValue() {
+			events += "s";
+			return "abc";
+		}
+		function getIndex() {
+			events += "i";
+			return 0;
+		}
+
+		getValue()[getIndex()];
+		expect(events).to.equal("si");
+
+		events = "";
+		getValue()[-1];
+		expect(events).to.equal("s");
+	});
+
+	it("should stop string indexing after a receiver error", () => {
+		let calls = 0;
+		function getValue(): string {
+			throw "receiver error";
+		}
+		function getIndex() {
+			calls++;
+			return 0;
+		}
+
+		const [success] = pcall(() => getValue()[getIndex()]);
+
+		expect(success).to.equal(false);
+		expect(calls).to.equal(0);
+	});
+
+	it("should index optional strings only when present", () => {
+		let calls = 0;
+		function getIndex() {
+			calls++;
+			return 0;
+		}
+		function read(value: string | undefined) {
+			return value?.[getIndex()];
+		}
+
+		expect(read(undefined)).to.equal(undefined);
+		expect(calls).to.equal(0);
+		expect(read("abc")).to.equal("a");
+		expect(calls).to.equal(1);
+		expect(read("")).to.equal(undefined);
+		expect(calls).to.equal(2);
+	});
+
+	it("should index string constraints and narrowed unions", () => {
+		function readGeneric<T extends string>(value: T, index: number) {
+			return value[index];
+		}
+		function readUnion(value: string | Array<string>) {
+			if (typeIs(value, "string")) {
+				return value[0];
+			}
+			return value[0];
+		}
+
+		expect(readGeneric("abc", 1)).to.equal("b");
+		expect(readUnion("abc")).to.equal("a");
+		expect(readUnion(["xyz"])).to.equal("xyz");
+	});
+
+	it("should support numeric string index keys", () => {
+		let calls = 0;
+		function getIndex(): "0" | "1" {
+			calls++;
+			return "1";
+		}
+		function read(index: "0" | "NaN") {
+			return "abc"[index];
+		}
+
+		expect("abc"["0"]).to.equal("a");
+		expect("abc"[getIndex()]).to.equal("b");
+		expect(calls).to.equal(1);
+		expect(read("0")).to.equal("a");
+		expect(read("NaN")).to.equal(undefined);
+	});
+
+	it("should use byte indexing for numeric object binding keys", () => {
+		const { 0: first, "1": second, 2: third, 3: missing = "fallback" } = "苺";
+
+		expect(first).to.equal(string.char(0xe8));
+		expect(second).to.equal(string.char(0x8b));
+		expect(third).to.equal(string.char(0xba));
+		expect(missing).to.equal("fallback");
+	});
+
+	it("should evaluate computed string object binding keys once", () => {
+		let calls = 0;
+		function getIndex() {
+			return calls++;
+		}
+
+		const { [getIndex()]: first, [getIndex()]: second } = "abc";
+
+		expect(first).to.equal("a");
+		expect(second).to.equal("b");
+		expect(calls).to.equal(2);
+	});
+
+	it("should use byte indexing for numeric object assignment keys", () => {
+		let first = "";
+		let second = "";
+		let index = 1;
+
+		({ 0: first, [index++]: second } = "苺");
+
+		expect(first).to.equal(string.char(0xe8));
+		expect(second).to.equal(string.char(0x8b));
+		expect(index).to.equal(2);
+	});
+
+	it("should terminate indexed string traversal at undefined", () => {
+		const value = "abc";
+		let result = "";
+
+		for (let index = 0; value[index] !== undefined; index++) {
+			result += value[index];
+		}
+
+		expect(result).to.equal(value);
+	});
+
+	it("should preserve escapes in strings containing both quote characters", () => {
+		expect("a\\b'\"c").to.equal(string.char(97, 92, 98, 39, 34, 99));
+		expect("a\u005cb'\"c").to.equal(string.char(97, 92, 98, 39, 34, 99));
+		expect("a'\"123").to.equal(string.char(97, 39, 34, 49, 50, 51));
+		// prettier-ignore
+		expect("a\
+b'\"c").to.equal(string.char(97, 98, 39, 34, 99));
+		// prettier-ignore
+		expect('a\\b\'"c').to.equal(string.char(97, 92, 98, 39, 34, 99));
+		expect("a\nb'\"c").to.equal(string.char(97, 10, 98, 39, 34, 99));
+		expect("a\r\nb'\"c").to.equal(string.char(97, 13, 10, 98, 39, 34, 99));
+		expect("a\0b'\"c").to.equal(string.char(97, 0, 98, 39, 34, 99));
+		expect("a\x01b'\"c").to.equal(string.char(97, 1, 98, 39, 34, 99));
+		expect("a\\\"'b").to.equal(string.char(97, 92, 34, 39, 98));
+	});
+
+	it("should preserve escaped strings in table keys and set members", () => {
+		const key = string.char(97, 92, 98, 39, 34, 99);
+		const object: { [key: string]: number } = { "a\\b'\"c": 1 };
+		expect(object[key]).to.equal(1);
+		expect(object["a\\b'\"c"]).to.equal(1);
+		expect(new Set(["a\\b'\"c"]).has(key)).to.equal(true);
+	});
+
+	it("should preserve decoded strings from tagged templates and enum constants", () => {
+		function tag(strings: TemplateStringsArray) {
+			return strings[0];
+		}
+		const enum Strings {
+			Mixed = "a\\b'\"c",
+		}
+		const expected = string.char(97, 92, 98, 39, 34, 99);
+		expect(tag`a\\b'"c`).to.equal(expected);
+		expect(Strings.Mixed).to.equal(expected);
+	});
+
+	it("should translate TypeScript-only escapes without changing their values", () => {
+		expect("\uD83D\uDE00").to.equal("😀");
+		expect("\\uD83D\\uDE00").to.equal(string.char(92) + "uD83D" + string.char(92) + "uDE00");
+		expect("\u{00000041}").to.equal("A");
+		// prettier-ignore
+		expect("\a\z\/\$\`\{\}").to.equal("az/$`{}");
+	});
 };
