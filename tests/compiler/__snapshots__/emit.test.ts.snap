@@ -7,3 +7,13 @@ return {
 }
 "
 `;
+
+exports[`places Luau directives before the compiler header 1`] = `
+"--!strict
+--!native
+local value = 1
+return {
+	value = value,
+}
+"
+`;

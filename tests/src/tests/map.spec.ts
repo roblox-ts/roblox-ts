@@ -1,4 +1,22 @@
 export = () => {
+	it("should iterate with omitted keys and assignment patterns", () => {
+		const map = new Map([["key", 42]]);
+		let defaults = 0;
+		for (const [, value = ++defaults] of map) {
+			expect(value).to.equal(42);
+		}
+		expect(defaults).to.equal(0);
+
+		let key = "";
+		let value = 0;
+		for ([key, value] of map) {
+			expect(key).to.equal("key");
+			expect(value).to.equal(42);
+		}
+		expect(key).to.equal("key");
+		expect(value).to.equal(42);
+	});
+
 	it("should support map constructor", () => {
 		const map = new Map([
 			["foo", 1],
@@ -53,7 +71,7 @@ export = () => {
 
 	it("should support clear", () => {
 		const map = new Map<string, number>().set("a", 1).set("b", 2).set("c", 3);
-		map.clear();
+		expect(map.clear()).to.equal(undefined);
 		expect(map.has("a")).to.equal(false);
 		expect(map.has("b")).to.equal(false);
 		expect(map.has("c")).to.equal(false);
@@ -70,7 +88,7 @@ export = () => {
 
 		const map = new Map<string, number>().set("a", 1).set("b", 2).set("c", 3);
 
-		map.forEach((value, key, obj) => {
+		const result = map.forEach((value, key, obj) => {
 			if (key === "a" && value === 1) {
 				hitA++;
 			} else if (key === "b" && value === 2) {
@@ -84,6 +102,8 @@ export = () => {
 		expect(hitA).to.equal(1);
 		expect(hitB).to.equal(1);
 		expect(hitC).to.equal(1);
+		expect(result).to.equal(undefined);
+		map.forEach((value, key) => expect(map.get(key)).to.equal(value));
 	});
 
 	it("should support constructor parameters", () => {

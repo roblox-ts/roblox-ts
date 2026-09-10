@@ -23,8 +23,8 @@ export function getKindName(kind: ts.SyntaxKind) {
 	if (kind === ts.SyntaxKind.FirstNode) return "QualifiedName";
 	if (kind === ts.SyntaxKind.FirstJSDocNode) return "JSDocTypeExpression";
 	if (kind === ts.SyntaxKind.FirstJSDocTagNode) return "JSDocTag";
-	if (kind === ts.SyntaxKind.LastJSDocTagNode) return "JSDocPropertyTag";
+	if (kind === ts.SyntaxKind.LastJSDocTagNode) return "JSDocImportTag";
 	if (kind === ts.SyntaxKind.FirstContextualKeyword) return "AbstractKeyword";
-	if (kind === ts.SyntaxKind.LastContextualKeyword) return "OfKeyword";
+	if (kind === ts.SyntaxKind.LastContextualKeyword) return "DeferKeyword";
 	return ts.SyntaxKind[kind];
 }

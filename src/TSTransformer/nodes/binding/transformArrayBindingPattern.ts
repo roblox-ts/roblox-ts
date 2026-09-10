@@ -5,7 +5,9 @@ import { transformObjectBindingPattern } from "TSTransformer/nodes/binding/trans
 import { transformVariable } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { getAccessorForBindingType } from "TSTransformer/util/binding/getAccessorForBindingType";
+import { effectsCommute, getEffects, UNKNOWN_EFFECTS } from "TSTransformer/util/evaluation/effects";
 import { getSpreadDestructorForType } from "TSTransformer/util/spreadDestructuring";
+import { isDefinitelyType, isIterableFunctionType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import ts from "typescript";
 
@@ -17,10 +19,19 @@ export function transformArrayBindingPattern(
 ) {
 	validateNotAnyType(state, bindingPattern);
 
+	const type = state.getType(bindingPattern);
+	if (
+		isDefinitelyType(type, isIterableFunctionType(state)) &&
+		!effectsCommute(getEffects(parentId), UNKNOWN_EFFECTS)
+	) {
+		// advancing an iterator can rebind its source before later elements read it
+		parentId = prereqs.pushToVar(parentId, "iterator");
+	}
+
 	let index = 0;
 	const idStack = new Array<luau.AnyIdentifier>();
-	const accessor = getAccessorForBindingType(state, bindingPattern, state.getType(bindingPattern));
-	const destructor = getSpreadDestructorForType(state, bindingPattern, state.getType(bindingPattern));
+	const accessor = getAccessorForBindingType(state, bindingPattern, type);
+	const destructor = getSpreadDestructorForType(state, bindingPattern, type);
 
 	for (const element of bindingPattern.elements) {
 		if (ts.isOmittedExpression(element)) {

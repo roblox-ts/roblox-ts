@@ -1,4 +1,62 @@
 export = () => {
+	it("should compare allocated case values by identity and preserve operand order", () => {
+		const events = new Array<string>();
+		function value() {
+			events.push("value");
+			return 1;
+		}
+		function key() {
+			events.push("key");
+			return "key";
+		}
+		function classify(input: unknown) {
+			switch (input) {
+				case () => 1:
+				case [1]:
+				case [value()]:
+				case new Set([1]):
+				case new Set([value()]):
+				case { key: 1 }:
+				case { [key()]: 1 }:
+				case { key: value() }:
+				case -1:
+				case -value():
+					return "matched";
+				default:
+					return "different";
+			}
+		}
+
+		expect(classify({ key: 1 })).to.equal("different");
+		expect(events.join(",")).to.equal("value,value,key,value,value");
+	});
+
+	it("should evaluate conditional case values against the original discriminant", () => {
+		let mutable = 1;
+		function classify(input: number) {
+			switch (input) {
+				case true ? 0 : 1:
+					return "zero";
+				case true ? mutable : 0:
+					return "first";
+				case false ? 0 : mutable + 1:
+					return "second";
+				// prettier-ignore
+				case (mutable + 2):
+					mutable = 10;
+					return "third";
+				default:
+					return "missing";
+			}
+		}
+
+		expect(classify(0)).to.equal("zero");
+		expect(classify(1)).to.equal("first");
+		expect(classify(2)).to.equal("second");
+		expect(classify(3)).to.equal("third");
+		expect(mutable).to.equal(10);
+	});
+
 	it("should support switch statements with fall through", () => {
 		function foo(s: string) {
 			switch (s) {

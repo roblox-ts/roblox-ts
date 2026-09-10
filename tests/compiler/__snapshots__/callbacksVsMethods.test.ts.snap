@@ -1,0 +1,132 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`class declarations honor explicit receivers 1`] = `
+"local Example
+do
+	Example = setmetatable({}, {
+		__tostring = function()
+			return "Example"
+		end,
+	})
+	Example.__index = Example
+	function Example.new(...)
+		local self = setmetatable({}, Example)
+		return self:constructor(...) or self
+	end
+	function Example:constructor()
+		self.value = 10
+	end
+	function Example.callback(value)
+		return value
+	end
+	function Example:method(value)
+		return self.value + value
+	end
+	function Example.staticCallback(value)
+		return value
+	end
+	function Example:staticMethod(value)
+		return self.staticCallback(value)
+	end
+end
+local object = Example.new()
+object.callback(123)
+object:method(123)
+Example.staticCallback(123)
+Example:staticMethod(123)
+return nil
+"
+`;
+
+exports[`documented non-void this overrides a callback signature 1`] = `
+"object:foo(123)
+return nil
+"
+`;
+
+exports[`documented void this overrides a method declaration 1`] = `
+"local object = {
+	foo = function(value)
+		return value
+	end,
+}
+object.foo(123)
+return nil
+"
+`;
+
+exports[`function declarations and expressions honor explicit receivers 1`] = `
+"local function callback(value)
+	return value
+end
+local function method(self, value)
+	return self.value + value
+end
+local callbackExpression = function(value)
+	return value
+end
+local methodExpression = function(self, value)
+	return self.value + value
+end
+local object = {
+	value = 10,
+	callback = callback,
+	method = method,
+	callbackExpression = callbackExpression,
+	methodExpression = methodExpression,
+}
+object.callback(123)
+object:method(123)
+object.callbackExpression(123)
+object:methodExpression(123)
+return nil
+"
+`;
+
+exports[`instantiated interface signatures honor explicit receivers 1`] = `
+"numbers.callback(123)
+numbers:method(123)
+strings.callback("value")
+strings:method("value")
+return nil
+"
+`;
+
+exports[`object literal declarations and expressions honor explicit receivers 1`] = `
+"local object = {
+	value = 10,
+	callback = function(value)
+		return value
+	end,
+	method = function(self, value)
+		return self.value + value
+	end,
+	callbackExpression = function(value)
+		return value
+	end,
+	methodExpression = function(self, value)
+		return self.value + value
+	end,
+}
+object.callback(123)
+object:method(123)
+object.callbackExpression(123)
+object:methodExpression(123)
+return nil
+"
+`;
+
+exports[`optional and indexed calls honor explicit receivers 1`] = `
+"object[callbackKey](123)
+object[methodKey](object, 123)
+local _result = optional
+if _result ~= nil then
+	_result.callback(123)
+end
+local _result_1 = optional
+if _result_1 ~= nil then
+	_result_1:method(123)
+end
+return nil
+"
+`;

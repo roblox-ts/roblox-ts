@@ -1,4 +1,13 @@
 export = () => {
+	it("should lower Promise.then to andThen", () => {
+		const [success, value] = Promise.resolve(1)
+			.then(value => value + 1)
+			.await();
+
+		expect(success).to.equal(true);
+		expect(value).to.equal(2);
+	});
+
 	it("should allow async function declarations", () => {
 		async function foo() {
 			return "foo";

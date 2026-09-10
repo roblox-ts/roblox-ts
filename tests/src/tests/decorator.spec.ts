@@ -1,4 +1,30 @@
 export = () => {
+	it("should initialize decorators with undecorated trailing parameters", () => {
+		const events = new Array<string>();
+		function classDecorator() {
+			events.push("class initializer");
+			return (target: defined) => {
+				events.push("class decorator");
+			};
+		}
+		function parameterDecorator() {
+			events.push("parameter initializer");
+			return (target: defined, key: string | undefined, index: number) => {
+				events.push(`parameter ${index}`);
+			};
+		}
+		@classDecorator()
+		class Empty {}
+		@classDecorator()
+		class Value {
+			constructor(value: number) {}
+			method(@parameterDecorator() first: number, second: number) {}
+		}
+		expect(events.join(",")).to.equal(
+			"class initializer,class decorator,parameter initializer,parameter 0,class initializer,class decorator",
+		);
+	});
+
 	it("should support static parameter decorators", () => {
 		let buzz: string | undefined;
 

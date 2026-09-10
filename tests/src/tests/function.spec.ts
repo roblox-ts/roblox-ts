@@ -23,6 +23,35 @@ namespace N {
 }
 
 export = () => {
+	it("should destructure nested rest parameters without defaults", () => {
+		function add(...[[first], { second }]: [[number], { second: number }]) {
+			return first + second;
+		}
+
+		expect(add([1], { second: 2 })).to.equal(3);
+	});
+
+	it("should preserve a constrained generic callback in an object property", () => {
+		function call<T extends () => number>(callback: T) {
+			const object: { callback: () => number } = { callback };
+			return object.callback();
+		}
+
+		expect(call(() => 42)).to.equal(42);
+	});
+
+	it("should preserve omitted rest parameters and evaluate defaults lazily", () => {
+		let defaults = 0;
+		function read(...[, value = ++defaults]: [number, number?]) {
+			return value;
+		}
+
+		expect(read(10, 42)).to.equal(42);
+		expect(defaults).to.equal(0);
+		expect(read(10)).to.equal(1);
+		expect(defaults).to.equal(1);
+	});
+
 	it("should support function declarations", () => {
 		function foo() {
 			return true;

@@ -1,7 +1,9 @@
 import luau from "@roblox-ts/luau-ast";
-import { assert } from "Shared/util/assert";
+import { errors } from "Shared/diagnostics";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { TransformState } from "TSTransformer/classes/TransformState";
+import { getAddIterableToArrayBuilder } from "TSTransformer/util/getAddIterableToArrayBuilder";
 import { spreadDestructureArray } from "TSTransformer/util/spreadDestructuring/spreadDestructureArray";
 import { spreadDestructureGenerator } from "TSTransformer/util/spreadDestructuring/spreadDestructureGenerator";
 import { spreadDestructureMap } from "TSTransformer/util/spreadDestructuring/spreadDestructureMap";
@@ -11,6 +13,8 @@ import {
 	isArrayType,
 	isDefinitelyType,
 	isGeneratorType,
+	isIterableFunctionType,
+	isIterableType,
 	isMapType,
 	isSetType,
 	isStringType,
@@ -42,7 +46,21 @@ export function getSpreadDestructorForType(state: TransformState, node: ts.Node,
 		return spreadDestructureString;
 	}
 
-	return () => {
-		assert(false, "Spread Destructuring not supported for type: " + state.typeChecker.typeToString(type));
+	return (prereqs, parentId) => {
+		if (!isDefinitelyType(type, isIterableFunctionType(state))) {
+			DiagnosticService.addDiagnostic(
+				isDefinitelyType(type, isIterableType(state))
+					? errors.noIterableIteration(node)
+					: errors.noUnsupportedIteration(node),
+			);
+			return luau.none();
+		}
+
+		// iterator functions retain the position advanced by preceding bindings
+		const restId = prereqs.pushToVar(luau.array(), "rest");
+		const lengthId = prereqs.pushToVar(luau.number(0), "length");
+		const addIterable = getAddIterableToArrayBuilder(state, node, type);
+		prereqs.pushList(addIterable(prereqs, parentId, restId, lengthId, 0, false));
+		return restId;
 	};
 }

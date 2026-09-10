@@ -1,0 +1,150 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`captures iterators before nested defaults can reassign them 1`] = `
+"local _binding = iterator
+local _binding_1 = { _binding() }
+local first = _binding_1[1]
+local value = _binding_1[2]
+if value == nil then
+	iterator = replacement
+	local _ = iterator
+	value = 99
+end
+local second = { _binding() }
+local _rest = {}
+local _length = 0
+local _iterFunc = _binding
+while true do
+	local _results = { _iterFunc() }
+	if _results[1] == nil then
+		break
+	end
+	_length += 1
+	_rest[_length] = _results
+end
+local rest = _rest
+print(first, value, second, rest)
+return nil
+"
+`;
+
+exports[`captures reassignable iterators before preceding bindings 1`] = `
+"local calls = 0
+local iterator
+iterator = (function()
+	calls += 1
+	iterator = (function()
+		error("replacement iterator")
+	end)
+	return if calls <= 3 then calls else nil
+end)
+local _iterator = iterator
+local first = _iterator()
+local second = _iterator()
+local _rest = {}
+local _length = 0
+for _result in _iterator do
+	_length += 1
+	_rest[_length] = _result
+end
+local rest = _rest
+print(first, second, rest)
+return nil
+"
+`;
+
+exports[`captures rest assignment targets before collecting LuaTuple<[number, string]> iterators 1`] = `
+"local _binding = iterator
+local _exp = target()
+local _index = key() + 1
+local _rest = {}
+local _length = 0
+local _iterFunc = _binding
+while true do
+	local _results = { _iterFunc() }
+	if _results[1] == nil then
+		break
+	end
+	_length += 1
+	_rest[_length] = _results
+end
+_exp[_index] = _rest
+return nil
+"
+`;
+
+exports[`captures rest assignment targets before collecting number iterators 1`] = `
+"local _binding = iterator
+local _exp = target()
+local _index = key() + 1
+local _rest = {}
+local _length = 0
+for _result in _binding do
+	_length += 1
+	_rest[_length] = _result
+end
+_exp[_index] = _rest
+return nil
+"
+`;
+
+exports[`collects iterator rest bindings with fixed tuples after preceding elements 1`] = `
+"local first = { iterator() }
+iterator()
+local _rest = {}
+local _length = 0
+local _iterFunc = iterator
+while true do
+	local _results = { _iterFunc() }
+	if _results[1] == nil then
+		break
+	end
+	_length += 1
+	_rest[_length] = _results
+end
+local rest = _rest
+return {
+	first = first,
+	rest = rest,
+}
+"
+`;
+
+exports[`collects iterator rest bindings with single values after preceding elements 1`] = `
+"local first = iterator()
+iterator()
+local _rest = {}
+local _length = 0
+for _result in iterator do
+	_length += 1
+	_rest[_length] = _result
+end
+local rest = _rest
+return {
+	first = first,
+	rest = rest,
+}
+"
+`;
+
+exports[`collects iterator rest bindings with variadic tuples after preceding elements 1`] = `
+"local first = { iterator() }
+iterator()
+local _rest = {}
+local _length = 0
+local _iterFunc = iterator
+while true do
+	local _results = { _iterFunc() }
+	if _results[1] == nil then
+		break
+	end
+	_length += 1
+	_rest[_length] = _results
+end
+local rest = _rest
+return {
+	first = first,
+	rest = rest,
+}
+"
+`;

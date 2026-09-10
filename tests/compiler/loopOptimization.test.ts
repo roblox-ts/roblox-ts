@@ -36,6 +36,12 @@ describe("fallback", () => {
 		["multiplicative step", "for (let i = 1; i < 4; i *= 2) { print(i); }"],
 		["negated identifier bound", "const limit = 3; for (let i = 0; i > -limit; i--) { print(i); }"],
 		["nonmutating unary incrementor", "for (let i = 0; i < 3; -i) { print(i); break; }"],
+		[
+			"tuple iterator assignment target",
+			`declare const iterator: IterableFunction<LuaTuple<[number | undefined, number]>>;
+			let pair: LuaTuple<[number | undefined, number]>;
+			for (pair of iterator) { print(pair[1]); }`,
+		],
 		["unsafe integer bound", "for (let i = 0; i < 9007199254740992; i++) { print(i); break; }"],
 		["wrong step direction", "for (let i = 3; i < 0; i--) { print(i); }"],
 		["zero step", "for (let i = 0; i < 1; i += 0) { print(i); break; }"],
