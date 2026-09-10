@@ -157,6 +157,21 @@ it("stops emission when a transformer reports an error", () => {
 	expect(fs.existsSync(fixture.file("out/game/index.luau"))).toBe(false);
 });
 
+it.each([false, true])("keeps original source when a plugin returns a bundle (after=%s)", after => {
+	fixture.project("game");
+	expectSuccess(fixture.createBuild().build());
+	const expected = fixture.read("out/game/init.luau");
+
+	fixture.project("game", [], { plugins: [{ transform: "./plugin.js", after }] });
+	fixture.write(
+		"game/plugin.js",
+		"module.exports = (program, config, { ts }) => () => source => ts.factory.createBundle([source]);",
+	);
+
+	expectSuccess(fixture.createBuild().build());
+	expect(fixture.read("out/game/init.luau")).toBe(expected);
+});
+
 it.each(["// @ts-ignore\n", "// @ts-expect-error\n", "// @ts-nocheck\n", "// @ts-nocheck\n// @ts-nocheck\n"])(
 	"rejects forbidden comment directives %j",
 	directive => {
