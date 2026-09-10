@@ -1,7 +1,7 @@
 interface HasMethod {
-	method(): void;
+	method(a: string): void;
 }
 
 const obj: HasMethod = {
-	method(this: void) {},
+	method(this: void, a) {},
 };

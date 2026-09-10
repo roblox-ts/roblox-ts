@@ -1,8 +1,8 @@
 interface HasMethod {
-	method(): void;
+	method(a: string): void;
 }
 
-function method() {}
+function method(a: string) {}
 
 const obj: HasMethod = {
 	method,
