@@ -1,4 +1,5 @@
 import { errors } from "Shared/diagnostics";
+import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
@@ -22,7 +23,10 @@ function isMethodInner(state: TransformState, node: ts.Node, type: ts.Type) {
 	for (const callSignature of type.getCallSignatures()) {
 		const thisParameter = callSignature.thisParameter;
 		if (thisParameter) {
-			const thisType = state.typeChecker.getTypeOfSymbolAtLocation(thisParameter, node);
+			const thisDeclaration = thisParameter.valueDeclaration;
+			assert(thisDeclaration);
+			// generic implementations keep the same receiver slot in every instantiation
+			const thisType = state.getType(thisDeclaration);
 			if (!(thisType.flags & ts.TypeFlags.Void)) {
 				hasMethodDefinition = true;
 			} else {

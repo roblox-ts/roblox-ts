@@ -38,6 +38,26 @@ return nil
 "
 `;
 
+exports[`direct generic calls supply an undefined receiver 1`] = `
+"local callback = function(self, value)
+	return value + 1
+end
+callback(nil, 41)
+local optional = (function()
+	return callback
+end)()
+local _result = optional
+if _result ~= nil then
+	_result(nil, 41)
+end
+local function generic(self, value)
+	return value + 1
+end
+generic(nil, 41)
+return nil
+"
+`;
+
 exports[`documented non-void this overrides a callback signature 1`] = `
 "object:foo(123)
 return nil
@@ -83,16 +103,88 @@ return nil
 "
 `;
 
-exports[`generic receiver instantiations stay distinct when the callback comes first 1`] = `
-"object.callback(123)
+exports[`generic callback aliases keep their receiver after instantiation 1`] = `
+"local function make()
+	local callback = function(self, value)
+		return value + 1
+	end
+	return {
+		callback = callback,
+	}
+end
+local object = make()
+object:callback(41)
+return nil
+"
+`;
+
+exports[`generic classes keep their receiver after instantiation 1`] = `
+"local Example
+do
+	Example = setmetatable({}, {
+		__tostring = function()
+			return "Example"
+		end,
+	})
+	Example.__index = Example
+	function Example.new(...)
+		local self = setmetatable({}, Example)
+		return self:constructor(...) or self
+	end
+	function Example:constructor()
+	end
+	function Example:method(value)
+		return value + 1
+	end
+end
+local object = Example.new()
+object:method(41)
+object.method(object, 41)
+local _self = object
+local _result = _self.method
+if _result ~= nil then
+	_result(_self, 41)
+end
+local optional = (function()
+	return object
+end)()
+local _result_1 = optional
+if _result_1 ~= nil then
+	_result_1:method(41)
+end
+return nil
+"
+`;
+
+exports[`generic factories keep their receivers after instantiation 1`] = `
+"local function make()
+	local callback = function(self, value)
+		return value + 1
+	end
+	return {
+		callback = callback,
+		method = function(self, value)
+			return value + 1
+		end,
+	}
+end
+local object = make()
+object:callback(41)
+object:method(41)
+return nil
+"
+`;
+
+exports[`generic receiver declarations stay consistent when the callback comes first 1`] = `
+"object:callback(123)
 object:method(123)
 return nil
 "
 `;
 
-exports[`generic receiver instantiations stay distinct when the method comes first 1`] = `
+exports[`generic receiver declarations stay consistent when the method comes first 1`] = `
 "object:method(123)
-object.callback(123)
+object:callback(123)
 return nil
 "
 `;

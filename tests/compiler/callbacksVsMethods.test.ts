@@ -20,6 +20,18 @@ it.each([
 		`,
 	},
 	{
+		name: "direct generic calls supply an undefined receiver",
+		source: `
+			type Callable<T> = (this: T, value: number) => number;
+			const callback: Callable<void> = value => value + 1;
+			callback(41);
+			const optional: Callable<void> | undefined = (() => callback)();
+			optional?.(41);
+			function generic<T>(this: T, value: number) { return value + 1; }
+			generic<void>(41);
+		`,
+	},
+	{
 		name: "documented non-void this overrides a callback signature",
 		source: `
 			declare const object: {
@@ -53,7 +65,48 @@ it.each([
 		`,
 	},
 	{
-		name: "generic receiver instantiations stay distinct when the callback comes first",
+		name: "generic callback aliases keep their receiver after instantiation",
+		source: `
+			type Callable<T> = (this: T, value: number) => number;
+			function make<T>() {
+				const callback: Callable<T> = value => value + 1;
+				return { callback };
+			}
+			const object = make<void>();
+			object.callback(41);
+		`,
+	},
+	{
+		name: "generic classes keep their receiver after instantiation",
+		source: `
+			class Example<T> {
+				method(this: T, value: number) { return value + 1; }
+			}
+			const object = new Example<void>();
+			object.method(41);
+			object["method"](41);
+			object.method?.(41);
+			const optional: typeof object | undefined = (() => object)();
+			optional?.method(41);
+		`,
+	},
+	{
+		name: "generic factories keep their receivers after instantiation",
+		source: `
+			function make<T>() {
+				const callback: (this: T, value: number) => number = value => value + 1;
+				return {
+					callback,
+					method(this: T, value: number) { return value + 1; },
+				};
+			}
+			const object = make<void>();
+			object.callback(41);
+			object.method(41);
+		`,
+	},
+	{
+		name: "generic receiver declarations stay consistent when the callback comes first",
 		source: `
 			type Callable<T> = (this: T, value: number) => number;
 			declare const object: { callback: Callable<void>; method: Callable<{ value: number }>; value: number };
@@ -62,7 +115,7 @@ it.each([
 		`,
 	},
 	{
-		name: "generic receiver instantiations stay distinct when the method comes first",
+		name: "generic receiver declarations stay consistent when the method comes first",
 		source: `
 			type Callable<T> = (this: T, value: number) => number;
 			declare const object: { callback: Callable<void>; method: Callable<{ value: number }>; value: number };
