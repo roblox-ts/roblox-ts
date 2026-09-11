@@ -868,6 +868,14 @@ const MAP_METHODS: MacroList<PropertyCallMacro> = {
 	},
 };
 
+const WEAK_REF_METHODS: MacroList<PropertyCallMacro> = {
+	deref: (state, node, expression) =>
+		luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+			expression: convertToIndexableExpression(expression),
+			index: luau.number(1),
+		}),
+};
+
 const PROMISE_METHODS: MacroList<PropertyCallMacro> = {
 	then: (state, prereqs, node, expression, args) =>
 		luau.create(luau.SyntaxKind.MethodCallExpression, {
@@ -898,6 +906,7 @@ export const PROPERTY_CALL_MACROS: { [className: string]: MacroList<PropertyCall
 	ReadonlyMap: READONLY_MAP_METHODS,
 	Map: MAP_METHODS,
 	Promise: PROMISE_METHODS,
+	WeakRef: WEAK_REF_METHODS,
 };
 
 // comment logic
