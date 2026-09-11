@@ -6,178 +6,79 @@ changes to literal spelling matter even when execution is equivalent.
 
 ## Working agreements
 
-- Carry authorized work through implementation, validation, and review. Make routine, reversible decisions without
-  repeatedly asking for confirmation. Ask when missing information materially changes the outcome or authorization.
-- Keep work local unless publication is requested. “Keep everything local” includes no pushes, PRs, GitHub comments,
-  reviews, merges, or releases. Continue within authorization already given in the current task.
-- Check the branch, worktree, and existing diff before editing. Preserve unrelated work. Use an isolated worktree
-  when comparing branches, and preserve a checkpoint before a risky refactor or rebase.
-- Read the relevant callers, helpers, and tests before changing a transform. Trace a reproducer from TypeScript
-  source through emitted Luau to runtime behavior. Verify historical assumptions against the current checkout.
-- Keep changes focused. Extract shared logic where it has real callers; avoid speculative abstractions, unrelated
-  dependency upgrades, broad documentation rewrites, and incidental formatting changes.
-- Report the outcome, relevant validation, and any remaining limitations plainly. Prefer concrete examples over
-  jargon or elaborate headings. Distinguish observed results from assumptions.
+- Complete the requested scope through applicable implementation, validation, and final diff review. Fix failures
+  introduced by the change. If blocked, finish independent work and report the specific blocker and unfinished validation.
+- Make routine, reversible decisions without asking again. Ask when missing information materially changes the
+  outcome or authorization and cannot be inferred from the request or existing context.
+- Keep work local unless the user authorizes the relevant external action: pushing, opening a PR, posting a GitHub
+  comment or review, merging a PR, or publishing a release. Local reviews, isolated checkouts, and temporary merges for
+  validation are allowed within the requested task. Continue within authorization already given.
+- Check the branch, worktree, and existing diff before editing. Preserve unrelated work. Use isolated worktrees
+  when building, running, or modifying multiple revisions; read-only diffs do not require one. Preserve a checkpoint
+  before a risky refactor or rebase.
+- Keep changes focused. Extract shared logic where it has real callers. Avoid speculative abstractions, unrelated
+  dependency upgrades, and incidental formatting changes.
 
-## Repository map
+## Finding the relevant code
 
-The main pipeline is TypeScript source → TypeScript AST/type checker → Luau AST → rendered Luau.
+The pipeline is TypeScript source → TypeScript AST/type checker → Luau AST → rendered Luau.
+`src/CLI/` handles commands; `src/Project/` coordinates compilation; `src/TSTransformer/` lowers syntax and macros;
+`src/Shared/` owns options, diagnostics, and shared utilities; `include/` contains runtime support.
 
-| Area                                                | Responsibility and useful entry points                                                                                                                                                                                             |
-| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/CLI/`                                          | Argument parsing and terminal behavior. `cli.ts` loads commands; `commands/build.ts` drives normal and watch builds. Shared compilation behavior belongs in Project.                                                               |
-| `src/Project/`                                      | Configuration, program creation, plugins, Rojo/path resolution, copying, cleanup, and emission. Start with `functions/compileFiles.ts`.                                                                                            |
-| `src/Project/classes/VirtualProject.ts`             | In-memory compilation used by the playground and compiler snapshots, backed by `VirtualFileSystem.ts`. Preserve this path alongside filesystem builds.                                                                             |
-| `src/Project/functions/setupProjectWatchProgram.ts` | Incremental builds and file lifecycle. Also inspect `createProgramFactory.ts` and `getChangedFilePaths.ts` for invalidation and dependent files.                                                                                   |
-| `src/TSTransformer/nodes/`                          | Syntax lowering. `transformSourceFile.ts` handles module wrapping; `expressions/transformExpression.ts` and `statements/transformStatement.ts` dispatch by syntax kind. Binding, class, and JSX transforms have their own folders. |
-| `src/TSTransformer/classes/`                        | `TransformState` owns per-file transformation context; `Prereqs` owns an explicit statement destination; `MultiTransformState` owns caches for one compilation; `MacroManager` binds macros to TypeScript symbols.                 |
-| `src/TSTransformer/macros/`                         | Identifier, constructor, call, and property-call macros. Array, map, set, string, and Roblox arithmetic methods are expanded here.                                                                                                 |
-| `src/TSTransformer/util/`                           | Shared lowering rules: evaluation order, type classification, truthiness, imports, assignments, tuples, and string conversion.                                                                                                     |
-| `src/Shared/`                                       | Options and defaults, diagnostic factories, errors, logging, and common utilities.                                                                                                                                                 |
-| `include/`                                          | Shipped Luau runtime support: `RuntimeLib.lua` and the bundled `Promise.lua`. Helpers requested through `state.TS(...)` must agree with this runtime.                                                                              |
-| `tests/compiler/`                                   | Node/Jest tests for compilation, diagnostics, and exact emitted output.                                                                                                                                                            |
-| `tests/src/`                                        | A separate roblox-ts project containing TestEZ runtime tests, diagnostic fixtures, and supporting modules.                                                                                                                         |
-| `.github/workflows/`                                | Build, lint, runtime tests, playground compatibility, template-project integration, and publishing.                                                                                                                                |
+Use the references that apply to the task:
 
-Luau AST construction and rendering live in the separate `@roblox-ts/luau-ast` package. Filesystem translation and
-Rojo resolution likewise come from `@roblox-ts/path-translator` and `@roblox-ts/rojo-resolver`. Fix issues at the
-appropriate layer; verify a dependency release is available before relying on its new API.
+- For setup or test execution, use [CONTRIBUTING.md](CONTRIBUTING.md#running-tests). For new regressions, use its
+  [test guidance](CONTRIBUTING.md#writing-regression-tests).
+- For unfamiliar compiler boundaries, use the [pipeline map](docs/compiler.md#pipeline-and-entry-points).
+  For prerequisite placement, use [evaluation order](docs/compiler.md#prerequisites-and-evaluation-order).
+- For macro operands or temporary elimination, use [macro evaluation](docs/macro-evaluation.md).
+  For value counts, strings, imports, state, or upgrades, use the matching section of the [compiler guide](docs/compiler.md).
+- For compile-time performance work, use the [benchmark guidance](docs/compiler.md#compiler-performance).
 
-`CONTRIBUTING.md` explains development setup. Prefer current implementation and configuration when older subsystem
-READMEs disagree. Read versions and scripts from `package.json`, tool pins from `foreman.toml`, and CI behavior from
-the workflows rather than assuming a remembered version or command.
+Read the relevant callers, helpers, and tests when changing behavior. Trace a compiler reproducer from TypeScript
+through emitted Luau to runtime behavior. Prefer current implementation and configuration when older READMEs disagree.
+Use `package.json` for scripts and versions, `foreman.toml` for tool pins, and `.github/workflows/` for CI behavior.
 
-When adding a compiler option, check `src/Shared/types.ts`, `DEFAULT_PROJECT_OPTIONS` in `src/Shared/constants.ts`,
-CLI flags, and VirtualProject together. Plugin changes also need the reprint/rebind path in `compileFiles.ts`:
-transformed TypeScript nodes cannot be assumed to retain valid symbol or type information.
+## Compiler quality and validation
 
-## Setup and validation
-
-Run commands from the repository root. The compiler and `tests/` have separate npm dependencies.
-
-| Command                                                                   | Purpose                                                                                                                                             |
-| ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `npm ci`                                                                  | Install the root dependencies from the lockfile on a fresh checkout.                                                                                |
-| `npm run update-test-types`                                               | Install/refresh the test project's compiler types and Roblox types, as CI does. This can change test package metadata; review that diff separately. |
-| `rokit install`                                                           | Install the pinned Rojo/Lune tools described in the contributor guide and `foreman.toml`.                                                           |
-| `npm run build`                                                           | Build the compiler's TypeScript project references with `tspc -b`, including the configured path transforms.                                        |
-| `npm run build-watch`                                                     | Rebuild compiler sources while editing.                                                                                                             |
-| `npm run test-compile`                                                    | Run Jest with coverage, check snapshots and diagnostics, and compile the runtime test project.                                                      |
-| `npm run test-compile -- tests/compiler/strings.test.ts`                  | Example of running one compiler test file.                                                                                                          |
-| `npm run test-compile -- tests/compiler/strings.test.ts --updateSnapshot` | Update that suite's snapshots for an intentional emit change. Review the generated diff.                                                            |
-| `npm run test-rojo`                                                       | Build `tests/test.rbxl` from the compiled test project.                                                                                             |
-| `npm run test-run`                                                        | Execute that place's TestEZ tests through Lune.                                                                                                     |
-| `npm test`                                                                | Build → all Jest tests → Rojo → Lune. Use for compiler/runtime behavior changes.                                                                    |
-| `npm run eslint`                                                          | Run lint with zero warnings allowed.                                                                                                                |
-| `git diff --check`                                                        | Check patch whitespace before finishing.                                                                                                            |
-
-Build before validating compiler changes. A focused snapshot run does **not** refresh the complete runtime output;
-run `tests/compiler/compile.test.ts` or the full Jest suite before running Rojo and Lune separately. Inspect generated
-files under `tests/out/`, but change their TypeScript sources rather than editing the output.
-
-For documentation-only changes, check formatting, paths, and the diff; a compiler test run is unnecessary. For
-behavior changes, run focused regressions while iterating, then `npm test` and lint. Repeat or broaden checks only
-when a change, failure, or unresolved concern warrants it. Never report an unrun check as passing.
-
-If dependency setup fails, inspect the actual npm error and installed test types before diagnosing a compiler bug.
-Test dependencies include Git sources; npm versions that require explicit Git permission may need
-`--allow-git=root` on the relevant install command. Roblox type recognition uses declaration paths, so symlinking
-`tests/node_modules` from another worktree can change behavior; install or copy dependencies into that worktree.
-
-## Regression tests
-
-- Prefer programs users can write. Add runtime cases to `tests/src/tests/*.spec.ts` and supporting files to
-  `tests/src/helpers/` or the relevant existing fixture folder. Follow neighboring TestEZ tests. Cover evaluation
-  order with observable side effects, not just the final value.
-- Add invalid-source cases to `tests/src/diagnostics/<diagnosticName>.ts`, or `.1.ts`, `.2.ts`, etc. The harness resolves
-  the name against `errors` in `src/Shared/diagnostics.ts` and requires the expected diagnostic without unrelated ones.
-- For output quality, use `createTestProject()` from `tests/compiler/createTestProject.ts` and snapshot the complete
-  `compileSource()` result, removing only the compiler version header as existing suites do. Keep subject-specific
-  suites in `tests/compiler/`; reusable TypeScript input fixtures go in `tests/compiler/fixtures/`.
-- Runtime assertions establish behavior; snapshots establish exact spelling, parentheses, and temporary placement.
-  Add both when both can regress. A snapshot alone does not prove the output parses or runs.
-- Keep snapshot cases alphabetized by test name to match Jest's snapshot ordering. Let Jest generate `.snap` files;
-  review every intentional change instead of manually arranging snapshots or accepting updates blindly.
-- Confirm a regression test exercises the original bug, preferably by demonstrating failure before the fix. Avoid
-  tests coupled to private analysis structures or fabricated internal states just to increase coverage.
-- Check `codecov.yml` for the patch coverage requirement, currently 95%. Prefer covering remaining branches through
-  source-level runtime cases. When pursuing 100%, investigate apparently unreachable branches rather than inventing
-  an internal-only test or weakening the threshold. Check existing coverage before adding redundant cases.
-
-Lune runs a Roblox simulation with shims in `tests/runTestsWithLune.lua`; it does not establish full engine behavior.
-For an engine-specific issue, verify the actual API and use an appropriate Roblox integration check.
-
-## Compiler invariants and common traps
-
-- **Prerequisites and evaluation order:** Pass an explicit `Prereqs` collector to transforms that emit caller
-  prerequisites. Create a separate `new Prereqs()` for each statement destination, then attach its `.statements`
-  to the appropriate branch, loop, or enclosing list. `prereqs.push()` / `prereqs.pushList()` append to that
-  collector. Pass the intended collector explicitly through callbacks instead of closing over an outer one.
-  Statement transforms return their complete statement lists, with any prerequisite collectors kept local.
-  Assemble final output in plain Luau lists; append each collector after its collection phase is complete,
-  since `luau.list.pushList()` consumes the appended list. Thin forwarding helpers may return `.statements` directly.
-  Keep prerequisites in the correct branch, loop iteration, and source evaluation order. Start with
-  `ensureTransformOrder.ts`, `transformWritable.ts`, and `transformCallExpression.ts` when changing destinations.
-  Calls also pass through `transformOptionalChain.ts`.
-- **Macro operands:** Macros can reorder, repeat, or discard inputs and invoke callbacks. Removing a temporary needs
-  evidence that reads, writes, receiver rebinding, errors, conditional execution, and allocation identity remain
-  correct. A simple identifier can still be mutable. Inspect both used-result and statement-only forms.
-- **Luau value counts:** Multiple returns, `LuaTuple`, varargs, and zero-return calls are context-sensitive.
-  Parentheses can intentionally force one value or `nil`: `tonumber(foo())` can error if `foo` returns no values.
-  Preserve the contracts in `wrapReturnIfLuaTuple.ts` and `fixVoidArgumentsForRobloxFunctions`.
-- **Truthiness and indexing:** Luau treats `0` and `""` as truthy. Use the shared truthiness helpers for TypeScript
-  conditions. TypeScript arrays need index offsets; numeric keys on ordinary objects do not. Reuse the type and
-  indexing helpers rather than applying either rule by syntax alone.
-- **Types and state:** Use symbol identity and existing union/intersection/constraint helpers. Keep TypeScript
-  node/type/symbol caches within their program or compilation lifetime. Preserve diagnostics and their locations
-  when caching results. `DiagnosticService` is shared mutable state and must be flushed at compilation boundaries.
-- **Strings:** Use `createStringFromLiteral.ts` for source literals, including template parts and string-named
-  imports/exports through the existing transform helpers. Preserve written escapes with `node.getText()`; decoded `node.text`
-  can lose spelling or change escape meaning. `luau.string()` receives escaped content; it is not a general-purpose
-  TypeScript string escaper. Avoid double escaping. Check the renderer contract when changing delimiters or spacing.
-- **Modules and projects:** Import/export changes affect type-only elision, aliases, mutable exports, re-exports,
-  package entry points, and Rojo network/isolation rules. Trace `createImportExpression.ts`, the import/export
-  transforms, `transformSourceFile.ts`, and TransformState's module mappings together.
-- **Optimizations:** Prove eligibility before emitting optimized code and retain the fallback. For loops, test both
-  `optimizedLoops` settings: Luau numeric-for bounds are evaluated once, which can differ from a TypeScript condition.
-- **Upgrades:** Keep TypeScript and the `@types/ts-expose-internals` alias aligned. The alias intentionally targets the
-  maintained `@roblox-ts/ts-expose-internals` fork. Test newly accepted syntax as well as old cases, inspect emitted
-  Luau, and exercise parsing/runtime behavior; a green pre-existing suite can miss a new syntax path.
+- Preserve source evaluation order, branch and loop placement of prerequisites, and Luau value counts. An identifier
+  can be mutable; parentheses and temporaries can be required for correctness. Preserve written string escapes through
+  the existing literal helpers. The compiler guide describes these contracts and their implementation entry points.
+- Prefer source-level runtime regressions in `tests/src/`, diagnostics for invalid source, and exact-emit snapshots
+  in `tests/compiler/` for output quality. Add runtime assertions and snapshots when both behavior and emit can regress.
+- For compiler or runtime behavior changes, build before focused validation, run focused regressions while iterating,
+  then run `npm test` and `npm run eslint` on the final code. `npm test` includes the build, Jest, Rojo, and Lune stages.
+- A focused snapshot run does **not** refresh the complete runtime output. Before running Rojo and Lune separately,
+  compile the runtime project with `tests/compiler/compile.test.ts` or the full Jest suite.
+- For documentation-only changes, check formatting, referenced paths, and the diff. Compiler tests are unnecessary.
+  Repeat or broaden completed checks only when subsequent changes, failures, or unresolved concerns require it.
+- Meet the patch coverage requirement in `codecov.yml`. Prefer source-level regressions and investigate uncovered
+  branches without fabricating internal states or weakening the threshold. Check existing coverage before adding cases.
 
 ## Code and comment style
 
-- Follow `.prettierrc`, `.editorconfig`, and `eslint.config.ts`: tabs, double quotes, semicolons, trailing commas,
-  and `Array<T>` / `ReadonlyArray<T>`. Source imports use project aliases such as `TSTransformer/...` and `Shared/...`;
-  relative imports are allowed in `tests/compiler/`. Let the import sorter arrange imports.
-- Always use braces for `if`, `else`, and loop bodies, including single-line early returns and `continue` or `break`
-  statements. Keep ordinary `else if` chains without an extra enclosing block.
-- Use blank lines to separate logical segments within functions, such as setup, validation, traversal, and result
-  handling. Keep closely related statements together and comments adjacent to the code they explain. Apply the
-  same grouping to test setup, actions, and assertions; avoid both dense walls of code and a blank line after every statement.
-- New or edited comments start lowercase unless the first identifier is capitalized, and have no ending
-  punctuation. Explain **why**, a non-obvious invariant, or a concrete edge case; avoid narrating obvious code.
-- Preserve useful existing explanations such as the zero-return `tonumber(foo())` example. Describe current
-  behavior, not the implementation removed by the patch. Avoid decorative separators and abstract pseudocode blocks.
-- Favor readable stages and well-named helpers. A sequence of `text = text.replace(...)` steps can be clearer than
-  one dense regex or chain. Measure a suspected performance cost before sacrificing maintainability.
-- Use narrowing or optional chaining when absence is valid; use assertions when an invariant has been established.
-  Do not add non-null assertions merely to suppress uncertainty about a TypeScript API.
+Follow `.prettierrc`, `.editorconfig`, and `eslint.config.ts` for formatting, imports, and lint rules. Preserve these
+additional conventions in new or edited code:
+
+- Always use braces for `if`, `else`, and loop bodies, including single-line early returns, `continue`, and `break`.
+  Keep ordinary `else if` chains without an extra enclosing block.
+- Separate logical stages with blank lines in functions and tests. Keep closely related statements together and
+  comments adjacent to the code they explain.
+- Comments start lowercase unless the first identifier is capitalized, and have no ending punctuation. Explain why,
+  a non-obvious invariant, or an edge case. Preserve useful explanations and describe current behavior.
+- Favor readable stages and well-named helpers. Measure a suspected performance cost before sacrificing maintainability.
+  Use narrowing or optional chaining when absence is valid, and assertions for established invariants; do not add
+  non-null assertions merely to suppress uncertainty.
 - Keep generated output (`out/`, `tests/out/`, `tests/include/`, coverage, and `.rbxl` files) out of source changes.
-  Keep this guide focused on durable repository guidance; `CLAUDE.md` contains only `@AGENTS.md`.
+  Edit TypeScript test sources, not their generated Luau. `CLAUDE.md` contains only `@AGENTS.md`.
 
-## Reviews, performance work, and PRs
+## Reporting and PRs
 
-Review the final diff as a maintainer would: source behavior, exact emit, diagnostics, regressions, and readability.
-For a bug finding, provide a concrete trigger, consequence, and precise code location. Keep local reports and
-experiments local when requested.
+Report the outcome, relevant validation, and remaining limitations plainly. Distinguish observed results from
+assumptions; never report an unrun check as passing. For a bug finding, give a concrete trigger, consequence, and
+precise code location.
 
-For compiler performance work, compare the same source and dependencies with clean, rebuilt compiler versions.
-Separate cold/warm and incremental runs, repeat measurements, and distinguish compile time from generated-program
-runtime. Use a representative project when available, inspect before/after emit, and profile before optimizing
-unrelated hot paths. Do not claim a meaningful speedup from timing noise. Split unrelated optimizations into
-independently reviewable PRs based on the repository's actual target branch.
-
-When a PR is requested, keep its title and description brief and specific to the final change. Explain the problem
-and resulting behavior, add a small before/after Luau example when useful, and state relevant validation. For a
-non-obvious algorithm, use a short concrete walkthrough such as `array.push(value())`. Update the description when
-scope changes. Identify an unreleased dependency prerequisite and keep dependent work draft until it is available.
+When a PR is requested, keep its title and description brief and specific to the final change. Explain the problem,
+resulting behavior, and relevant validation. Include a small before/after Luau example or concrete walkthrough when
+useful. Update the description when scope changes. Identify unreleased dependency prerequisites and keep dependent
+work draft until they are available.
