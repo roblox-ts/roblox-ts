@@ -1,11 +1,34 @@
 import { errors } from "Shared/diagnostics";
-import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { skipUpwards } from "TSTransformer/util/traversal";
 import { walkTypes } from "TSTransformer/util/types";
 import ts from "typescript";
+
+function containsInstantiableType(type: ts.Type): boolean {
+	if (type.isUnionOrIntersection()) {
+		return type.types.some(containsInstantiableType);
+	}
+	return !!(type.flags & ts.TypeFlags.Instantiable);
+}
+
+function canChangeReceiverConvention(state: TransformState, type: ts.Type) {
+	if (!containsInstantiableType(type)) {
+		return false;
+	}
+
+	// a fixed non-void union member keeps the instantiated union from becoming void
+	if (
+		type.isUnion() &&
+		type.types.some(t => !(t.flags & (ts.TypeFlags.Void | ts.TypeFlags.Never)) && !containsInstantiableType(t))
+	) {
+		return false;
+	}
+
+	const constraint = state.typeChecker.getBaseConstraintOfType(type);
+	return !constraint || state.typeChecker.isTypeAssignableTo(state.typeChecker.getVoidType(), constraint);
+}
 
 function isMethodDeclaration(node: ts.SignatureDeclaration | ts.JSDocSignature): boolean {
 	if (ts.isMethodDeclaration(node) || ts.isMethodSignature(node)) {
@@ -23,10 +46,14 @@ function isMethodInner(state: TransformState, node: ts.Node, type: ts.Type) {
 	for (const callSignature of type.getCallSignatures()) {
 		const thisParameter = callSignature.thisParameter;
 		if (thisParameter) {
-			const thisDeclaration = thisParameter.valueDeclaration;
-			assert(thisDeclaration);
-			// generic implementations keep the same receiver slot in every instantiation
-			const thisType = state.getType(thisDeclaration);
+			const thisType = state.typeChecker.getTypeOfSymbolAtLocation(thisParameter, node);
+			if (canChangeReceiverConvention(state, thisType)) {
+				DiagnosticService.addDiagnosticWithCache(
+					node,
+					errors.noUnstableThisType(node),
+					state.multiTransformState.isReportedByNoUnstableThisType,
+				);
+			}
 			if (!(thisType.flags & ts.TypeFlags.Void)) {
 				hasMethodDefinition = true;
 			} else {

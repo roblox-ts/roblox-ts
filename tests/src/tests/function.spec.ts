@@ -23,10 +23,17 @@ namespace N {
 }
 
 export = () => {
-	it("should preserve generic receiver declarations through instantiation", () => {
+	it("should honor instantiated void receivers", () => {
 		type Callable<T> = (this: T, value: number) => number;
+		function original(value: number) {
+			return value + 1;
+		}
+		const assigned: Callable<void> = original;
 		const callback: Callable<void> = value => value + 1;
+		const plain: (value: number) => number = callback;
+		expect(assigned(41)).to.equal(42);
 		expect(callback(41)).to.equal(42);
+		expect(plain(41)).to.equal(42);
 
 		const object: { value: number; callback: Callable<void>; method: Callable<{ value: number }> } = {
 			value: 10,
@@ -47,13 +54,13 @@ export = () => {
 	});
 
 	it("should preserve receivers in instantiated generic classes", () => {
-		class Example<T> {
+		class Example<T extends defined> {
 			method(this: T, value: number) {
 				return value + 1;
 			}
 		}
 
-		const object = new Example<void>();
+		const object = new Example<defined>();
 		const optional: typeof object | undefined = (() => object)();
 		expect(object.method(41)).to.equal(42);
 		expect(object["method"](41)).to.equal(42);
@@ -62,7 +69,7 @@ export = () => {
 	});
 
 	it("should preserve receivers in methods returned from generic factories", () => {
-		function make<T>() {
+		function make<T extends defined>() {
 			return {
 				method(this: T, value: number) {
 					return value + 1;
@@ -70,40 +77,66 @@ export = () => {
 			};
 		}
 
-		const object = make<void>();
+		const object = make<defined>();
 		expect(object.method(41)).to.equal(42);
 	});
 
 	it("should preserve receivers in callbacks returned from generic factories", () => {
-		function make<T>() {
+		function make<T extends defined>() {
 			const callback: (this: T, value: number) => number = value => value + 1;
 			return { callback };
 		}
 
-		const object = make<void>();
+		const object = make<defined>();
 		expect(object.callback(41)).to.equal(42);
 	});
 
 	it("should preserve receivers in generic callback aliases", () => {
 		type Callable<T> = (this: T, value: number) => number;
-		function make<T>() {
+		function make<T extends defined>() {
 			const callback: Callable<T> = value => value + 1;
 			return { callback };
 		}
 
-		const object = make<void>();
+		const object = make<defined>();
 		expect(object.callback(41)).to.equal(42);
 	});
 
-	it("should supply an undefined receiver to direct generic calls", () => {
-		function callback<T>(this: T, value: number) {
+	it("should supply an undefined receiver to direct receiver calls", () => {
+		function callback(this: defined | void, value: number) {
 			expect(this).to.equal(undefined);
 			return value + 1;
 		}
 
-		expect(callback<void>(41)).to.equal(42);
+		expect(callback(41)).to.equal(42);
 		const optional: typeof callback | undefined = (() => callback)();
-		expect(optional?.<void>(41)).to.equal(42);
+		expect(optional?.(41)).to.equal(42);
+
+		const adapted: (this: void, value: number) => number = value => callback(value);
+		expect(adapted(41)).to.equal(42);
+	});
+
+	it("should allow generic factories with explicit void receivers", () => {
+		function make<T>(result: T) {
+			const callback: (this: void) => T = () => result;
+			return { callback };
+		}
+
+		const object = make(42);
+		expect(object.callback()).to.equal(42);
+	});
+
+	it("should preserve generic receivers with a fixed non-void union member", () => {
+		function make<T>() {
+			return {
+				method(this: T | defined, value: number) {
+					return value + 1;
+				},
+			};
+		}
+
+		const object = make<void>();
+		expect(object.method(41)).to.equal(42);
 	});
 
 	it("should evaluate direct generic callees before their arguments", () => {

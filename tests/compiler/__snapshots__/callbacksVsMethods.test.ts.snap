@@ -38,22 +38,27 @@ return nil
 "
 `;
 
-exports[`direct generic calls supply an undefined receiver 1`] = `
-"local callback = function(self, value)
+exports[`direct calls distinguish void and optional receivers 1`] = `
+"local function original(value)
 	return value + 1
 end
-callback(nil, 41)
+local assigned = original
+assigned(41)
+local callback = function(value)
+	return value + 1
+end
+callback(41)
 local optional = (function()
 	return callback
 end)()
 local _result = optional
 if _result ~= nil then
-	_result(nil, 41)
+	_result(41)
 end
-local function generic(self, value)
+local function method(self, value)
 	return value + 1
 end
-generic(nil, 41)
+method(nil, 41)
 return nil
 "
 `;
@@ -175,16 +180,16 @@ return nil
 "
 `;
 
-exports[`generic receiver declarations stay consistent when the callback comes first 1`] = `
-"object:callback(123)
+exports[`generic receiver instantiations stay distinct when the callback comes first 1`] = `
+"object.callback(123)
 object:method(123)
 return nil
 "
 `;
 
-exports[`generic receiver declarations stay consistent when the method comes first 1`] = `
+exports[`generic receiver instantiations stay distinct when the method comes first 1`] = `
 "object:method(123)
-object:callback(123)
+object.callback(123)
 return nil
 "
 `;

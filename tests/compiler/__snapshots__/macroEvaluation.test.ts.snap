@@ -295,7 +295,7 @@ if _result ~= nil then
 	local _fn = _result.SetAttribute
 	local _exp = { 1 }
 	local _arg0 = function()
-		object.SetAttribute = function() end
+		object.SetAttribute = function(self) end
 		return 7
 	end
 	-- ▼ ReadonlyArray.map ▼
