@@ -62,13 +62,14 @@ const MACRO_ONLY_CLASSES = new Set<string>([
 	SYMBOL_NAMES.String,
 ]);
 
-function getFirstDeclarationOrThrow<T extends ts.Node>(symbol: ts.Symbol, check: (value: ts.Node) => value is T): T {
+function getConstructorInterface(typeChecker: ts.TypeChecker, name: string) {
+	const symbol = getGlobalSymbolByNameOrThrow(typeChecker, name, ts.SymbolFlags.Interface);
 	for (const declaration of symbol.declarations ?? []) {
-		if (check(declaration)) {
+		if (ts.isInterfaceDeclaration(declaration)) {
 			return declaration;
 		}
 	}
-	throw new ProjectError("");
+	throw new ProjectError(`MacroManager could not find interface for ${name}` + TYPES_NOTICE);
 }
 
 function getGlobalSymbolByNameOrThrow(typeChecker: ts.TypeChecker, name: string, meaning: ts.SymbolFlags) {
@@ -112,8 +113,7 @@ export class MacroManager {
 		}
 
 		for (const [className, macro] of Object.entries(CONSTRUCTOR_MACROS)) {
-			const symbol = getGlobalSymbolByNameOrThrow(typeChecker, className, ts.SymbolFlags.Interface);
-			const interfaceDec = getFirstDeclarationOrThrow(symbol, ts.isInterfaceDeclaration);
+			const interfaceDec = getConstructorInterface(typeChecker, className);
 			const constructSymbol = getConstructorSymbol(interfaceDec);
 			this.constructorMacros.set(constructSymbol, macro);
 		}
@@ -153,9 +153,9 @@ export class MacroManager {
 			}
 		}
 
-		const luaTupleTypeDec = this.symbols
-			.get(SYMBOL_NAMES.LuaTuple)
-			?.declarations?.find(v => ts.isTypeAliasDeclaration(v));
+		const luaTupleTypeDec = this.getSymbolOrThrow(SYMBOL_NAMES.LuaTuple).declarations?.find(v =>
+			ts.isTypeAliasDeclaration(v),
+		);
 		if (luaTupleTypeDec) {
 			const nominalLuaTupleSymbol = typeChecker
 				.getTypeAtLocation(luaTupleTypeDec)
