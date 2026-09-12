@@ -133,6 +133,23 @@ it.each([
 		`,
 	},
 	{
+		name: "super calls distinguish callbacks and methods",
+		source: `
+			declare class Base {
+				static callback: (this: void, value: number) => number;
+				static method(value: number): number;
+			}
+			class Derived extends Base {
+				static run() {
+					super.callback(41);
+					super["callback"](41);
+					super.method(41);
+					super["method"](41);
+				}
+			}
+		`,
+	},
+	{
 		name: "synthetic callback signatures from evolving arrays have no receiver",
 		declarations: "interface Array<T> { push<U>(callback: () => (value: number) => U): number; }",
 		source: `
