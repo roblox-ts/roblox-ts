@@ -511,9 +511,9 @@ export = () => {
 	it("should support Array.unorderedRemove", () => {
 		const arr = [0, 1, 2, 3, 4, 5, 6, 7];
 		let i = 2;
-		let value: number;
 
 		expect(arr.unorderedRemove((i *= 2))).to.equal(4);
+		expect(i).to.equal(4);
 		expect(arr.size()).to.equal(7);
 		expect(arr[4]).to.equal(7);
 		expect(arr[6]).to.equal(6);

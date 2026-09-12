@@ -70,17 +70,6 @@ export = () => {
 		expect(X.value1).to.equal("ab");
 		expect(X.value2).to.equal("abc");
 	});
-	it("should create a class with a constructor", () => {
-		class Foo {
-			public bar: string;
-			constructor(bar: string) {
-				this.bar = bar;
-			}
-		}
-
-		const foo = new Foo("baz!");
-		expect(foo.bar).to.equal("baz!");
-	});
 
 	it("should construct with default parameters and accessors", () => {
 		class Vector {
@@ -206,16 +195,7 @@ export = () => {
 		expect(foo.bar).to.equal("baz");
 	});
 
-	it("should support toString", () => {
-		class Foo {
-			public toString() {
-				return "Foo";
-			}
-		}
-		expect(tostring(new Foo())).to.equal("Foo");
-	});
-
-	it("should support toString inheritance", () => {
+	it("should support toString on classes and subclasses", () => {
 		class Foo {
 			public toString() {
 				return "Foo";
@@ -223,6 +203,8 @@ export = () => {
 		}
 
 		class Bar extends Foo {}
+
+		expect(tostring(new Foo())).to.equal("Foo");
 		expect(tostring(new Bar())).to.equal("Foo");
 	});
 

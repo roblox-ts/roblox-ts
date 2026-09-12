@@ -2,7 +2,7 @@ import chokidar from "chokidar";
 import { setupProjectWatchProgram } from "Project/functions/setupProjectWatchProgram";
 import ts from "typescript";
 
-import { expectSuccess, ReferenceFixture } from "./referenceFixture";
+import { ReferenceFixture } from "./referenceFixture";
 
 let fixture: ReferenceFixture;
 beforeEach(() => {
@@ -57,12 +57,13 @@ it("propagates unexpected transformer exceptions while watching", async () => {
 	return source;
 };`,
 	);
-	expectSuccess(fixture.createBuild().build());
-	const output = fixture.read("out/game/init.luau");
 	const { events, watch } = createWatch();
 
 	try {
 		events.emit("ready");
+		expect(ts.sys.write).toHaveBeenCalledWith(expect.stringContaining("Found 0 errors"));
+		const output = fixture.read("out/game/init.luau");
+
 		fixture.write("game/src/index.ts", "export const value = 2;");
 		events.emit("change", fixture.file("game/src/index.ts"));
 
