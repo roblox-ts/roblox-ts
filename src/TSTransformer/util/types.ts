@@ -200,8 +200,8 @@ export function isRobloxType(state: TransformState): TypeCheck {
 	const typesPath = path.join(state.data.nodeModulesPath, RBXTS_SCOPE, "types");
 	return type =>
 		type.symbol?.declarations?.some(d => {
-			const filePath = d.getSourceFile()?.fileName;
-			return filePath !== undefined && isPathDescendantOf(filePath, typesPath);
+			const filePath = d.getSourceFile().fileName;
+			return isPathDescendantOf(filePath, typesPath);
 		}) ?? false;
 }
 

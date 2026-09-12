@@ -1,3 +1,4 @@
+import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import { checkVariableHoist } from "TSTransformer/util/checkVariableHoist";
 import ts from "typescript";
@@ -12,12 +13,11 @@ export function arrayBindingPatternContainsHoists(
 		// For those cases, the hoisting logic is handled elsewhere and the variable here will be a tempId.
 		if (ts.isBindingElement(element) && ts.isIdentifier(element.name)) {
 			const symbol = state.typeChecker.getSymbolAtLocation(element.name);
-			if (symbol) {
-				// isHoisted is marked inside checkVariableHoist
-				checkVariableHoist(state, element.name, symbol);
-				if (state.isHoisted.get(symbol)) {
-					return true;
-				}
+			assert(symbol);
+			// isHoisted is marked inside checkVariableHoist
+			checkVariableHoist(state, element.name, symbol);
+			if (state.isHoisted.get(symbol)) {
+				return true;
 			}
 		}
 	}
