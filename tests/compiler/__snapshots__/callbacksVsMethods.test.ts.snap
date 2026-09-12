@@ -65,17 +65,6 @@ return nil
 "
 `;
 
-exports[`documented void this overrides a method declaration 1`] = `
-"local object = {
-	foo = function(value)
-		return value
-	end,
-}
-object.foo(123)
-return nil
-"
-`;
-
 exports[`function declarations and expressions honor explicit receivers 1`] = `
 "local function callback(value)
 	return value

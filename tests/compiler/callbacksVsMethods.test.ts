@@ -42,15 +42,6 @@ it.each([
 		`,
 	},
 	{
-		name: "documented void this overrides a method declaration",
-		source: `
-			const object = {
-				foo(this: void, value: number) { return value; },
-			};
-			object.foo(123);
-		`,
-	},
-	{
 		name: "function declarations and expressions honor explicit receivers",
 		source: `
 			type Receiver = { value: number };

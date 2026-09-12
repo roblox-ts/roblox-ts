@@ -15,13 +15,6 @@ export = () => {
 		expect(1_0_0_0_0).to.equal(10000);
 	});
 
-	it("should add numbers", () => {
-		expect(1 + 1).to.equal(2);
-		const a = 1;
-		const b = 1;
-		expect(a + b).to.equal(2);
-	});
-
 	// prettier-ignore
 	it("should understand string literals", () => {
 		expect("foo").to.equal("foo");

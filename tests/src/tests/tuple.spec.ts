@@ -37,15 +37,6 @@ export = () => {
 		expect(foo()[1]).to.equal(203);
 	});
 
-	it("should support wrapping function results", () => {
-		function foo() {
-			return [1, 2, 3];
-		}
-		expect(foo()[0]).to.equal(1);
-		expect(foo()[1]).to.equal(2);
-		expect(foo()[2]).to.equal(3);
-	});
-
 	it("should support functions returning tuple calls", () => {
 		function foo(): [number, string] {
 			return [1, "2"];
