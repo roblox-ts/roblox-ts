@@ -125,6 +125,25 @@ export = () => {
 		expect(object.method(41)).to.equal(42);
 	});
 
+	it("should preserve generic receivers that exclude void", () => {
+		function make<T>() {
+			return {
+				method(this: Exclude<T, void>, value: number) {
+					return value + 1;
+				},
+				wrapped(this: [T] extends [void] ? never : T, value: number) {
+					return value + 1;
+				},
+			};
+		}
+
+		const object = make<defined | void>();
+		expect(object.method(41)).to.equal(42);
+		expect(object["method"](41)).to.equal(42);
+		expect(object.method?.(41)).to.equal(42);
+		expect(object.wrapped(41)).to.equal(42);
+	});
+
 	it("should evaluate direct generic callees before their arguments", () => {
 		type Callable<T> = (this: T, ...values: Array<number>) => number;
 		const order = new Array<string>();

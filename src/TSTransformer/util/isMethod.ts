@@ -3,7 +3,7 @@ import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { skipUpwards } from "TSTransformer/util/traversal";
-import { walkTypes } from "TSTransformer/util/types";
+import { getTypeArguments, walkTypes } from "TSTransformer/util/types";
 import ts from "typescript";
 
 function containsInstantiableType(type: ts.Type): boolean {
@@ -24,6 +24,31 @@ function canChangeReceiverConvention(state: TransformState, type: ts.Type) {
 		type.types.some(t => !(t.flags & (ts.TypeFlags.Void | ts.TypeFlags.Never)) && !containsInstantiableType(t))
 	) {
 		return false;
+	}
+
+	if (type.flags & ts.TypeFlags.Conditional) {
+		const conditionalType = type as ts.ConditionalType;
+		const { root } = conditionalType;
+		let checkType = root.checkType;
+		let extendsType = conditionalType.extendsType;
+		// singleton tuples suppress distribution without changing the void test
+		if (state.typeChecker.isTupleType(checkType) && state.typeChecker.isTupleType(extendsType)) {
+			const checkElements = getTypeArguments(state, checkType);
+			const extendsElements = getTypeArguments(state, extendsType);
+			if (checkElements.length === 1 && extendsElements.length === 1) {
+				checkType = checkElements[0];
+				extendsType = extendsElements[0];
+			}
+		}
+
+		// a conditional that removes void can still have an unconstrained fallback type
+		if (
+			state.typeChecker.getTypeFromTypeNode(root.node.trueType).flags & ts.TypeFlags.Never &&
+			state.typeChecker.getTypeFromTypeNode(root.node.falseType) === checkType &&
+			state.typeChecker.isTypeAssignableTo(state.typeChecker.getVoidType(), extendsType)
+		) {
+			return false;
+		}
 	}
 
 	const constraint = state.typeChecker.getBaseConstraintOfType(type);
