@@ -219,7 +219,7 @@ export const macroEvaluationCases = [
 			declare const object: {
 				SetAttribute(name: string, value: number): void;
 			} | undefined;
-			object?.SetAttribute("value", [1].map(() => { object!.SetAttribute = () => { }; return 7; })[0]);
+			object?.SetAttribute("value", [1].map(() => { object!.SetAttribute = function(this: defined) { }; return 7; })[0]);
 		`,
 	},
 	{

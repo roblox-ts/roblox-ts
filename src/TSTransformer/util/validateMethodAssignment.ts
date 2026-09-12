@@ -2,6 +2,8 @@ import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { isMethodFromType } from "TSTransformer/util/isMethod";
+import { isValidMethodIndexWithoutCall } from "TSTransformer/util/isValidMethodIndexWithoutCall";
+import { skipDownwards, skipUpwards } from "TSTransformer/util/traversal";
 import { walkTypes } from "TSTransformer/util/types";
 import ts from "typescript";
 
@@ -23,6 +25,29 @@ function validateTypes(state: TransformState, node: ts.Node, baseType: ts.Type, 
 				DiagnosticService.addDiagnostic(errors.expectedFunctionGotMethod(node));
 			}
 		}
+	}
+}
+
+export function validateMethodExpression(state: TransformState, node: ts.Expression, type: ts.Type) {
+	const parent = skipUpwards(node).parent;
+	// object literal members are checked together with their contextual property types
+	if (ts.isPropertyAssignment(parent) || ts.isShorthandPropertyAssignment(parent) || !hasCallSignatures(type)) {
+		return;
+	}
+
+	const contextualType = state.typeChecker.getContextualType(node);
+	if (contextualType && contextualType !== type) {
+		const expression = skipDownwards(node);
+		// method extraction already reports why this value cannot be used as a callback
+		if (
+			(ts.isPropertyAccessExpression(expression) || ts.isElementAccessExpression(expression)) &&
+			!isValidMethodIndexWithoutCall(state, skipUpwards(node)) &&
+			isMethodFromType(state, node, type)
+		) {
+			return;
+		}
+
+		validateTypes(state, node, type, contextualType);
 	}
 }
 
