@@ -429,7 +429,6 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	reduce: (state, prereqs, node, expression, args) => {
 		let start: luau.Expression = luau.number(1);
 		const end = luau.unary("#", expression);
-		const step = 1;
 
 		const lengthExp = luau.unary("#", expression);
 
@@ -458,7 +457,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 				}),
 				"result",
 			);
-			start = offset(start, step);
+			start = offset(start, 1);
 		} else {
 			resultId = prereqs.pushToVar(args[1], "result");
 		}
@@ -470,7 +469,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 				id: iteratorId,
 				start,
 				end,
-				step: step === 1 ? undefined : luau.number(step),
+				step: undefined,
 				statements: luau.list.make(
 					luau.create(luau.SyntaxKind.Assignment, {
 						left: resultId,

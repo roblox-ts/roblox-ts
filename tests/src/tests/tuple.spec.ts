@@ -224,6 +224,33 @@ export = () => {
 		expect(b).to.equal(345);
 	});
 
+	it("should keep nested rest within one LuaTuple value", () => {
+		let calls = 0;
+		function values(): LuaTuple<[Array<number>, number]> {
+			calls++;
+			return $tuple([1, 2, 3], 4);
+		}
+
+		const [[first, ...rest], last] = values();
+		expect(first).to.equal(1);
+		expect(rest.size()).to.equal(2);
+		expect(rest[0]).to.equal(2);
+		expect(rest[1]).to.equal(3);
+		expect(last).to.equal(4);
+		expect(calls).to.equal(1);
+
+		let assignedFirst = 0;
+		let assignedRest = new Array<number>();
+		let assignedLast = 0;
+		[[assignedFirst, ...assignedRest], assignedLast] = values();
+		expect(assignedFirst).to.equal(1);
+		expect(assignedRest.size()).to.equal(2);
+		expect(assignedRest[0]).to.equal(2);
+		expect(assignedRest[1]).to.equal(3);
+		expect(assignedLast).to.equal(4);
+		expect(calls).to.equal(2);
+	});
+
 	it("should support nested assigning from LuaTuples 2", () => {
 		function foo(): LuaTuple<[number, { a: number; b: number }]> {
 			return [101, { a: 203, b: 345 }] as LuaTuple<[number, { a: number; b: number }]>;

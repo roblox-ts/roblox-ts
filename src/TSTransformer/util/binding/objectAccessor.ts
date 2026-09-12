@@ -7,7 +7,6 @@ import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { addIndexDiagnostics } from "TSTransformer/util/addIndexDiagnostics";
 import { addOneIfArrayType } from "TSTransformer/util/addOneIfArrayType";
-import { assertNever } from "TSTransformer/util/assertNever";
 import { createStringIndexExpression } from "TSTransformer/util/createStringIndexExpression";
 import { isDefinitelyType, isMixedStringType, isStringType } from "TSTransformer/util/types";
 import ts from "typescript";
@@ -55,9 +54,10 @@ export const objectAccessor = (
 			expression: parentId,
 			index: transformExpression(state, prereqs, name),
 		});
-	} else if (ts.isPrivateIdentifier(name)) {
-		DiagnosticService.addDiagnostic(errors.noPrivateIdentifier(name));
-		return luau.none();
 	}
-	return assertNever(name, "objectAccessor");
+
+	const privateName: ts.PrivateIdentifier = name;
+	assert(ts.isPrivateIdentifier(privateName));
+	DiagnosticService.addDiagnostic(errors.noPrivateIdentifier(privateName));
+	return luau.none();
 };
