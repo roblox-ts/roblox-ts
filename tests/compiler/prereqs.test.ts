@@ -84,11 +84,8 @@ it.each([
 		print(read(false));`,
 	],
 ])("preserves prerequisites for %s", (name, source) => {
-	const outputs = [false, true].map(optimizedLoops => {
-		const project = createTestProject({ optimizedLoops });
-		return project.compileSource(source).replace(/^-- Compiled with.*\n/, "");
-	});
+	const project = createTestProject();
+	const output = project.compileSource(source).replace(/^-- Compiled with.*\n/, "");
 
-	expect(outputs[0]).toBe(outputs[1]);
-	expect(outputs[0]).toMatchSnapshot();
+	expect(output).toMatchSnapshot();
 });

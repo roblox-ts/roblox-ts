@@ -153,6 +153,8 @@ export = () => {
 	});
 
 	it("should support.size()", () => {
+		[1, 2, 3].size();
+
 		expect([].size()).to.equal(0);
 		expect([1].size()).to.equal(1);
 		expect([1, 2].size()).to.equal(2);

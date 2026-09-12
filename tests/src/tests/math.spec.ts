@@ -3,6 +3,10 @@ export = () => {
 		it("should add numbers", () => {
 			expect(1 + 5).to.equal(6);
 			expect(22 + 44).to.equal(66);
+
+			const a = 1;
+			const b = 1;
+			expect(a + b).to.equal(2);
 		});
 
 		it("should subtract numbers", () => {
