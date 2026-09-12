@@ -1,5 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
+import { assert } from "Shared/util/assert";
 import { SYMBOL_NAMES, TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import ts from "typescript";
@@ -19,9 +20,8 @@ export function transformThisExpression(state: TransformState, node: ts.ThisExpr
 		// MethodDeclaration creates it's own implicit this
 		if (isStatic && !ts.isMethodDeclaration(container) && ts.isClassLike(container.parent)) {
 			const identifier = state.classIdentifierMap.get(container.parent);
-			if (identifier) {
-				return identifier;
-			}
+			assert(identifier);
+			return identifier;
 		}
 	}
 

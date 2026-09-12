@@ -312,13 +312,12 @@ const buildIterableFunctionLuaTupleLoop: (type: ts.Type) => LoopBuilder =
 			!((tupleArgType as ts.TupleTypeReference).target.combinedFlags & ts.ElementFlags.Variable)
 		) {
 			const tupleType = (tupleArgType as ts.TupleTypeReference).target;
+			assert(tupleType.labeledElementDeclarations);
 			for (let i = 0; i < tupleType.elementFlags.length; i++) {
 				let name = "element";
-				if (tupleType.labeledElementDeclarations) {
-					const label = tupleType.labeledElementDeclarations[i];
-					if (label && ts.isIdentifier(label.name) && luau.isValidIdentifier(label.name.text)) {
-						name = label.name.text;
-					}
+				const label = tupleType.labeledElementDeclarations[i];
+				if (label && ts.isIdentifier(label.name) && luau.isValidIdentifier(label.name.text)) {
+					name = label.name.text;
 				}
 				iteratorReturnIds.push(luau.tempId(name));
 			}
