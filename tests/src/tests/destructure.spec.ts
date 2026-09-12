@@ -1016,15 +1016,15 @@ export = () => {
 		expect(a).to.equal("h");
 	});
 
-	it("should destructure nested generators", () => {
-		function* foo() {
-			yield 1;
-			yield 2;
-			yield 3;
-		}
+	function* generatorValues() {
+		yield 1;
+		yield 2;
+		yield 3;
+	}
 
+	it("should destructure nested generators", () => {
 		const obj = {
-			x: foo(),
+			x: generatorValues(),
 		};
 		let a = 0;
 		let b = 0;
@@ -1038,13 +1038,7 @@ export = () => {
 	});
 
 	it("should spread destructure generators", () => {
-		function* foo() {
-			yield 1;
-			yield 2;
-			yield 3;
-		}
-
-		const [a, ...rest] = foo();
+		const [a, ...rest] = generatorValues();
 		expect(a).to.equal(1);
 		expect(rest.size()).to.equal(2);
 		expect(rest[0]).to.equal(2);
@@ -1052,14 +1046,8 @@ export = () => {
 	});
 
 	it("should destructure double nested generators", () => {
-		function* foo() {
-			yield 1;
-			yield 2;
-			yield 3;
-		}
-
 		const obj = {
-			x: [foo()],
+			x: [generatorValues()],
 		};
 		let a = 0;
 		let b = 0;
@@ -1224,10 +1212,11 @@ export = () => {
 		expect(x).to.equal(123);
 	});
 
+	function returnsLuaTuple() {
+		return $tuple(1, 2, 3, 4, 5);
+	}
+
 	it("should support array binding pattern with LuaTuple with spread", () => {
-		function returnsLuaTuple() {
-			return $tuple(1, 2, 3, 4, 5);
-		}
 		const [a, b, c, ...rest] = returnsLuaTuple();
 		expect(a).to.equal(1);
 		expect(b).to.equal(2);
@@ -1237,9 +1226,6 @@ export = () => {
 	});
 
 	it("should support array assignment pattern with LuaTuple with spread", () => {
-		function returnsLuaTuple() {
-			return $tuple(1, 2, 3, 4, 5);
-		}
 		let a: number;
 		let b: number;
 		let c: number;
@@ -1253,9 +1239,6 @@ export = () => {
 	});
 
 	it("should support array binding pattern with LuaTuple with optional call", () => {
-		function returnsLuaTuple() {
-			return $tuple(1, 2, 3, 4, 5);
-		}
 		const [a, b, c] = returnsLuaTuple?.();
 		expect(a).to.equal(1);
 		expect(b).to.equal(2);
@@ -1263,9 +1246,6 @@ export = () => {
 	});
 
 	it("should support array assignment pattern with LuaTuple with optional call", () => {
-		function returnsLuaTuple() {
-			return $tuple(1, 2, 3, 4, 5);
-		}
 		let a: number;
 		let b: number;
 		let c: number;
