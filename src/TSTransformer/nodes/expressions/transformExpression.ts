@@ -43,7 +43,6 @@ import { transformYieldExpression } from "TSTransformer/nodes/expressions/transf
 import { markPrimitiveValue } from "TSTransformer/util/evaluation/facts";
 import { getKindName } from "TSTransformer/util/getKindName";
 import { isBooleanType, isDefinitelyType, isNumberType, isStringType, isUndefinedType } from "TSTransformer/util/types";
-import { validateMethodExpression } from "TSTransformer/util/validateMethodAssignment";
 import { withoutPrereqs } from "TSTransformer/util/withoutPrereqs";
 import ts from "typescript";
 
@@ -136,7 +135,6 @@ export function transformExpression(state: TransformState, prereqs: Prereqs, nod
 	if (transformer) {
 		const expression = transformer(state, prereqs, node);
 		const type = state.getType(node);
-		validateMethodExpression(state, node, type);
 		if (
 			getOrSetDefault(state.multiTransformState.isPrimitiveTypeCache, type, () =>
 				isDefinitelyType(type, isBooleanType, isNumberType, isStringType, isUndefinedType),

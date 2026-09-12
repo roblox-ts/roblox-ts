@@ -10,7 +10,7 @@ import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexa
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isStableBuiltinMember, tryMarkBuiltinMember } from "TSTransformer/util/evaluation/builtins";
 import { effectsCommute, getEffects, isLateRead, joinEffects, NO_EFFECTS } from "TSTransformer/util/evaluation/effects";
-import { isMethod, isMethodFromType } from "TSTransformer/util/isMethod";
+import { isMethod } from "TSTransformer/util/isMethod";
 import { getFirstDefinedSymbol, isPossiblyType, isRobloxType, isUndefinedType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import { wrapReturnIfLuaTuple } from "TSTransformer/util/wrapReturnIfLuaTuple";
@@ -84,11 +84,6 @@ export function transformCallExpressionInner(
 		expression = prereqs.pushToVar(expression, "fn");
 	}
 	prereqs.pushList(argsPrereqs.statements);
-
-	if (isMethodFromType(state, node.expression, expType)) {
-		// direct calls have no receiver, but the implementation still expects its slot
-		args.unshift(luau.nil());
-	}
 
 	const exp = luau.call(convertToIndexableExpression(expression), args);
 

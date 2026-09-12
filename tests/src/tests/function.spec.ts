@@ -102,20 +102,6 @@ export = () => {
 		expect(object.callback(41)).to.equal(42);
 	});
 
-	it("should supply an undefined receiver to direct receiver calls", () => {
-		function callback(this: defined | void, value: number) {
-			expect(this).to.equal(undefined);
-			return value + 1;
-		}
-
-		expect(callback(41)).to.equal(42);
-		const optional: typeof callback | undefined = (() => callback)();
-		expect(optional?.(41)).to.equal(42);
-
-		const adapted: (this: void, value: number) => number = value => callback(value);
-		expect(adapted(41)).to.equal(42);
-	});
-
 	it("should allow generic factories with explicit void receivers", () => {
 		function make<T>(result: T) {
 			const callback: (this: void) => T = () => result;

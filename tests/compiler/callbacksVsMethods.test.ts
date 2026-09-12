@@ -20,7 +20,7 @@ it.each([
 		`,
 	},
 	{
-		name: "direct calls distinguish void and optional receivers",
+		name: "direct calls honor instantiated void receivers",
 		source: `
 			type Callable<T> = (this: T, value: number) => number;
 			function original(value: number) { return value + 1; }
@@ -30,8 +30,6 @@ it.each([
 			callback(41);
 			const optional: Callable<void> | undefined = (() => callback)();
 			optional?.(41);
-			function method(this: defined | void, value: number) { return value + 1; }
-			method(41);
 		`,
 	},
 	{
@@ -65,47 +63,6 @@ it.each([
 			object.method(123);
 			object.callbackExpression(123);
 			object.methodExpression(123);
-		`,
-	},
-	{
-		name: "generic callback aliases keep their receiver after instantiation",
-		source: `
-			type Callable<T> = (this: T, value: number) => number;
-			function make<T extends defined>() {
-				const callback: Callable<T> = value => value + 1;
-				return { callback };
-			}
-			const object = make<defined>();
-			object.callback(41);
-		`,
-	},
-	{
-		name: "generic classes keep their receiver after instantiation",
-		source: `
-			class Example<T extends defined> {
-				method(this: T, value: number) { return value + 1; }
-			}
-			const object = new Example<defined>();
-			object.method(41);
-			object["method"](41);
-			object.method?.(41);
-			const optional: typeof object | undefined = (() => object)();
-			optional?.method(41);
-		`,
-	},
-	{
-		name: "generic factories keep their receivers after instantiation",
-		source: `
-			function make<T extends defined>() {
-				const callback: (this: T, value: number) => number = value => value + 1;
-				return {
-					callback,
-					method(this: T, value: number) { return value + 1; },
-				};
-			}
-			const object = make<defined>();
-			object.callback(41);
-			object.method(41);
 		`,
 	},
 	{

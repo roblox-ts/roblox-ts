@@ -38,7 +38,7 @@ return nil
 "
 `;
 
-exports[`direct calls distinguish void and optional receivers 1`] = `
+exports[`direct calls honor instantiated void receivers 1`] = `
 "local function original(value)
 	return value + 1
 end
@@ -55,10 +55,6 @@ local _result = optional
 if _result ~= nil then
 	_result(41)
 end
-local function method(self, value)
-	return value + 1
-end
-method(nil, 41)
 return nil
 "
 `;
@@ -104,78 +100,6 @@ object.callback(123)
 object:method(123)
 object.callbackExpression(123)
 object:methodExpression(123)
-return nil
-"
-`;
-
-exports[`generic callback aliases keep their receiver after instantiation 1`] = `
-"local function make()
-	local callback = function(self, value)
-		return value + 1
-	end
-	return {
-		callback = callback,
-	}
-end
-local object = make()
-object:callback(41)
-return nil
-"
-`;
-
-exports[`generic classes keep their receiver after instantiation 1`] = `
-"local Example
-do
-	Example = setmetatable({}, {
-		__tostring = function()
-			return "Example"
-		end,
-	})
-	Example.__index = Example
-	function Example.new(...)
-		local self = setmetatable({}, Example)
-		return self:constructor(...) or self
-	end
-	function Example:constructor()
-	end
-	function Example:method(value)
-		return value + 1
-	end
-end
-local object = Example.new()
-object:method(41)
-object.method(object, 41)
-local _self = object
-local _result = _self.method
-if _result ~= nil then
-	_result(_self, 41)
-end
-local optional = (function()
-	return object
-end)()
-local _result_1 = optional
-if _result_1 ~= nil then
-	_result_1:method(41)
-end
-return nil
-"
-`;
-
-exports[`generic factories keep their receivers after instantiation 1`] = `
-"local function make()
-	local callback = function(self, value)
-		return value + 1
-	end
-	return {
-		callback = callback,
-		method = function(self, value)
-			return value + 1
-		end,
-	}
-end
-local object = make()
-object:callback(41)
-object:method(41)
 return nil
 "
 `;

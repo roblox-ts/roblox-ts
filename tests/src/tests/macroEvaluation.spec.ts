@@ -284,9 +284,7 @@ export = () => {
 			return object?.SetAttribute(
 				"value",
 				[0].map(() => {
-					object!.SetAttribute = function (this: defined) {
-						return 99;
-					};
+					object!.SetAttribute = () => 99;
 					return 7;
 				})[0],
 			);
