@@ -1,0 +1,26 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`supplies receiver slots only for direct calls that require them 1`] = `
+"local function original(value)
+	return value + 1
+end
+local callback = original
+callback(41)
+local function method(self, value)
+	return value + 1
+end
+method(nil, 41)
+local optional = (function()
+	return method
+end)()
+local _result = optional
+if _result ~= nil then
+	_result(nil, 41)
+end
+local adapted = function(value)
+	return method(nil, value)
+end
+adapted(41)
+return nil
+"
+`;
