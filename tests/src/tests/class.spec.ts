@@ -29,6 +29,35 @@ export = () => {
 		expect(new Derived().read()).to.equal(43);
 	});
 
+	it("should honor callback and method receivers in super calls", () => {
+		type Callable<T> = (this: T, value: number) => number;
+		class Base {
+			static value = 1;
+			static callback: Callable<void> = value => value + 1;
+			static method(value: number) {
+				return this.value + value;
+			}
+		}
+
+		class Derived extends Base {
+			static value = 2;
+			static check() {
+				expect(super.callback(41)).to.equal(42);
+				expect(super["callback"](41)).to.equal(42);
+				expect((super.callback)(41)).to.equal(42);
+				expect(super.callback?.(41)).to.equal(42);
+				expect(super.method(40)).to.equal(42);
+				expect(super["method"](40)).to.equal(42);
+			}
+			static withoutReceiver(this: void) {
+				return super.callback(41) + super["callback"](41);
+			}
+		}
+
+		Derived.check();
+		expect(Derived.withoutReceiver()).to.equal(84);
+	});
+
 	it("should properly initialize static properties and use `this` in a static context correctly", () => {
 		class X {
 			static value1 = "a";
