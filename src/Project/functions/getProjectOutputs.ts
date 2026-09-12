@@ -3,6 +3,7 @@ import path from "path";
 import { ProjectGraph, ProjectNode, projectPathKey } from "Project/classes/ProjectGraph";
 import { checkFileName } from "Project/functions/checkFileName";
 import { getIncludeFiles } from "Project/functions/getIncludeFiles";
+import { transformDeclarationFile } from "Project/functions/transformDeclarationFile";
 import { ProjectError } from "Shared/errors/ProjectError";
 import { assert } from "Shared/util/assert";
 import { getRootDirs } from "Shared/util/getRootDirs";
@@ -181,8 +182,16 @@ export function getProjectOutputs(project: ProjectNode, graph: ProjectGraph): Pr
 	return { roots, files, assets };
 }
 
-export function syncProjectOutputs(outputs: ProjectOutputs, writeOnlyChanged: boolean) {
+export function syncProjectOutputs(outputs: ProjectOutputs, writeOnlyChanged: boolean, program: ts.Program) {
 	for (const { output, input } of outputs.assets.values()) {
+		if (ts.isDeclarationFileName(input)) {
+			const contents = transformDeclarationFile(program, input);
+			if (!writeOnlyChanged || !fs.existsSync(output) || fs.readFileSync(output, "utf8") !== contents) {
+				fs.outputFileSync(output, contents);
+			}
+			continue;
+		}
+
 		if (writeOnlyChanged && fs.existsSync(output) && fs.readFileSync(output).equals(fs.readFileSync(input))) {
 			continue;
 		}
