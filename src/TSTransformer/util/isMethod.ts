@@ -3,49 +3,65 @@ import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { skipUpwards } from "TSTransformer/util/traversal";
-import { walkTypes } from "TSTransformer/util/types";
+import { getTypeArguments, walkTypes } from "TSTransformer/util/types";
 import ts from "typescript";
 
-function getThisParameter(parameters: ts.NodeArray<ts.ParameterDeclaration>) {
-	const firstParam = parameters[0];
-	if (firstParam) {
-		const name = firstParam.name;
-		if (ts.isIdentifier(name) && ts.isThisIdentifier(name)) {
-			return name;
-		}
+function containsInstantiableType(type: ts.Type): boolean {
+	if (type.isUnionOrIntersection()) {
+		return type.types.some(containsInstantiableType);
 	}
+	return !!(type.flags & ts.TypeFlags.Instantiable);
 }
 
-function isMethodDeclaration(state: TransformState, node: ts.Node): boolean {
-	if (ts.isFunctionLike(node)) {
-		const thisParam = getThisParameter(node.parameters);
-		if (thisParam) {
-			return !(state.getType(thisParam).flags & ts.TypeFlags.Void);
-		} else {
-			// namespace declare functions with `this` arg defined (i.e. utf8)
-			if (ts.isFunctionDeclaration(node)) {
-				return false;
-			}
+function canChangeReceiverConvention(state: TransformState, type: ts.Type) {
+	if (!containsInstantiableType(type)) {
+		return false;
+	}
 
-			if (ts.isMethodDeclaration(node) || ts.isMethodSignature(node)) {
-				return true;
-			}
+	// a fixed non-void union member keeps the instantiated union from becoming void
+	if (
+		type.isUnion() &&
+		type.types.some(t => !(t.flags & (ts.TypeFlags.Void | ts.TypeFlags.Never)) && !containsInstantiableType(t))
+	) {
+		return false;
+	}
 
-			// for some reason, FunctionExpressions within ObjectLiteralExpressions are implicitly methods
-			if (ts.isFunctionExpression(node)) {
-				const parent = skipUpwards(node).parent;
-				if (ts.isPropertyAssignment(parent)) {
-					const grandparent = skipUpwards(parent).parent;
-					if (ts.isObjectLiteralExpression(grandparent)) {
-						return true;
-					}
-				}
+	if (type.flags & ts.TypeFlags.Conditional) {
+		const conditionalType = type as ts.ConditionalType;
+		const { root } = conditionalType;
+		let checkType = root.checkType;
+		let extendsType = conditionalType.extendsType;
+		// singleton tuples suppress distribution without changing the void test
+		if (state.typeChecker.isTupleType(checkType) && state.typeChecker.isTupleType(extendsType)) {
+			const checkElements = getTypeArguments(state, checkType);
+			const extendsElements = getTypeArguments(state, extendsType);
+			if (checkElements.length === 1 && extendsElements.length === 1) {
+				checkType = checkElements[0];
+				extendsType = extendsElements[0];
 			}
+		}
 
+		// a conditional that removes void can still have an unconstrained fallback type
+		if (
+			state.typeChecker.getTypeFromTypeNode(root.node.trueType).flags & ts.TypeFlags.Never &&
+			state.typeChecker.getTypeFromTypeNode(root.node.falseType) === checkType &&
+			state.typeChecker.isTypeAssignableTo(state.typeChecker.getVoidType(), extendsType)
+		) {
 			return false;
 		}
 	}
-	return false;
+
+	const constraint = state.typeChecker.getBaseConstraintOfType(type);
+	return !constraint || state.typeChecker.isTypeAssignableTo(state.typeChecker.getVoidType(), constraint);
+}
+
+function isMethodDeclaration(node: ts.SignatureDeclaration | ts.JSDocSignature): boolean {
+	if (ts.isMethodDeclaration(node) || ts.isMethodSignature(node)) {
+		return true;
+	}
+
+	// object literal function expressions have an implicit receiver
+	return ts.isFunctionExpression(node) && ts.isPropertyAssignment(skipUpwards(node).parent);
 }
 
 function isMethodInner(state: TransformState, node: ts.Node, type: ts.Type) {
@@ -53,15 +69,23 @@ function isMethodInner(state: TransformState, node: ts.Node, type: ts.Type) {
 	let hasCallbackDefinition = false;
 
 	for (const callSignature of type.getCallSignatures()) {
-		const thisValueDeclaration = callSignature.thisParameter?.valueDeclaration;
-		if (thisValueDeclaration) {
-			if (!(state.getType(thisValueDeclaration).flags & ts.TypeFlags.Void)) {
+		const thisParameter = callSignature.thisParameter;
+		if (thisParameter) {
+			const thisType = state.typeChecker.getTypeOfSymbolAtLocation(thisParameter, node);
+			if (canChangeReceiverConvention(state, thisType)) {
+				DiagnosticService.addDiagnosticWithCache(
+					node,
+					errors.noUnstableThisType(node),
+					state.multiTransformState.isReportedByNoUnstableThisType,
+				);
+			}
+			if (!(thisType.flags & ts.TypeFlags.Void)) {
 				hasMethodDefinition = true;
 			} else {
 				hasCallbackDefinition = true;
 			}
 		} else if (callSignature.declaration) {
-			if (isMethodDeclaration(state, callSignature.declaration)) {
+			if (isMethodDeclaration(callSignature.declaration)) {
 				hasMethodDefinition = true;
 			} else {
 				hasCallbackDefinition = true;
@@ -81,9 +105,7 @@ export function isMethodFromType(state: TransformState, node: ts.Node, type: ts.
 
 	walkTypes(type, t => {
 		if (t.symbol) {
-			result ||= getOrSetDefault(state.multiTransformState.isMethodCache, t.symbol, () =>
-				isMethodInner(state, node, t),
-			);
+			result ||= getOrSetDefault(state.multiTransformState.isMethodCache, t, () => isMethodInner(state, node, t));
 		}
 	});
 

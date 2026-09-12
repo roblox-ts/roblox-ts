@@ -20,6 +20,19 @@ it.each([
 		`,
 	},
 	{
+		name: "direct calls honor instantiated void receivers",
+		source: `
+			type Callable<T> = (this: T, value: number) => number;
+			function original(value: number) { return value + 1; }
+			const assigned: Callable<void> = original;
+			assigned(41);
+			const callback: Callable<void> = value => value + 1;
+			callback(41);
+			const optional: Callable<void> | undefined = (() => callback)();
+			optional?.(41);
+		`,
+	},
+	{
 		name: "documented non-void this overrides a callback signature",
 		source: `
 			declare const object: {
@@ -50,6 +63,24 @@ it.each([
 			object.method(123);
 			object.callbackExpression(123);
 			object.methodExpression(123);
+		`,
+	},
+	{
+		name: "generic receiver instantiations stay distinct when the callback comes first",
+		source: `
+			type Callable<T> = (this: T, value: number) => number;
+			declare const object: { callback: Callable<void>; method: Callable<{ value: number }>; value: number };
+			object.callback(123);
+			object.method(123);
+		`,
+	},
+	{
+		name: "generic receiver instantiations stay distinct when the method comes first",
+		source: `
+			type Callable<T> = (this: T, value: number) => number;
+			declare const object: { callback: Callable<void>; method: Callable<{ value: number }>; value: number };
+			object.method(123);
+			object.callback(123);
 		`,
 	},
 	{
@@ -101,8 +132,39 @@ it.each([
 			optional?.method(123);
 		`,
 	},
-])("$name", ({ source }) => {
+	{
+		name: "super calls distinguish callbacks and methods",
+		source: `
+			declare class Base {
+				static callback: (this: void, value: number) => number;
+				static method(value: number): number;
+			}
+			class Derived extends Base {
+				static run() {
+					super.callback(41);
+					super["callback"](41);
+					super.method(41);
+					super["method"](41);
+				}
+			}
+		`,
+	},
+	{
+		name: "synthetic callback signatures from evolving arrays have no receiver",
+		declarations: "interface Array<T> { push<U>(callback: () => (value: number) => U): number; }",
+		source: `
+			const callbacks = [];
+			callbacks.push(() => value => value);
+			const object = { callback: callbacks[0] };
+			const callback = object.callback() as (value: number) => number;
+			assert(callback(123) === 123);
+		`,
+	},
+])("$name", ({ source, declarations }) => {
 	const project = createTestProject();
+	if (declarations) {
+		project.vfs.writeFile("/src/augmentation.d.ts", declarations);
+	}
 	const output = project.compileSource(source);
 	expect(output.replace(/^-- Compiled with.*\n/, "")).toMatchSnapshot();
 });

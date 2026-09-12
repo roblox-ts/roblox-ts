@@ -23,6 +23,148 @@ namespace N {
 }
 
 export = () => {
+	it("should honor instantiated void receivers", () => {
+		type Callable<T> = (this: T, value: number) => number;
+		function original(value: number) {
+			return value + 1;
+		}
+		const assigned: Callable<void> = original;
+		const callback: Callable<void> = value => value + 1;
+		const plain: (value: number) => number = callback;
+		expect(assigned(41)).to.equal(42);
+		expect(callback(41)).to.equal(42);
+		expect(plain(41)).to.equal(42);
+
+		const object: { value: number; callback: Callable<void>; method: Callable<{ value: number }> } = {
+			value: 10,
+			callback,
+			method(value) {
+				return this.value + value;
+			},
+		};
+
+		expect(object.callback(41)).to.equal(42);
+		expect(object.method(32)).to.equal(42);
+		expect(object["callback"](41)).to.equal(42);
+		expect(object["method"](32)).to.equal(42);
+
+		const optional: typeof object | undefined = (() => object)();
+		expect(optional?.callback(41)).to.equal(42);
+		expect(optional?.method(32)).to.equal(42);
+	});
+
+	it("should preserve receivers in instantiated generic classes", () => {
+		class Example<T extends defined> {
+			method(this: T, value: number) {
+				return value + 1;
+			}
+		}
+
+		const object = new Example<defined>();
+		const optional: typeof object | undefined = (() => object)();
+		expect(object.method(41)).to.equal(42);
+		expect(object["method"](41)).to.equal(42);
+		expect(optional?.method(41)).to.equal(42);
+		expect(object.method?.(41)).to.equal(42);
+	});
+
+	it("should preserve receivers in methods returned from generic factories", () => {
+		function make<T extends defined>() {
+			return {
+				method(this: T, value: number) {
+					return value + 1;
+				},
+			};
+		}
+
+		const object = make<defined>();
+		expect(object.method(41)).to.equal(42);
+	});
+
+	it("should preserve receivers in callbacks returned from generic factories", () => {
+		function make<T extends defined>() {
+			const callback: (this: T, value: number) => number = value => value + 1;
+			return { callback };
+		}
+
+		const object = make<defined>();
+		expect(object.callback(41)).to.equal(42);
+	});
+
+	it("should preserve receivers in generic callback aliases", () => {
+		type Callable<T> = (this: T, value: number) => number;
+		function make<T extends defined>() {
+			const callback: Callable<T> = value => value + 1;
+			return { callback };
+		}
+
+		const object = make<defined>();
+		expect(object.callback(41)).to.equal(42);
+	});
+
+	it("should allow generic factories with explicit void receivers", () => {
+		function make<T>(result: T) {
+			const callback: (this: void) => T = () => result;
+			return { callback };
+		}
+
+		const object = make(42);
+		expect(object.callback()).to.equal(42);
+	});
+
+	it("should preserve generic receivers with a fixed non-void union member", () => {
+		function make<T>() {
+			return {
+				method(this: T | defined, value: number) {
+					return value + 1;
+				},
+			};
+		}
+
+		const object = make<void>();
+		expect(object.method(41)).to.equal(42);
+	});
+
+	it("should preserve generic receivers that exclude void", () => {
+		function make<T>() {
+			return {
+				method(this: Exclude<T, void>, value: number) {
+					return value + 1;
+				},
+				wrapped(this: [T] extends [void] ? never : T, value: number) {
+					return value + 1;
+				},
+			};
+		}
+
+		const object = make<defined | void>();
+		expect(object.method(41)).to.equal(42);
+		expect(object["method"](41)).to.equal(42);
+		expect(object.method?.(41)).to.equal(42);
+		expect(object.wrapped(41)).to.equal(42);
+	});
+
+	it("should evaluate direct generic callees before their arguments", () => {
+		type Callable<T> = (this: T, ...values: Array<number>) => number;
+		const order = new Array<string>();
+		const callback: Callable<void> = (...values) => values[0] + values[1];
+		function getCallback() {
+			order.push("callee");
+			return callback;
+		}
+		function getValues(): LuaTuple<[number, number]> {
+			order.push("arguments");
+			return $tuple(20, 22);
+		}
+
+		expect(getCallback()(...getValues())).to.equal(42);
+		expect(order.join(",")).to.equal("callee,arguments");
+
+		const absent = ((): Callable<void> | undefined => undefined)();
+		expect(absent?.(...getValues())).to.equal(undefined);
+		expect(order.join(",")).to.equal("callee,arguments");
+	});
+
 	it("should destructure nested rest parameters without defaults", () => {
 		function add(...[[first], { second }]: [[number], { second: number }]) {
 			return first + second;

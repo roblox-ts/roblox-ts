@@ -164,10 +164,9 @@ export function transformPropertyCallExpressionInner(
 	validateNotAnyType(state, node.expression);
 
 	if (ts.isSuperProperty(expression)) {
-		return luau.call(luau.property(convertToIndexableExpression(baseExpression), expression.name.text), [
-			luau.globals.self,
-			...ensureTransformOrder(state, prereqs, node.arguments),
-		]);
+		const callee = luau.property(convertToIndexableExpression(baseExpression), expression.name.text);
+		const args = ensureTransformOrder(state, prereqs, node.arguments);
+		return luau.call(callee, isMethod(state, expression) ? [luau.globals.self, ...args] : args);
 	}
 
 	const expType = state.typeChecker.getNonOptionalType(state.getType(node.expression));
@@ -213,13 +212,12 @@ export function transformElementCallExpressionInner(
 	validateNotAnyType(state, node.expression);
 
 	if (ts.isSuperProperty(expression)) {
-		return luau.call(
-			luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-				expression: convertToIndexableExpression(baseExpression),
-				index: transformExpression(state, prereqs, expression.argumentExpression),
-			}),
-			[luau.globals.self, ...ensureTransformOrder(state, prereqs, node.arguments)],
-		);
+		const callee = luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+			expression: convertToIndexableExpression(baseExpression),
+			index: transformExpression(state, prereqs, expression.argumentExpression),
+		});
+		const args = ensureTransformOrder(state, prereqs, node.arguments);
+		return luau.call(callee, isMethod(state, expression) ? [luau.globals.self, ...args] : args);
 	}
 
 	const expType = state.typeChecker.getNonOptionalType(state.getType(node.expression));

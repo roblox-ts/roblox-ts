@@ -38,6 +38,27 @@ return nil
 "
 `;
 
+exports[`direct calls honor instantiated void receivers 1`] = `
+"local function original(value)
+	return value + 1
+end
+local assigned = original
+assigned(41)
+local callback = function(value)
+	return value + 1
+end
+callback(41)
+local optional = (function()
+	return callback
+end)()
+local _result = optional
+if _result ~= nil then
+	_result(41)
+end
+return nil
+"
+`;
+
 exports[`documented non-void this overrides a callback signature 1`] = `
 "object:foo(123)
 return nil
@@ -79,6 +100,20 @@ object.callback(123)
 object:method(123)
 object.callbackExpression(123)
 object:methodExpression(123)
+return nil
+"
+`;
+
+exports[`generic receiver instantiations stay distinct when the callback comes first 1`] = `
+"object.callback(123)
+object:method(123)
+return nil
+"
+`;
+
+exports[`generic receiver instantiations stay distinct when the method comes first 1`] = `
+"object:method(123)
+object.callback(123)
 return nil
 "
 `;
@@ -127,6 +162,51 @@ local _result_1 = optional
 if _result_1 ~= nil then
 	_result_1:method(123)
 end
+return nil
+"
+`;
+
+exports[`super calls distinguish callbacks and methods 1`] = `
+"local Derived
+do
+	local super = Base
+	Derived = setmetatable({}, {
+		__tostring = function()
+			return "Derived"
+		end,
+		__index = super,
+	})
+	Derived.__index = Derived
+	function Derived.new(...)
+		local self = setmetatable({}, Derived)
+		return self:constructor(...) or self
+	end
+	function Derived:constructor(...)
+		super.constructor(self, ...)
+	end
+	function Derived:run()
+		super.callback(41)
+		super.callback(41)
+		super.method(self, 41)
+		super.method(self, 41)
+	end
+end
+return nil
+"
+`;
+
+exports[`synthetic callback signatures from evolving arrays have no receiver 1`] = `
+"local callbacks = {}
+table.insert(callbacks, function()
+	return function(value)
+		return value
+	end
+end)
+local object = {
+	callback = callbacks[1],
+}
+local callback = object.callback()
+assert(callback(123) == 123)
 return nil
 "
 `;
