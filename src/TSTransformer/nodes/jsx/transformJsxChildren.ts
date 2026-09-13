@@ -1,5 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
+import { assert } from "Shared/util/assert";
 import { findLastIndex } from "Shared/util/findLastIndex";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { Prereqs } from "TSTransformer/classes/Prereqs";
@@ -32,7 +33,8 @@ export function transformJsxChildren(state: TransformState, prereqs: Prereqs, ch
 			.filter(v => !ts.isJsxExpression(v) || v.expression !== undefined),
 		(state, prereqs, node) => {
 			if (ts.isJsxText(node)) {
-				let text = fixupWhitespaceAndDecodeEntities(node.text) ?? "";
+				let text = fixupWhitespaceAndDecodeEntities(node.text);
+				assert(text !== undefined);
 				text = text.replace(/\\/g, "\\\\");
 				text = text.replace(/"/g, '\\"');
 				text = text.replace(

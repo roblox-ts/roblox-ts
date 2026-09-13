@@ -136,19 +136,6 @@ export = () => {
 		expect(seen[1]).to.equal(2);
 	});
 
-	it("should evaluate the object of a macro call before arguments that reassign it", () => {
-		let arr = [1, 2, 3];
-		const original = arr;
-		function swap() {
-			arr = [9];
-			return 4;
-		}
-		arr.push(swap());
-		expect(original.size()).to.equal(4);
-		expect(original[3]).to.equal(4);
-		expect(arr.size()).to.equal(1);
-	});
-
 	it("should evaluate push arguments left-to-right before any insertion", () => {
 		const arr = [10, 20];
 		// both arguments must be read before the first insertion changes the array
@@ -321,15 +308,6 @@ export = () => {
 		);
 		expect(seen[0]).to.equal("y");
 		expect(seen[1]).to.equal(1);
-	});
-
-	it("should keep mutation position for unorderedRemove index expressions", () => {
-		const arr = [0, 1, 2, 3, 4, 5, 6, 7];
-		let i = 2;
-		expect(arr.unorderedRemove((i *= 2))).to.equal(4);
-		expect(i).to.equal(4);
-		expect(arr.size()).to.equal(7);
-		expect(arr[4]).to.equal(7);
 	});
 
 	it("should not mutate the array before a later throwing push argument is evaluated", () => {

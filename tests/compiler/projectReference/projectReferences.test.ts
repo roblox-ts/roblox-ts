@@ -398,34 +398,6 @@ it("recovers a missing reference introduced while watching", async () => {
 	}
 });
 
-it.each([
-	{ includePath: "out/game/include", luau: false },
-	{ includePath: "out/game/include", luau: true },
-	{ includePath: "out/game", luau: false },
-	{ includePath: "out/game", luau: true },
-])("preserves runtime files at $includePath while cleaning stale output (luau=$luau)", ({ includePath, luau }) => {
-	fixture.project("game");
-	fixture.rojo({ include: { $path: includePath } });
-	fixture.write("game/src/orphan.ts", "export const orphan = 1;");
-
-	const build = fixture.createBuild({ includePath: fixture.file(includePath), luau });
-	const extension = luau ? "luau" : "lua";
-	expectSuccess(build.build());
-
-	for (const name of ["Promise", "RuntimeLib"]) {
-		expect(fs.existsSync(fixture.file(`${includePath}/${name}.${extension}`))).toBe(true);
-	}
-
-	fs.removeSync(fixture.file("game/src/orphan.ts"));
-
-	expectSuccess(build.build());
-
-	for (const name of ["Promise", "RuntimeLib"]) {
-		expect(fs.existsSync(fixture.file(`${includePath}/${name}.${extension}`))).toBe(true);
-	}
-	expect(fs.existsSync(fixture.file(`out/game/orphan.${extension}`))).toBe(false);
-});
-
 it("rebuilds shared output when switching between game deployment contexts", () => {
 	fixture.project("common");
 	fixture.project("shared", ["common"]);

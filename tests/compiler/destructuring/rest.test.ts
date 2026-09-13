@@ -65,3 +65,13 @@ it.each(["number", "LuaTuple<[number, string]>"])("guards iterator assignment ta
 
 	expect(output.replace(/^-- Compiled with.*\n/, "")).toMatchSnapshot();
 });
+
+it("keeps nested rest within a LuaTuple value", () => {
+	const output = createTestProject().compileSource(`
+		declare function values(): LuaTuple<[Array<number>, number]>;
+		const [[first, ...rest], last] = values();
+		print(first, rest, last);
+	`);
+
+	expect(output.replace(/^-- Compiled with.*\n/, "")).toMatchSnapshot();
+});

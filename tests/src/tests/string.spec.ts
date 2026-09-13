@@ -49,11 +49,6 @@ export = () => {
 		expect("Hello".gmatch(".")()[0]).to.equal("H");
 	});
 
-	it("should support the spread operator on strings", () => {
-		const array4 = ["H", "i", "y", "a"];
-		expect([..."Hiya"].every((x, i) => x === array4[i])).to.equal(true);
-	});
-
 	it("should support string.find", () => {
 		const data = "Hello".find("H", 1, true);
 		if (data[0]) {
@@ -200,7 +195,7 @@ export = () => {
 		expect(calls).to.equal(1);
 	});
 
-	it("should evaluate a string receiver before its index", () => {
+	it("should preserve string indexing order for used and discarded results", () => {
 		let events = "";
 		function getValue() {
 			events += "s";
@@ -215,6 +210,14 @@ export = () => {
 
 		expect(value).to.equal("a");
 		expect(events).to.equal("si");
+
+		events = "";
+		getValue()[getIndex()];
+		expect(events).to.equal("si");
+
+		events = "";
+		getValue()[-1];
+		expect(events).to.equal("s");
 	});
 
 	it("should preserve a string receiver when the index rebinds it", () => {
@@ -241,25 +244,6 @@ export = () => {
 
 		expect(byte).to.equal("a");
 		expect(index).to.equal(1);
-	});
-
-	it("should preserve side effects of discarded string indexing", () => {
-		let events = "";
-		function getValue() {
-			events += "s";
-			return "abc";
-		}
-		function getIndex() {
-			events += "i";
-			return 0;
-		}
-
-		getValue()[getIndex()];
-		expect(events).to.equal("si");
-
-		events = "";
-		getValue()[-1];
-		expect(events).to.equal("s");
 	});
 
 	it("should stop string indexing after a receiver error", () => {

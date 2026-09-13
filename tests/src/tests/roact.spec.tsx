@@ -44,16 +44,6 @@ interface FragmentLike {
 
 export = () => {
 	describe("should support Roact.Component", () => {
-		it("should construct a roact class", () => {
-			class RoactClass extends Roact.Component {
-				public render(): Roact.Element {
-					return <frame />;
-				}
-			}
-
-			expect(Type.of(RoactClass)).to.equal(Type.StatefulComponentClass);
-		});
-
 		it("should construct a roact pure component class", () => {
 			class RoactPureClass extends Roact.PureComponent {
 				public render(): Roact.Element {
@@ -103,12 +93,14 @@ export = () => {
 			expect((RoactClass as { getDerivedStateFromProps: unknown }).getDerivedStateFromProps).to.be.a("function");
 		});
 
-		it("should mount a roact object", () => {
+		it("should construct and mount a roact class", () => {
 			class RoactClass extends Roact.Component {
 				public render(): Roact.Element {
 					return <frame />;
 				}
 			}
+
+			expect(Type.of(RoactClass)).to.equal(Type.StatefulComponentClass);
 
 			const element = <RoactClass />;
 			expect(Type.of(element)).to.equal(Type.Element);
