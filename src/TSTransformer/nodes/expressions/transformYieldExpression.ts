@@ -13,7 +13,10 @@ export function transformYieldExpression(state: TransformState, prereqs: Prereqs
 
 	const expression = transformExpression(state, prereqs, node.expression);
 	if (node.asteriskToken) {
-		const loopId = luau.tempId("result");
+		// delegation keeps the original next function even if the iterator is later modified
+		const nextId = prereqs.pushToVar(luau.property(convertToIndexableExpression(expression), "next"), "next");
+		const currentInputId = prereqs.pushToVar(undefined, "currentInput");
+		const resultId = luau.tempId("result");
 
 		const finalizer = luau.list.make<luau.Statement>(luau.create(luau.SyntaxKind.BreakStatement, {}));
 		let evaluated: luau.Expression = luau.none();
@@ -25,24 +28,31 @@ export function transformYieldExpression(state: TransformState, prereqs: Prereqs
 				luau.create(luau.SyntaxKind.Assignment, {
 					left: returnValue,
 					operator: "=",
-					right: luau.property(loopId, "value"),
+					right: luau.property(resultId, "value"),
 				}),
 			);
 			evaluated = returnValue;
 		}
 
+		const yieldCall = luau.call(luau.globals.coroutine.yield, [luau.property(resultId, "value")]);
+
 		prereqs.push(
-			luau.create(luau.SyntaxKind.ForStatement, {
-				ids: luau.list.make(loopId),
-				expression: luau.property(convertToIndexableExpression(expression), "next"),
+			luau.create(luau.SyntaxKind.WhileStatement, {
+				condition: luau.bool(true),
 				statements: luau.list.make<luau.Statement>(
+					luau.create(luau.SyntaxKind.VariableDeclaration, {
+						left: resultId,
+						right: luau.call(nextId, [currentInputId]),
+					}),
 					luau.create(luau.SyntaxKind.IfStatement, {
-						condition: luau.property(loopId, "done"),
+						condition: luau.property(resultId, "done"),
 						statements: finalizer,
 						elseBody: luau.list.make(),
 					}),
-					luau.create(luau.SyntaxKind.CallStatement, {
-						expression: luau.call(luau.globals.coroutine.yield, [luau.property(loopId, "value")]),
+					luau.create(luau.SyntaxKind.Assignment, {
+						left: currentInputId,
+						operator: "=",
+						right: yieldCall,
 					}),
 				),
 			}),
