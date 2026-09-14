@@ -1,4 +1,20 @@
 export = () => {
+	it("should preserve a bare return through finally", () => {
+		const events = new Array<string>();
+		function run() {
+			try {
+				events.push("try");
+				return;
+			} finally {
+				events.push("finally");
+			}
+			events.push("after");
+		}
+
+		expect(run()).to.equal(undefined);
+		expect(events.join(",")).to.equal("try,finally");
+	});
+
 	it("should support try/catch", () => {
 		let x: number = 123;
 		try {

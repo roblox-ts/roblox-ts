@@ -1,7 +1,7 @@
 import luau from "@roblox-ts/luau-ast";
-import { TransformState } from "TSTransformer/classes/TransformState";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 
-export function spreadDestructureArray(state: TransformState, parentId: luau.AnyIdentifier, index: number) {
+export function spreadDestructureArray(prereqs: Prereqs, parentId: luau.AnyIdentifier, index: number) {
 	return luau.call(luau.globals.table.move, [
 		parentId,
 		luau.number(index + 1),

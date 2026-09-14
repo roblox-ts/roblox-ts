@@ -1,0 +1,22 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`builds a reference chain in dependency order and reuses unchanged output 1`] = `
+{
+  "game": "local TS = require(game:GetService("ReplicatedStorage"):WaitForChild("include"):WaitForChild("RuntimeLib"))
+local answer = TS.import(script, game:GetService("ReplicatedStorage"), "shared").answer
+local result = answer()
+return {
+	result = result,
+}
+",
+  "shared": "local TS = require(game:GetService("ReplicatedStorage"):WaitForChild("include"):WaitForChild("RuntimeLib"))
+local value = TS.import(script, game:GetService("ReplicatedStorage"), "common").value
+local function answer()
+	return value + 1
+end
+return {
+	answer = answer,
+}
+",
+}
+`;

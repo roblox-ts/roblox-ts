@@ -14,32 +14,46 @@ import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import ts from "typescript";
 
 function isDeclarationOfNamespace(declaration: ts.Declaration) {
-	const modifiers = ts.canHaveModifiers(declaration) ? ts.getModifiers(declaration) : undefined;
+	if (
+		!ts.isModuleDeclaration(declaration) &&
+		!ts.isFunctionDeclaration(declaration) &&
+		!ts.isClassDeclaration(declaration) &&
+		!ts.isEnumDeclaration(declaration)
+	) {
+		return false;
+	}
+
+	const modifiers = ts.getModifiers(declaration);
 	if (modifiers?.some(v => v.kind === ts.SyntaxKind.DeclareKeyword)) {
 		return false;
 	}
 
-	if (ts.isModuleDeclaration(declaration) && ts.isInstantiatedModule(declaration, false)) {
-		return true;
-	} else if (ts.isFunctionDeclaration(declaration) && declaration.body) {
-		return true;
-	} else if (ts.isClassDeclaration(declaration)) {
-		return true;
+	if (ts.isModuleDeclaration(declaration)) {
+		return ts.isInstantiatedModule(declaration, false);
+	} else if (ts.isFunctionDeclaration(declaration)) {
+		return declaration.body !== undefined;
 	}
-	return false;
+	return true;
 }
 
 function getValueDeclarationStatement(symbol: ts.Symbol) {
 	for (const declaration of symbol.getDeclarations() ?? []) {
 		const statement = getAncestor(declaration, ts.isStatement);
-		if (statement) {
-			const modifiers = ts.canHaveModifiers(statement) ? ts.getModifiers(statement) : undefined;
-			if (ts.isFunctionDeclaration(statement) && !statement.body) continue;
-			if (ts.isTypeAliasDeclaration(statement)) continue;
-			if (ts.isInterfaceDeclaration(statement)) continue;
-			if (modifiers?.some(v => v.kind === ts.SyntaxKind.DeclareKeyword)) continue;
-			return statement;
+		assert(statement);
+		const modifiers = ts.canHaveModifiers(statement) ? ts.getModifiers(statement) : undefined;
+		if (ts.isFunctionDeclaration(statement) && !statement.body) {
+			continue;
 		}
+		if (ts.isTypeAliasDeclaration(statement)) {
+			continue;
+		}
+		if (ts.isInterfaceDeclaration(statement)) {
+			continue;
+		}
+		if (modifiers?.some(v => v.kind === ts.SyntaxKind.DeclareKeyword)) {
+			continue;
+		}
+		return statement;
 	}
 }
 
@@ -47,7 +61,7 @@ function transformNamespace(state: TransformState, name: ts.Identifier, body: ts
 	const symbol = state.typeChecker.getSymbolAtLocation(name);
 	assert(symbol);
 
-	validateIdentifier(state, name);
+	validateIdentifier(name);
 
 	const nameExp = transformIdentifierDefined(state, name);
 

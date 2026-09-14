@@ -2,12 +2,10 @@ import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 
 interface VirtualFile {
-	name: string;
 	content: string;
 }
 
 interface VirtualDirectory {
-	name: string;
 	children: Map<string, VirtualDirectory | VirtualFile>;
 }
 
@@ -29,7 +27,6 @@ export class VirtualFileSystem {
 
 	constructor() {
 		this.root = {
-			name: "",
 			children: new Map(),
 		};
 	}
@@ -45,7 +42,6 @@ export class VirtualFileSystem {
 		let currentDir = this.root;
 		for (const name of pathParts) {
 			const child = getOrSetDefault(currentDir.children, name, () => ({
-				name,
 				children: new Map(),
 			}));
 			assert("children" in child);
@@ -53,7 +49,6 @@ export class VirtualFileSystem {
 		}
 
 		currentDir.children.set(fileName, {
-			name: fileName,
 			content,
 		});
 	}

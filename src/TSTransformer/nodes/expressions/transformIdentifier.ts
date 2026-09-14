@@ -5,6 +5,9 @@ import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { SYMBOL_NAMES, TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { isBlockLike, isNamespace } from "TSTransformer/typeGuards";
+import { getBindingKey } from "TSTransformer/util/evaluation/bindings";
+import { tryMarkBuiltinLibrary } from "TSTransformer/util/evaluation/builtins";
+import { markBinding, setCallEffects } from "TSTransformer/util/evaluation/facts";
 import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
 import { isSymbolMutable } from "TSTransformer/util/isSymbolMutable";
 import { getAncestor, isAncestorOf, skipDownwards, skipUpwards } from "TSTransformer/util/traversal";
@@ -19,12 +22,21 @@ export function transformIdentifierDefined(state: TransformState, node: ts.Ident
 
 	const replacementId = state.symbolToIdMap.get(symbol);
 	if (replacementId) {
-		return replacementId;
+		const identifier = { ...replacementId };
+		markBinding(identifier, symbol, getBindingKey(state, symbol, node));
+		return identifier;
 	}
 
-	return luau.create(luau.SyntaxKind.Identifier, {
+	const identifier = luau.create(luau.SyntaxKind.Identifier, {
 		name: node.text,
 	});
+	markBinding(identifier, symbol, getBindingKey(state, symbol, node));
+	tryMarkBuiltinLibrary(state, node, identifier);
+	const effects = state.multiTransformState.functionEffects.get(symbol);
+	if (effects) {
+		setCallEffects(identifier, effects);
+	}
+	return identifier;
 }
 
 function getAncestorWhichIsChildOf(parent: ts.Node, node: ts.Node) {

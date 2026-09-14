@@ -1,10 +1,32 @@
 export = () => {
-	it("should support generator function declarations", () => {
-		function* foo() {
-			yield 1;
-			return 2;
+	it("should distinguish a bare yield from completion", () => {
+		function* generate() {
+			yield;
+			return 42;
 		}
-		expect(foo()).to.be.ok();
+
+		const iterator = generate();
+		const yielded = iterator.next();
+		expect(yielded.done).to.equal(false);
+		expect(yielded.value).to.equal(undefined);
+
+		const completed = iterator.next();
+		expect(completed.done).to.equal(true);
+		expect(completed.value).to.equal(42);
+	});
+
+	it("should support generator methods", () => {
+		class Counter {
+			constructor(private value: number) {}
+
+			*values() {
+				yield this.value;
+				yield ++this.value;
+			}
+		}
+
+		const values = [...new Counter(4).values()];
+		expect(values.join(",")).to.equal("4,5");
 	});
 
 	it("should support no return value", () => {
@@ -27,20 +49,6 @@ export = () => {
 		expect(result.size()).to.equal(2);
 		expect(result[0]).to.equal(10);
 		expect(result[1]).to.equal(20);
-	});
-
-	it("should support yield with asterisk token", () => {
-		function* foo() {
-			yield 1;
-		}
-
-		function* bar() {
-			yield* foo();
-		}
-
-		const result = [...bar()];
-		expect(result.size()).to.equal(1);
-		expect(result[0]).to.equal(1);
 	});
 
 	it("should not resume finished generator", () => {

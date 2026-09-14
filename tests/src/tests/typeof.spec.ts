@@ -1,4 +1,17 @@
 export = () => {
+	it("should inspect method types without calling the methods", () => {
+		let calls = 0;
+		const object = {
+			method() {
+				calls++;
+			},
+		};
+
+		expect(typeIs(object.method, "function")).to.equal(true);
+		expect(typeOf(object.method)).to.equal("function");
+		expect(calls).to.equal(0);
+	});
+
 	it("should support typeOf", () => {
 		expect(typeOf({})).to.equal("table");
 		expect(typeOf(undefined)).to.equal("nil");

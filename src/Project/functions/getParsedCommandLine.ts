@@ -1,34 +1,20 @@
 import inspector from "inspector";
+import path from "path";
 import { ProjectData } from "Project";
+import { parseProjectConfig } from "Project/functions/parseProjectConfig";
 import { validateCompilerOptions } from "Project/functions/validateCompilerOptions";
-import { DiagnosticError } from "Shared/errors/DiagnosticError";
-import { ProjectError } from "Shared/errors/ProjectError";
-import ts from "typescript";
 
-function createParseConfigFileHost(): ts.ParseConfigFileHost {
-	return {
-		fileExists: ts.sys.fileExists,
-		getCurrentDirectory: ts.sys.getCurrentDirectory,
-		onUnRecoverableConfigFileDiagnostic: d => {
-			throw new DiagnosticError([d]);
-		},
-		readDirectory: ts.sys.readDirectory,
-		readFile: ts.sys.readFile,
-		useCaseSensitiveFileNames: ts.sys.useCaseSensitiveFileNames,
-	};
-}
-
-export function getParsedCommandLine(data: ProjectData) {
-	const parsedCommandLine = ts.getParsedCommandLineOfConfigFile(data.tsConfigPath, {}, createParseConfigFileHost());
-	if (parsedCommandLine === undefined) {
-		throw new ProjectError("Unable to load TS program!");
-	} else if (parsedCommandLine.errors.length > 0) {
-		throw new DiagnosticError(parsedCommandLine.errors);
+export function getParsedCommandLine(data: ProjectData, parsedCommandLine = parseProjectConfig(data.tsConfigPath)) {
+	if (parsedCommandLine.options.composite && !parsedCommandLine.options.rootDir) {
+		// composite projects default to the config directory, rather than the common source directory
+		parsedCommandLine.options.rootDir = path.dirname(data.tsConfigPath);
 	}
 
 	if ((globalThis as unknown as { RBXTSC_DEV: boolean }).RBXTSC_DEV || inspector.url() !== undefined) {
-		parsedCommandLine.options.incremental = false;
-		parsedCommandLine.options.tsBuildInfoFile = undefined;
+		if (!parsedCommandLine.options.composite) {
+			parsedCommandLine.options.incremental = false;
+			parsedCommandLine.options.tsBuildInfoFile = undefined;
+		}
 	}
 
 	validateCompilerOptions(parsedCommandLine.options, data.projectPath);
