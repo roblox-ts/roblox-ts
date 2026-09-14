@@ -7,7 +7,7 @@ function getDeclaredVariablesFromBindingName(node: ts.BindingName, list: Array<t
 		for (const element of node.elements) {
 			getDeclaredVariablesFromBindingName(element.name, list);
 		}
-	} else if (ts.isArrayBindingPattern(node)) {
+	} else {
 		for (const element of node.elements) {
 			if (!ts.isOmittedExpression(element)) {
 				getDeclaredVariablesFromBindingName(element.name, list);

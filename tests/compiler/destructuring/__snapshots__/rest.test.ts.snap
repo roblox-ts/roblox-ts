@@ -256,3 +256,12 @@ _exp_1.rest = _rest
 return nil
 "
 `;
+
+exports[`keeps nested rest within a LuaTuple value 1`] = `
+"local _binding, last = values()
+local first = _binding[1]
+local rest = table.move(_binding, 2, #_binding, 1, {})
+print(first, rest, last)
+return nil
+"
+`;

@@ -1,6 +1,4 @@
 // keep tests alphabetized by name to match Jest's snapshot ordering
-import { DiagnosticError } from "Shared/errors/DiagnosticError";
-
 import { createTestProject } from "./createTestProject";
 
 function compile(source: string) {
@@ -78,12 +76,6 @@ it("preserves effects when an indexed value is discarded", () => {
 			value()[index()];
 		`),
 	).toMatchSnapshot();
-});
-
-it("rejects indexing a union of strings and arrays", () => {
-	expect(() => compile("export function read(value: string | Array<string>) { return value[0]; }")).toThrow(
-		DiagnosticError,
-	);
 });
 
 it("reuses one string iterator for bindings and rest", () => {

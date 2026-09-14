@@ -167,6 +167,10 @@ export const errors = {
 	noMixedTypeCall: error(
 		"Attempted to call a function with mixed types! All definitions must either be a method or a callback.",
 	),
+	noUnstableThisType: error(
+		"The generic this type can become void, changing whether a receiver is passed.",
+		suggestion("Use this: void for callbacks, or constrain the receiver type to exclude void."),
+	),
 	noIndexWithoutCall: error(
 		"Cannot index a method without calling it!",
 		suggestion("Use the form `() => a.b()` instead of `a.b`."),

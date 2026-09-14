@@ -47,7 +47,8 @@ function addFinalizers(
 
 		if (node.prev) {
 			node.prev.next = finalizersClone.head;
-		} else if (node === list.head) {
+		} else {
+			assert(node === list.head);
 			list.head = finalizersClone.head;
 		}
 
@@ -354,9 +355,7 @@ function transformForStatementOptimized(state: TransformState, node: ts.ForState
 	}
 
 	const idSymbol = state.typeChecker.getSymbolAtLocation(decName);
-	if (!idSymbol) {
-		return undefined;
-	}
+	assert(idSymbol);
 
 	const startValue = getIntegerLiteral(decInit);
 	if (startValue === undefined) {

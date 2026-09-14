@@ -296,7 +296,7 @@ export class ProjectBuild {
 		// compileFiles checks the rebound plugin output, which can differ from the original TypeScript
 		const result = compileFiles(program, data, pathTranslator, [...sourceFiles]);
 		if (!result.emitSkipped) {
-			syncProjectOutputs(outputs, data.projectOptions.writeOnlyChanged);
+			syncProjectOutputs(outputs, data.projectOptions.writeOnlyChanged, program);
 			if (
 				[...outputs.assets.values()].some(
 					({ output, input }) =>
