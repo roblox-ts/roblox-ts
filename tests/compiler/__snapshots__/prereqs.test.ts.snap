@@ -88,7 +88,7 @@ local function read(_param)
 		value = _result
 	end
 	local _extracted = {
-		["value"] = true,
+		value = true,
 	}
 	local _rest = {}
 	for _k, _v in _param do
