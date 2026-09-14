@@ -2,6 +2,7 @@ import luau from "@roblox-ts/luau-ast";
 import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import ts from "typescript";
 
@@ -12,8 +13,9 @@ export function transformYieldExpression(state: TransformState, prereqs: Prereqs
 
 	const expression = transformExpression(state, prereqs, node.expression);
 	if (node.asteriskToken) {
-		const iteratorId = prereqs.pushToVar(expression, "iterator");
-		const currentInputId = luau.tempId("currentInput");
+		// delegation keeps the original next function even if the iterator is later modified
+		const nextId = prereqs.pushToVar(luau.property(convertToIndexableExpression(expression), "next"), "next");
+		const currentInputId = prereqs.pushToVar(undefined, "currentInput");
 		const resultId = luau.tempId("result");
 
 		const finalizer = luau.list.make<luau.Statement>(luau.create(luau.SyntaxKind.BreakStatement, {}));
@@ -35,19 +37,12 @@ export function transformYieldExpression(state: TransformState, prereqs: Prereqs
 		const yieldCall = luau.call(luau.globals.coroutine.yield, [luau.property(resultId, "value")]);
 
 		prereqs.push(
-			luau.create(luau.SyntaxKind.VariableDeclaration, {
-				left: currentInputId,
-				right: luau.none(),
-			}),
-		);
-
-		prereqs.push(
 			luau.create(luau.SyntaxKind.WhileStatement, {
 				condition: luau.bool(true),
 				statements: luau.list.make<luau.Statement>(
 					luau.create(luau.SyntaxKind.VariableDeclaration, {
 						left: resultId,
-						right: luau.call(luau.property(iteratorId, "next"), [currentInputId]),
+						right: luau.call(nextId, [currentInputId]),
 					}),
 					luau.create(luau.SyntaxKind.IfStatement, {
 						condition: luau.property(resultId, "done"),

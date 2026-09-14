@@ -95,4 +95,96 @@ export = () => {
 		expect(result[3]).to.equal(3);
 		expect(result[4]).to.equal(4);
 	});
+
+	it("should forward inputs and completion values through delegated generators", () => {
+		function* inner(): Generator<undefined, number, number> {
+			return yield;
+		}
+
+		function* outer(): Generator<undefined, number, number> {
+			return yield* inner();
+		}
+
+		const iterator = outer();
+		const yielded = iterator.next();
+		expect(yielded.done).to.equal(false);
+		expect(yielded.value).to.equal(undefined);
+
+		const completed = iterator.next(42);
+		expect(completed.done).to.equal(true);
+		expect(completed.value).to.equal(42);
+	});
+
+	it("should forward inputs through nested delegation", () => {
+		function* inner(): Generator<number, number, number> {
+			const first = yield 1;
+			const second = yield first + 2;
+			return second + 3;
+		}
+
+		function* middle(): Generator<number, number, number> {
+			return yield* inner();
+		}
+
+		function* outer(): Generator<number, number, number> {
+			return yield* middle();
+		}
+
+		const iterator = outer();
+		expect(iterator.next().value).to.equal(1);
+		expect(iterator.next(10).value).to.equal(12);
+
+		const completed = iterator.next(20);
+		expect(completed.done).to.equal(true);
+		expect(completed.value).to.equal(23);
+	});
+
+	it("should preserve false and undefined inputs during delegation", () => {
+		function* inner(): Generator<undefined, boolean | undefined, boolean | undefined> {
+			return yield;
+		}
+
+		function* outer(): Generator<undefined, boolean | undefined, boolean | undefined> {
+			return yield* inner();
+		}
+
+		function checkInput(input: boolean | undefined) {
+			const iterator = outer();
+			iterator.next();
+
+			const completed = iterator.next(input);
+			expect(completed.done).to.equal(true);
+			expect(completed.value).to.equal(input);
+		}
+
+		checkInput(false);
+		checkInput(undefined);
+	});
+
+	it("should evaluate a delegated iterator once and retain its next function", () => {
+		function* inner(): Generator<number, number, number> {
+			yield 1;
+			return 2;
+		}
+
+		let calls = 0;
+		const source = inner();
+		function getIterator() {
+			calls++;
+			return source;
+		}
+
+		function* outer(): Generator<number, number, number> {
+			return yield* getIterator();
+		}
+
+		const iterator = outer();
+		expect(iterator.next().value).to.equal(1);
+		source.next = () => ({ done: true, value: 99 });
+
+		const completed = iterator.next();
+		expect(completed.done).to.equal(true);
+		expect(completed.value).to.equal(2);
+		expect(calls).to.equal(1);
+	});
 };
