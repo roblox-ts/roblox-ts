@@ -22,9 +22,3 @@ export function benchmarkIfVerbose(name: string, callback: () => void) {
 		callback();
 	}
 }
-
-export async function benchmark<T>(name: string, callback: () => Promise<T>) {
-	const startTime = benchmarkStart(name);
-	await callback();
-	benchmarkEnd(startTime);
-}

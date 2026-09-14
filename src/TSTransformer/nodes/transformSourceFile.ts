@@ -3,7 +3,9 @@ import { RbxType } from "@roblox-ts/rojo-resolver";
 import { COMPILER_VERSION } from "Shared/constants";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
+import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfNode";
 import { isSymbolMutable } from "TSTransformer/util/isSymbolMutable";
@@ -11,33 +13,45 @@ import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
 import { getAncestor } from "TSTransformer/util/traversal";
 import ts from "typescript";
 
-function getExportPair(state: TransformState, exportSymbol: ts.Symbol): [name: string, id: luau.AnyIdentifier] {
-	const declaration = exportSymbol.getDeclarations()?.[0];
-	if (declaration && ts.isExportSpecifier(declaration)) {
-		return [declaration.name.text, transformIdentifierDefined(state, declaration.propertyName ?? declaration.name)];
+function getExportDeclarations(exportSymbol: ts.Symbol) {
+	const declarations = exportSymbol.getDeclarations();
+	assert(declarations && declarations.length > 0);
+	return declarations;
+}
+
+function getExportPair(
+	state: TransformState,
+	exportSymbol: ts.Symbol,
+): [name: luau.Expression, id: luau.AnyIdentifier] {
+	const declaration = getExportDeclarations(exportSymbol)[0];
+	if (ts.isExportSpecifier(declaration)) {
+		const exportName = declaration.propertyName ?? declaration.name;
+		// exportName is only a StringLiteral for re-exports, which are filtered out in handleExports
+		assert(ts.isIdentifier(exportName));
+		const namePrereqs = new Prereqs();
+		const name = transformPropertyName(state, namePrereqs, declaration.name);
+		assert(luau.list.isEmpty(namePrereqs.statements));
+		return [name, transformIdentifierDefined(state, exportName)];
 	} else {
 		let name = exportSymbol.name;
 		if (
 			exportSymbol.name === "default" &&
-			declaration &&
 			(ts.isFunctionDeclaration(declaration) || ts.isClassDeclaration(declaration)) &&
 			declaration.name
 		) {
 			name = declaration.name.text;
 		}
 
-		return [exportSymbol.name, luau.id(name)];
+		return [luau.string(exportSymbol.name), luau.id(name)];
 	}
 }
 
 function isExportSymbolFromExportFrom(exportSymbol: ts.Symbol) {
-	if (exportSymbol.declarations) {
-		for (const exportSpecifier of exportSymbol.declarations) {
-			if (ts.isExportSpecifier(exportSpecifier)) {
-				const exportDec = exportSpecifier.parent.parent;
-				if (ts.isExportDeclaration(exportDec) && exportDec.moduleSpecifier) {
-					return true;
-				}
+	for (const exportSpecifier of getExportDeclarations(exportSymbol)) {
+		if (ts.isExportSpecifier(exportSpecifier)) {
+			const exportDec = exportSpecifier.parent.parent;
+			if (ts.isExportDeclaration(exportDec) && exportDec.moduleSpecifier) {
+				return true;
 			}
 		}
 	}
@@ -57,9 +71,8 @@ function getIgnoredExportSymbols(state: TransformState, sourceFile: ts.SourceFil
 			} else if (ts.isNamespaceExport(statement.exportClause)) {
 				// export * as id from "./module";
 				const idSymbol = state.typeChecker.getSymbolAtLocation(statement.exportClause.name);
-				if (idSymbol) {
-					ignoredSymbols.add(idSymbol);
-				}
+				assert(idSymbol);
+				ignoredSymbols.add(idSymbol);
 			}
 		}
 	}
@@ -76,13 +89,11 @@ function getIgnoredExportSymbols(state: TransformState, sourceFile: ts.SourceFil
  * this mimics TypeScript behavior
  */
 function isExportSymbolOnlyFromDeclare(exportSymbol: ts.Symbol): boolean {
-	return (
-		exportSymbol.declarations?.every(declaration => {
-			const statement = getAncestor(declaration, ts.isStatement);
-			const modifiers = statement && ts.canHaveModifiers(statement) ? ts.getModifiers(statement) : undefined;
-			return modifiers?.some(v => v.kind === ts.SyntaxKind.DeclareKeyword);
-		}) ?? false
-	);
+	return getExportDeclarations(exportSymbol).every(declaration => {
+		const statement = getAncestor(declaration, ts.isStatement);
+		assert(statement && ts.canHaveModifiers(statement));
+		return ts.getModifiers(statement)?.some(v => v.kind === ts.SyntaxKind.DeclareKeyword);
+	});
 }
 
 /**
@@ -100,13 +111,14 @@ function handleExports(
 	const ignoredExportSymbols = getIgnoredExportSymbols(state, sourceFile);
 
 	let mustPushExports = state.hasExportFrom;
-	const exportPairs = new Array<[string, luau.AnyIdentifier]>();
-	if (!state.hasExportEquals) {
+	const exportPairs = new Array<[luau.Expression, luau.AnyIdentifier]>();
+	// even an erased export = replaces the module's named exports
+	const hasExportEquals = sourceFile.statements.some(
+		statement => ts.isExportAssignment(statement) && statement.isExportEquals,
+	);
+	if (!hasExportEquals) {
 		for (const exportSymbol of state.getModuleExports(symbol)) {
 			if (ignoredExportSymbols.has(exportSymbol)) continue;
-
-			// ignore prototype exports
-			if (!!(exportSymbol.flags & ts.SymbolFlags.Prototype)) continue;
 
 			// export { default as x } from "./module";
 			if (isExportSymbolFromExportFrom(exportSymbol)) continue;
@@ -153,7 +165,10 @@ function handleExports(
 			luau.list.push(
 				statements,
 				luau.create(luau.SyntaxKind.Assignment, {
-					left: luau.property(luau.globals.exports, exportKey),
+					left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+						expression: luau.globals.exports,
+						index: exportKey,
+					}),
 					operator: "=",
 					right: exportId,
 				}),
@@ -172,7 +187,7 @@ function handleExports(
 			luau.list.push(
 				fields,
 				luau.create(luau.SyntaxKind.MapField, {
-					index: luau.string(exportKey),
+					index: exportKey,
 					value: exportId,
 				}),
 			);

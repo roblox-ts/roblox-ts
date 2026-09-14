@@ -13,6 +13,6 @@ export function createPathTranslator(program: ts.BuilderProgram, data: ProjectDa
 	if (buildInfoPath !== undefined) {
 		buildInfoPath = path.normalize(buildInfoPath);
 	}
-	const declaration = compilerOptions.declaration === true;
+	const declaration = ts.getEmitDeclarations(compilerOptions);
 	return new PathTranslator(rootDir, outDir, buildInfoPath, declaration, data.projectOptions.luau);
 }

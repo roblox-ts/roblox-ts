@@ -1,4 +1,5 @@
 declare const self: undefined;
+declare const objectBrand: unique symbol;
 
 namespace N {
 	export let x = 5;
@@ -6,6 +7,32 @@ namespace N {
 }
 
 export = () => {
+	it("should preserve methods in directly spread object literals", () => {
+		const object = {
+			...{
+				value() {
+					return 42;
+				},
+			},
+		};
+		expect(object.value()).to.equal(42);
+	});
+
+	it("should spread objects with optional nominal properties", () => {
+		interface Branded {
+			readonly [objectBrand]?: never;
+			value: number;
+		}
+		function copy(value: Branded): Branded {
+			return { ...value };
+		}
+
+		const original: Branded = { value: 42 };
+		const result = copy(original);
+		expect(result.value).to.equal(42);
+		expect(result).never.to.equal(original);
+	});
+
 	it("should support object literal brackets", () => {
 		/* prettier-ignore */
 		const obj = {
@@ -117,6 +144,10 @@ export = () => {
 		expect(bar.d).to.equal(4);
 		expect(bar.e).to.equal(5);
 		expect(bar.f).to.equal(6);
+
+		const narrowed: { a: number } = { ...foo };
+		expect(narrowed.a).to.equal(1);
+		expect("b" in narrowed).to.equal(true);
 	});
 
 	it("should support spread with non-objects", () => {

@@ -99,4 +99,39 @@ world`).to.equal("hello\nworld");
 	it("should not escape unicode sequences in template literals", () => {
 		expect(`\u{E001}`).to.equal("\u{E001}");
 	});
+
+	it("should preserve decoded escapes in every template segment", () => {
+		const separator = "X";
+		const slash = string.char(92);
+		expect(`a\u005cb${separator}c\u005cd${separator}e\u005cf`).to.equal(
+			"a" + slash + "bXc" + slash + "dXe" + slash + "f",
+		);
+		expect(`a\u005cb`).to.equal("a" + slash + "b");
+	});
+
+	it("should preserve escaped backticks, braces, and literal escape text", () => {
+		const separator = "X";
+		const tick = string.char(96);
+		const slash = string.char(92);
+		expect(`a\`${separator}b\`${separator}c\``).to.equal("a" + tick + "Xb" + tick + "Xc" + tick);
+		expect(`\`{value}\``).to.equal(tick + "{value}" + tick);
+		expect(`\\u{0041}${separator}\\n`).to.equal(slash + "u{0041}X" + slash + "n");
+	});
+
+	it("should preserve control characters and line continuations in templates", () => {
+		const separator = "X";
+		expect(`a\0${separator}\r\n${separator}\x01`).to.equal(string.char(97, 0, 88, 13, 10, 88, 1));
+		// prettier-ignore
+		expect(`a\
+b${separator}c\
+d`).to.equal("abXcd");
+	});
+
+	it("should translate TypeScript-only escapes in templates", () => {
+		const separator = "X";
+		expect(`\uD83D\uDE00${separator}\uD83D\uDE00`).to.equal("😀X😀");
+		expect(`\\uD83D\\uDE00${separator}`).to.equal(string.char(92) + "uD83D" + string.char(92) + "uDE00X");
+		// prettier-ignore
+		expect(`\a\z\/\$\{\}${separator}`).to.equal("az/${}X");
+	});
 };

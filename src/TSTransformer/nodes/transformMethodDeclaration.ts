@@ -2,6 +2,7 @@ import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { FunctionLikeWithBody, transformParameters } from "TSTransformer/nodes/transformParameters";
 import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
@@ -13,6 +14,7 @@ import ts from "typescript";
 
 export function transformMethodDeclaration(
 	state: TransformState,
+	prereqs: Prereqs,
 	node: ts.MethodDeclaration,
 	ptr: Pointer<luau.Map | luau.AnyIdentifier>,
 ) {
@@ -37,7 +39,7 @@ export function transformMethodDeclaration(
 
 	luau.list.pushList(statements, transformStatementList(state, node.body, node.body.statements));
 
-	let name = transformPropertyName(state, node.name);
+	let name = transformPropertyName(state, prereqs, node.name);
 
 	if (ts.hasDecorators(node) || node.parameters.some(parameter => ts.hasDecorators(parameter))) {
 		if (!luau.isSimplePrimitive(name)) {
@@ -104,10 +106,9 @@ export function transformMethodDeclaration(
 	}
 
 	// we have to use `class[name] = function()`
-	luau.list.pushList(
-		result,
-		state.capturePrereqs(() => assignToMapPointer(state, ptr, name, expression)),
-	);
+	const assignmentPrereqs = new Prereqs();
+	assignToMapPointer(assignmentPrereqs, ptr, name, expression);
+	luau.list.pushList(result, assignmentPrereqs.statements);
 	state.popFunction();
 	return result;
 }

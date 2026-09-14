@@ -3,6 +3,7 @@ import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { getAddIterableToArrayBuilder } from "TSTransformer/util/getAddIterableToArrayBuilder";
 import { isArrayType, isDefinitelyType } from "TSTransformer/util/types";
@@ -20,7 +21,7 @@ function simplifyUnpackOfArray(expression: luau.Expression) {
 	// TODO ideally we should be able to return a list of expressions (members), but currently this function is expected to return a single expression
 }
 
-export function transformSpreadElement(state: TransformState, node: ts.SpreadElement) {
+export function transformSpreadElement(state: TransformState, prereqs: Prereqs, node: ts.SpreadElement) {
 	validateNotAnyType(state, node.expression);
 
 	const list = ts.isArrayLiteralExpression(node.parent) ? node.parent.elements : node.parent.arguments;
@@ -29,11 +30,11 @@ export function transformSpreadElement(state: TransformState, node: ts.SpreadEle
 		DiagnosticService.addDiagnostic(errors.noPrecedingSpreadElement(node));
 	}
 
-	return transformSpreadElementNoCheck(state, node);
+	return transformSpreadElementNoCheck(state, prereqs, node);
 }
 
-export function transformSpreadElementNoCheck(state: TransformState, node: ts.SpreadElement) {
-	const expression = transformExpression(state, node.expression);
+export function transformSpreadElementNoCheck(state: TransformState, prereqs: Prereqs, node: ts.SpreadElement) {
+	const expression = transformExpression(state, prereqs, node.expression);
 
 	const type = state.getType(node.expression);
 	if (isDefinitelyType(type, isArrayType(state))) {
@@ -44,9 +45,9 @@ export function transformSpreadElementNoCheck(state: TransformState, node: ts.Sp
 		);
 	} else {
 		const addIterableToArrayBuilder = getAddIterableToArrayBuilder(state, node.expression, type);
-		const arrayId = state.pushToVar(luau.array(), "array");
-		const lengthId = state.pushToVar(luau.number(0), "length");
-		state.prereqList(addIterableToArrayBuilder(state, expression, arrayId, lengthId, 0, false));
+		const arrayId = prereqs.pushToVar(luau.array(), "array");
+		const lengthId = prereqs.pushToVar(luau.number(0), "length");
+		prereqs.pushList(addIterableToArrayBuilder(prereqs, expression, arrayId, lengthId, 0, false));
 		return luau.call(luau.globals.unpack, [arrayId]);
 	}
 }

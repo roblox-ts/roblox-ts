@@ -3,9 +3,12 @@
 import { CLIError } from "CLI/errors/CLIError";
 import { LogService } from "Shared/classes/LogService";
 import { COMPILER_VERSION, PACKAGE_ROOT } from "Shared/constants";
-import yargs from "yargs";
+import { hideBin } from "yargs/helpers";
+import yargs from "yargs/yargs";
 
-yargs
+const cli = yargs(hideBin(process.argv));
+
+cli
 	// help
 	.usage("roblox-ts - A TypeScript-to-Luau Compiler for Roblox")
 	.help("help")
@@ -23,7 +26,7 @@ yargs
 	// options
 	.recommendCommands()
 	.strict()
-	.wrap(yargs.terminalWidth())
+	.wrap(cli.terminalWidth())
 
 	// execute
 	// .fail() is necessary to properly `.toString()` custom error objects like CLIError

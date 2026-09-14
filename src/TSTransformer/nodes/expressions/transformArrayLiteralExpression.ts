@@ -1,6 +1,7 @@
 import luau from "@roblox-ts/luau-ast";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformSpreadElementNoCheck } from "TSTransformer/nodes/expressions/transformSpreadElement";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
@@ -9,14 +10,18 @@ import { createArrayPointer, disableArrayInline } from "TSTransformer/util/point
 import { selectLengthCall, varArgsLiteral } from "TSTransformer/util/varArgsOptimization";
 import ts from "typescript";
 
-export function transformArrayLiteralExpression(state: TransformState, node: ts.ArrayLiteralExpression) {
+export function transformArrayLiteralExpression(
+	state: TransformState,
+	prereqs: Prereqs,
+	node: ts.ArrayLiteralExpression,
+) {
 	const index = node.elements.findIndex(ts.isSpreadElement);
 	/* We can just return an array if there are no spread elements or if the spread is the last element. Compilation examples:
 	  [1, ...args] -> {1, ...}           -- if optimizable
 	  [1, ...args] -> {1, unpack(args)}  -- otherwise
 	*/
 	if (index === -1 || index === node.elements.length - 1) {
-		return luau.array(ensureTransformOrder(state, node.elements));
+		return luau.array(ensureTransformOrder(state, prereqs, node.elements));
 	}
 
 	/* Examples:
@@ -27,13 +32,14 @@ export function transformArrayLiteralExpression(state: TransformState, node: ts.
 
 	const ptr = createArrayPointer("array");
 	const lengthId = luau.tempId("length");
-	let lengthInitialized = false;
 	let amtElementsSinceUpdate = 0;
+
+	let lengthInitialized = false;
 
 	function updateLengthId() {
 		const right = luau.unary("#", ptr.value);
 		if (lengthInitialized) {
-			state.prereq(
+			prereqs.push(
 				luau.create(luau.SyntaxKind.Assignment, {
 					left: lengthId,
 					operator: "=",
@@ -41,7 +47,7 @@ export function transformArrayLiteralExpression(state: TransformState, node: ts.
 				}),
 			);
 		} else {
-			state.prereq(
+			prereqs.push(
 				luau.create(luau.SyntaxKind.VariableDeclaration, {
 					left: lengthId,
 					right,
@@ -58,10 +64,10 @@ export function transformArrayLiteralExpression(state: TransformState, node: ts.
 			if (luau.isArray(ptr.value)) {
 				// Add result of spread to array, then convert to non-array for remainder
 				// (Note: technically transformSpreadElement can result in a non-spread if it's a spread of a constant array, but we don't deal with that here)
-				const expression = transformSpreadElementNoCheck(state, element);
+				const expression = transformSpreadElementNoCheck(state, prereqs, element);
 				luau.list.push(ptr.value.members, expression);
 
-				disableArrayInline(state, ptr);
+				disableArrayInline(prereqs, ptr);
 				updateLengthId();
 				continue;
 			}
@@ -87,7 +93,7 @@ export function transformArrayLiteralExpression(state: TransformState, node: ts.
 					right: luau.call(luau.globals.select, [luau.id("i"), varArgsLiteral]),
 				});
 
-				state.prereq(
+				prereqs.push(
 					luau.create(luau.SyntaxKind.NumericForStatement, {
 						id: luau.id("i"),
 						start: luau.number(1),
@@ -102,11 +108,11 @@ export function transformArrayLiteralExpression(state: TransformState, node: ts.
 			} else {
 				const type = state.getType(element.expression);
 				const addIterableToArrayBuilder = getAddIterableToArrayBuilder(state, element.expression, type);
-				const spreadExp = transformExpression(state, element.expression);
+				const spreadExp = transformExpression(state, prereqs, element.expression);
 				const shouldUpdateLengthId = i < node.elements.length - 1;
-				state.prereqList(
+				prereqs.pushList(
 					addIterableToArrayBuilder(
-						state,
+						prereqs,
 						spreadExp,
 						ptr.value,
 						lengthId,
@@ -116,16 +122,17 @@ export function transformArrayLiteralExpression(state: TransformState, node: ts.
 				);
 			}
 		} else {
-			const [expression, prereqs] = state.capture(() => transformExpression(state, element));
-			if (luau.isArray(ptr.value) && !luau.list.isEmpty(prereqs)) {
-				disableArrayInline(state, ptr);
+			const expressionPrereqs = new Prereqs();
+			const expression = transformExpression(state, expressionPrereqs, element);
+			if (luau.isArray(ptr.value) && !luau.list.isEmpty(expressionPrereqs.statements)) {
+				disableArrayInline(prereqs, ptr);
 				updateLengthId();
 			}
 			if (luau.isArray(ptr.value)) {
 				luau.list.push(ptr.value.members, expression);
 			} else {
-				state.prereqList(prereqs);
-				state.prereq(
+				prereqs.pushList(expressionPrereqs.statements);
+				prereqs.push(
 					luau.create(luau.SyntaxKind.Assignment, {
 						left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 							expression: ptr.value,

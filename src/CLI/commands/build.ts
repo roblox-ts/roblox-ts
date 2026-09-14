@@ -1,32 +1,15 @@
 import { CLIError } from "CLI/errors/CLIError";
 import fs from "fs-extra";
 import path from "path";
-import { cleanup } from "Project/functions/cleanup";
-import { compileFiles } from "Project/functions/compileFiles";
-import { copyFiles } from "Project/functions/copyFiles";
-import { copyInclude } from "Project/functions/copyInclude";
-import { createPathTranslator } from "Project/functions/createPathTranslator";
-import { createProjectData } from "Project/functions/createProjectData";
-import { createProjectProgram } from "Project/functions/createProjectProgram";
-import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
+import { ProjectBuild } from "Project/classes/ProjectBuild";
 import { setupProjectWatchProgram } from "Project/functions/setupProjectWatchProgram";
 import { LogService } from "Shared/classes/LogService";
-import { DEFAULT_PROJECT_OPTIONS, ProjectType } from "Shared/constants";
+import { ProjectType } from "Shared/constants";
 import { LoggableError } from "Shared/errors/LoggableError";
 import { ProjectOptions } from "Shared/types";
-import { getRootDirs } from "Shared/util/getRootDirs";
 import { hasErrors } from "Shared/util/hasErrors";
 import ts from "typescript";
-import yargs from "yargs";
-
-function getTsConfigProjectOptions(tsConfigPath?: string): Partial<ProjectOptions> | undefined {
-	if (tsConfigPath !== undefined) {
-		const rawJson = ts.sys.readFile(tsConfigPath);
-		if (rawJson !== undefined) {
-			return ts.parseConfigFileTextToJson(tsConfigPath, rawJson).config.rbxts;
-		}
-	}
-}
+import type yargs from "yargs";
 
 function findTsConfigPath(projectPath: string) {
 	let tsConfigPath: string | undefined = path.resolve(projectPath);
@@ -51,8 +34,8 @@ export = ts.identity<yargs.CommandModule<object, BuildFlags & Partial<ProjectOpt
 
 	describe: "Build a project",
 
-	builder: () =>
-		yargs
+	builder: (parser: yargs.Argv) =>
+		parser
 			.option("project", {
 				alias: "p",
 				string: true,
@@ -121,38 +104,27 @@ export = ts.identity<yargs.CommandModule<object, BuildFlags & Partial<ProjectOpt
 		try {
 			const tsConfigPath = findTsConfigPath(argv.project);
 
-			// parse the contents of the retrieved JSON path as a partial `ProjectOptions`
-			const projectOptions: ProjectOptions = Object.assign(
-				{},
-				DEFAULT_PROJECT_OPTIONS,
-				getTsConfigProjectOptions(tsConfigPath),
-				argv,
-			);
+			const build = new ProjectBuild(tsConfigPath, argv);
+			const projectOptions = build.graph.root.data.projectOptions;
+			LogService.verbose = projectOptions.verbose;
 
-			LogService.verbose = projectOptions.verbose === true;
-
-			const diagnosticReporter = ts.createDiagnosticReporter(ts.sys, true);
-
-			const data = createProjectData(tsConfigPath, projectOptions);
 			if (projectOptions.watch) {
-				setupProjectWatchProgram(data, projectOptions.usePolling);
+				setupProjectWatchProgram(build, projectOptions.usePolling);
 			} else {
-				const program = createProjectProgram(data);
-				const pathTranslator = createPathTranslator(program, data);
-				cleanup(pathTranslator);
-				copyInclude(data);
-				copyFiles(data, pathTranslator, new Set(getRootDirs(program.getCompilerOptions())));
-				const emitResult = compileFiles(
-					program.getProgram(),
-					data,
-					pathTranslator,
-					getChangedSourceFiles(program),
-				);
-				for (const diagnostic of emitResult.diagnostics) {
-					diagnosticReporter(diagnostic);
-				}
-				if (hasErrors(emitResult.diagnostics)) {
-					process.exitCode = 1;
+				const diagnosticReporter = ts.createDiagnosticReporter(ts.sys, true);
+
+				try {
+					const result = build.build();
+
+					for (const diagnostic of result.diagnostics) {
+						diagnosticReporter(diagnostic);
+					}
+
+					if (hasErrors(result.diagnostics)) {
+						process.exitCode = 1;
+					}
+				} finally {
+					build.close();
 				}
 			}
 		} catch (e) {

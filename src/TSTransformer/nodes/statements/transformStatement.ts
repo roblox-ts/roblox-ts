@@ -50,7 +50,9 @@ function createTransformerMap<
 	T extends Array<
 		[
 			ts.SyntaxKind,
-			{ bivariant(state: TransformState, statement: ts.Statement): luau.List<luau.Statement> }["bivariant"],
+			{
+				bivariant(state: TransformState, statement: ts.Statement): luau.List<luau.Statement>;
+			}["bivariant"],
 		]
 	>,
 >(
@@ -103,8 +105,10 @@ const TRANSFORMER_BY_KIND = createTransformerMap([
 export function transformStatement(state: TransformState, node: ts.Statement): luau.List<luau.Statement> {
 	// if any modifiers of the node include the `declare` keyword we do not transform
 	// `declare` tells us that the identifier of the node is defined somewhere else and we should trust it
-	const modifiers = ts.canHaveModifiers(node) ? ts.getModifiers(node) : undefined;
-	if (modifiers?.some(v => v.kind === ts.SyntaxKind.DeclareKeyword)) return NO_EMIT();
+	if (ts.canHaveModifiers(node) && ts.getModifiers(node)?.some(v => v.kind === ts.SyntaxKind.DeclareKeyword)) {
+		return NO_EMIT();
+	}
+
 	const transformer = TRANSFORMER_BY_KIND.get(node.kind);
 	if (transformer) {
 		return transformer(state, node);

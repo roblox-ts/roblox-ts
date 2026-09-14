@@ -64,4 +64,23 @@ export = () => {
 		x >>= 1;
 		expect(x).to.equal(4294967293);
 	});
+
+	it("should support variadic bitwise operations", () => {
+		const a = 0b101;
+		const b = 0b100;
+		const c = 0b011;
+		const d = 0b010;
+		const e = 0b001;
+		expect(a & b & c & d & e).to.equal(0b000);
+		expect(a | b | c | d | e).to.equal(0b111);
+		expect(a & b | 0b001).to.equal(0b101);
+		expect(a ^ b ^ c ^ d ^ e).to.equal(0b001);
+		expect(a ^ b ^ c).to.equal(0b010);
+		expect(a & b | c | d ^ e).to.equal(0b111);
+		expect(a & b | c & d + 0b110 & e).to.equal(0b100);
+		expect(a & b | c & (0b110 + 0b110) + d & e).to.equal(0b100);
+		expect(a & b + (0b101 | 0b110) & c ^ d * e).to.equal(0b011);
+		expect(~a & b | c + ~d ^ e).to.equal(0b001);
+		expect(~a & b | c + d ^ e).to.equal(0b100);
+	});
 };
