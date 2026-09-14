@@ -12,8 +12,8 @@
 	"dependencies": {
 		"@rbxts/compiler-types": "github:roblox-ts/compiler-types",
 		"@rbxts/roact": "github:roblox-ts/roact",
-		"@rbxts/services": "^1.5.3",
+		"@rbxts/services": "^1.6.0",
 		"@rbxts/testez": "^0.4.2-ts.0",
-		"@rbxts/types": "^1.0.751"
+		"@rbxts/types": "^1.0.950"
 	}
 }

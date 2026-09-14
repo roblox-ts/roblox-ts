@@ -1,0 +1,9 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`quotes decoded JSX text without changing backslashes or control characters 1`] = `
+"local value = React.createElement("text", nil, "\\"'\\\\path\\x001\\x09\\x0a\\x0d\\x7f\\x1f")
+return {
+	value = value,
+}
+"
+`;

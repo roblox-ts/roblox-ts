@@ -1,17 +1,18 @@
 import luau from "@roblox-ts/luau-ast";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import ts from "typescript";
 
-export function transformYieldExpression(state: TransformState, node: ts.YieldExpression) {
+export function transformYieldExpression(state: TransformState, prereqs: Prereqs, node: ts.YieldExpression) {
 	if (!node.expression) {
 		return luau.call(luau.globals.coroutine.yield, []);
 	}
 
-	const expression = transformExpression(state, node.expression);
+	const expression = transformExpression(state, prereqs, node.expression);
 	if (node.asteriskToken) {
-		const iteratorId = state.pushToVar(expression, "iterator");
+		const iteratorId = prereqs.pushToVar(expression, "iterator");
 		const currentInputId = luau.tempId("currentInput");
 		const resultId = luau.tempId("result");
 
@@ -19,7 +20,7 @@ export function transformYieldExpression(state: TransformState, node: ts.YieldEx
 		let evaluated: luau.Expression = luau.none();
 
 		if (!isUsedAsStatement(node)) {
-			const returnValue = state.pushToVar(undefined, "returnValue");
+			const returnValue = prereqs.pushToVar(undefined, "returnValue");
 			luau.list.unshift(
 				finalizer,
 				luau.create(luau.SyntaxKind.Assignment, {
@@ -33,14 +34,14 @@ export function transformYieldExpression(state: TransformState, node: ts.YieldEx
 
 		const yieldCall = luau.call(luau.globals.coroutine.yield, [luau.property(resultId, "value")]);
 
-		state.prereq(
+		prereqs.push(
 			luau.create(luau.SyntaxKind.VariableDeclaration, {
 				left: currentInputId,
 				right: luau.none(),
 			}),
 		);
 
-		state.prereq(
+		prereqs.push(
 			luau.create(luau.SyntaxKind.WhileStatement, {
 				condition: luau.bool(true),
 				statements: luau.list.make<luau.Statement>(

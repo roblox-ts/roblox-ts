@@ -1,4 +1,26 @@
 export = () => {
+	it("should discard tuple results in for clauses and void expressions", () => {
+		let calls = 0;
+		function values() {
+			return $tuple(++calls, "value");
+		}
+		for (values(); calls < 3; values()) {
+			expect(calls < 3).to.equal(true);
+		}
+		const ignored = void values();
+
+		expect(calls).to.equal(4);
+		expect(ignored).to.equal(undefined);
+	});
+
+	it("should support numeric separators in tuple return indices", () => {
+		function values(): LuaTuple<[number, number]> {
+			return $tuple(123, 456);
+		}
+		expect(values()[0x0_0]).to.equal(123);
+		expect(values()[0x0_1]).to.equal(456);
+	});
+
 	it("should unpack function return tuples", () => {
 		function foo(): [number, number] {
 			return [101, 203];
@@ -15,16 +37,7 @@ export = () => {
 		expect(foo()[1]).to.equal(203);
 	});
 
-	it("should support wrapping function results", () => {
-		function foo() {
-			return [1, 2, 3];
-		}
-		expect(foo()[0]).to.equal(1);
-		expect(foo()[1]).to.equal(2);
-		expect(foo()[2]).to.equal(3);
-	});
-
-	it("should support functions returning tuple calls", () => {
+	it("should support forwarding and wrapping tuple returns", () => {
 		function foo(): [number, string] {
 			return [1, "2"];
 		}
@@ -36,20 +49,14 @@ export = () => {
 		const [a, b] = bar();
 		expect(a).to.equal(1);
 		expect(b).to.equal("2");
-	});
 
-	it("should support wrapping tuple returns in tuple", () => {
-		function foo(): [number, string] {
-			return [1, "2"];
-		}
-
-		function bar(): [[number, string], boolean] {
+		function wrapped(): [[number, string], boolean] {
 			return [foo(), true];
 		}
 
-		const [[a, b], c] = bar();
-		expect(a).to.equal(1);
-		expect(b).to.equal("2");
+		const [[wrappedA, wrappedB], c] = wrapped();
+		expect(wrappedA).to.equal(1);
+		expect(wrappedB).to.equal("2");
 		expect(c).to.equal(true);
 	});
 
@@ -63,7 +70,7 @@ export = () => {
 		expect(itWorked).to.equal(true);
 	});
 
-	it("should support indirect tuple returns", () => {
+	it("should support indirect tuple returns and array methods", () => {
 		function foo(): [number, number, number] {
 			const result: [number, number, number] = [1, 2, 3];
 			return result;
@@ -72,18 +79,10 @@ export = () => {
 		expect(x).to.equal(1);
 		expect(y).to.equal(2);
 		expect(z).to.equal(3);
-	});
-
-	it("should allow tuples access to array functions", () => {
-		function foo(): [number, number, number] {
-			const result: [number, number, number] = [1, 2, 3];
-			return result;
-		}
-
 		expect(foo().pop()).to.equal(3);
 	});
 
-	it("should unpack function return tuples with LuaTuple<T>", () => {
+	it("should unpack and assign function return tuples with LuaTuple<T>", () => {
 		function foo(): LuaTuple<[number, number]> {
 			return [101, 203] as LuaTuple<[number, number]>;
 		}
@@ -97,9 +96,15 @@ export = () => {
 
 		expect(foo()[0]).to.equal(101);
 		expect(foo()[1]).to.equal(203);
+
+		let x = 0;
+		let y = 0;
+		[x, y] = foo();
+		expect(x).to.equal(101);
+		expect(y).to.equal(203);
 	});
 
-	it("should support functions returning tuple calls with LuaTuple<T>", () => {
+	it("should support forwarding and wrapping tuple returns with LuaTuple<T>", () => {
 		function foo(): LuaTuple<[number, string]> {
 			return [1, "2"] as LuaTuple<[number, string]>;
 		}
@@ -111,20 +116,14 @@ export = () => {
 		const [a, b] = bar();
 		expect(a).to.equal(1);
 		expect(b).to.equal("2");
-	});
 
-	it("should support wrapping tuple returns in tuple with LuaTuple<T>", () => {
-		function foo(): LuaTuple<[number, string]> {
-			return [1, "2"] as LuaTuple<[number, string]>;
-		}
-
-		function bar(): LuaTuple<[[number, string], boolean]> {
+		function wrapped(): LuaTuple<[[number, string], boolean]> {
 			return [foo(), true] as unknown as LuaTuple<[[number, string], boolean]>;
 		}
 
-		const [[a, b], c] = bar();
-		expect(a).to.equal(1);
-		expect(b).to.equal("2");
+		const [[wrappedA, wrappedB], c] = wrapped();
+		expect(wrappedA).to.equal(1);
+		expect(wrappedB).to.equal("2");
 		expect(c).to.equal(true);
 	});
 
@@ -138,7 +137,7 @@ export = () => {
 		expect(itWorked).to.equal(true);
 	});
 
-	it("should support indirect tuple returns with LuaTuple<T>", () => {
+	it("should support indirect tuple returns and array methods with LuaTuple<T>", () => {
 		function foo(): LuaTuple<[number, number, number]> {
 			const result: [number, number, number] = [1, 2, 3];
 			return result as LuaTuple<[number, number, number]>;
@@ -147,14 +146,6 @@ export = () => {
 		expect(x).to.equal(1);
 		expect(y).to.equal(2);
 		expect(z).to.equal(3);
-	});
-
-	it("should allow tuples access to array functions with LuaTuple<T>", () => {
-		function foo(): LuaTuple<[number, number, number]> {
-			const result: [number, number, number] = [1, 2, 3];
-			return result as LuaTuple<[number, number, number]>;
-		}
-
 		expect(foo().pop()).to.equal(3);
 	});
 
@@ -164,18 +155,6 @@ export = () => {
 		}
 
 		expect(foo().pop()).to.equal("3");
-	});
-
-	it("should support assigning from LuaTuples", () => {
-		function foo(): LuaTuple<[number, number]> {
-			return [101, 203] as LuaTuple<[number, number]>;
-		}
-
-		let a = 0;
-		let b = 0;
-		[a, b] = foo();
-		expect(a).to.equal(101);
-		expect(b).to.equal(203);
 	});
 
 	it("should support assigning from LuaTuples with omitted expressions", () => {
@@ -200,6 +179,33 @@ export = () => {
 		[a, [, b]] = foo();
 		expect(a).to.equal(101);
 		expect(b).to.equal(345);
+	});
+
+	it("should keep nested rest within one LuaTuple value", () => {
+		let calls = 0;
+		function values(): LuaTuple<[Array<number>, number]> {
+			calls++;
+			return $tuple([1, 2, 3], 4);
+		}
+
+		const [[first, ...rest], last] = values();
+		expect(first).to.equal(1);
+		expect(rest.size()).to.equal(2);
+		expect(rest[0]).to.equal(2);
+		expect(rest[1]).to.equal(3);
+		expect(last).to.equal(4);
+		expect(calls).to.equal(1);
+
+		let assignedFirst = 0;
+		let assignedRest = new Array<number>();
+		let assignedLast = 0;
+		[[assignedFirst, ...assignedRest], assignedLast] = values();
+		expect(assignedFirst).to.equal(1);
+		expect(assignedRest.size()).to.equal(2);
+		expect(assignedRest[0]).to.equal(2);
+		expect(assignedRest[1]).to.equal(3);
+		expect(assignedLast).to.equal(4);
+		expect(calls).to.equal(2);
 	});
 
 	it("should support nested assigning from LuaTuples 2", () => {
@@ -251,31 +257,7 @@ export = () => {
 		expect(fnTuple?.()?.[1]?.()?.[1]?.()).to.equal(3);
 	});
 
-	it("should support $tuple macro", () => {
-		function luaTupleMacroReturn() {
-			return $tuple(123, "abc", true);
-		}
-
-		const tuple = luaTupleMacroReturn();
-
-		expect(tuple[0]).to.equal(123);
-		expect(tuple[1]).to.equal("abc");
-		expect(tuple[2]).to.equal(true);
-	});
-
-	it("should support $tuple macro with destructuring", () => {
-		function luaTupleMacroReturn() {
-			return $tuple(123, "abc", true);
-		}
-
-		const [a, b, c] = luaTupleMacroReturn();
-
-		expect(a).to.equal(123);
-		expect(b).to.equal("abc");
-		expect(c).to.equal(true);
-	});
-
-	it("should support $tuple macro in nested calls", () => {
+	it("should preserve $tuple values through indexing, destructuring, and nested calls", () => {
 		function luaTupleMacroReturn() {
 			return $tuple(123, "abc", true);
 		}
@@ -284,11 +266,21 @@ export = () => {
 			return luaTupleMacroReturn();
 		}
 
-		const [a, b, c] = wrapperFunction();
+		const tuple = luaTupleMacroReturn();
 
+		expect(tuple[0]).to.equal(123);
+		expect(tuple[1]).to.equal("abc");
+		expect(tuple[2]).to.equal(true);
+
+		const [a, b, c] = luaTupleMacroReturn();
 		expect(a).to.equal(123);
 		expect(b).to.equal("abc");
 		expect(c).to.equal(true);
+
+		const [wrappedA, wrappedB, wrappedC] = wrapperFunction();
+		expect(wrappedA).to.equal(123);
+		expect(wrappedB).to.equal("abc");
+		expect(wrappedC).to.equal(true);
 	});
 
 	it("should support $tuple macro with type assertion", () => {

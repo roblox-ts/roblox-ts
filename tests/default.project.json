@@ -5,6 +5,15 @@
 		"$className": "DataModel",
 		"ReplicatedStorage": {
 			"$className": "ReplicatedStorage",
+			"external": {
+				"$path": "projects/external"
+			},
+			"referenceCommon": {
+				"$path": "projects/common/out"
+			},
+			"referenceShared": {
+				"$path": "projects/shared/out"
+			},
 			"include": {
 				"$path": "include",
 				"node_modules": {

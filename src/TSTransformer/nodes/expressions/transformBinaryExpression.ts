@@ -3,6 +3,7 @@ import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformArrayAssignmentPattern } from "TSTransformer/nodes/binding/transformArrayAssignmentPattern";
 import { transformObjectAssignmentPattern } from "TSTransformer/nodes/binding/transformObjectAssignmentPattern";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
@@ -21,7 +22,6 @@ import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexa
 import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOperator";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { getAssignableValue } from "TSTransformer/util/getAssignableValue";
-import { getKindName } from "TSTransformer/util/getKindName";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { skipDownwards } from "TSTransformer/util/traversal";
 import {
@@ -37,82 +37,79 @@ import ts from "typescript";
 
 function transformOptimizedArrayAssignmentPattern(
 	state: TransformState,
+	prereqs: Prereqs,
 	assignmentPattern: ts.ArrayLiteralExpression,
 	rhs: luau.Expression | luau.List<luau.Expression>,
 ) {
 	const variables = luau.list.make<luau.TemporaryIdentifier>();
 	const writes = luau.list.make<luau.WritableExpression>();
 	const writesPrereqs = luau.list.make<luau.Statement>();
-	const statements = state.capturePrereqs(() => {
-		for (let element of assignmentPattern.elements) {
-			if (ts.isOmittedExpression(element)) {
-				luau.list.push(writes, luau.tempId());
-			} else if (ts.isSpreadElement(element)) {
-				assert(false, "Cannot optimize-assign spread element");
-			} else {
-				let initializer: ts.Expression | undefined;
-				if (ts.isBinaryExpression(element)) {
-					initializer = skipDownwards(element.right);
-					element = skipDownwards(element.left);
-				}
+	const bindingPrereqs = new Prereqs();
+	for (let element of assignmentPattern.elements) {
+		if (ts.isOmittedExpression(element)) {
+			luau.list.push(writes, luau.tempId());
+		} else {
+			// callers only select this optimization for patterns without spread elements
+			assert(!ts.isSpreadElement(element), "Cannot optimize-assign spread element");
+			let initializer: ts.Expression | undefined;
+			if (ts.isBinaryExpression(element)) {
+				initializer = skipDownwards(element.right);
+				element = skipDownwards(element.left);
+			}
 
-				if (
-					ts.isIdentifier(element) ||
-					ts.isElementAccessExpression(element) ||
-					ts.isPropertyAccessExpression(element)
-				) {
-					const [id, idPrereqs] = state.capture(() => transformWritableExpression(state, element, true));
-					luau.list.pushList(writesPrereqs, idPrereqs);
-					luau.list.push(writes, id);
-					if (initializer) {
-						state.prereq(transformInitializer(state, id, initializer));
-					}
-				} else if (ts.isArrayLiteralExpression(element)) {
-					const id = luau.tempId("binding");
-					luau.list.push(variables, id);
-					luau.list.push(writes, id);
-					if (initializer) {
-						state.prereq(transformInitializer(state, id, initializer));
-					}
-					transformArrayAssignmentPattern(state, element, id);
-				} else if (ts.isObjectLiteralExpression(element)) {
-					const id = luau.tempId("binding");
-					luau.list.push(variables, id);
-					luau.list.push(writes, id);
-					if (initializer) {
-						state.prereq(transformInitializer(state, id, initializer));
-					}
-					transformObjectAssignmentPattern(state, element, id);
-				} else {
-					assert(
-						false,
-						`transformOptimizedArrayAssignmentPattern invalid element: ${getKindName(element.kind)}`,
-					);
+			if (
+				ts.isIdentifier(element) ||
+				ts.isElementAccessExpression(element) ||
+				ts.isPropertyAccessExpression(element)
+			) {
+				const idPrereqs = new Prereqs();
+				const id = transformWritableExpression(state, idPrereqs, element, true);
+				luau.list.pushList(writesPrereqs, idPrereqs.statements);
+				luau.list.push(writes, id);
+				if (initializer) {
+					bindingPrereqs.push(transformInitializer(state, id, initializer));
 				}
+			} else if (ts.isArrayLiteralExpression(element)) {
+				const id = luau.tempId("binding");
+				luau.list.push(variables, id);
+				luau.list.push(writes, id);
+				if (initializer) {
+					bindingPrereqs.push(transformInitializer(state, id, initializer));
+				}
+				transformArrayAssignmentPattern(state, bindingPrereqs, element, id);
+			} else {
+				assert(ts.isObjectLiteralExpression(element), "Expected object assignment pattern");
+				const id = luau.tempId("binding");
+				luau.list.push(variables, id);
+				luau.list.push(writes, id);
+				if (initializer) {
+					bindingPrereqs.push(transformInitializer(state, id, initializer));
+				}
+				transformObjectAssignmentPattern(state, bindingPrereqs, element, id);
 			}
 		}
-	});
+	}
 	if (!luau.list.isEmpty(variables)) {
-		state.prereq(
+		prereqs.push(
 			luau.create(luau.SyntaxKind.VariableDeclaration, {
 				left: variables,
 				right: undefined,
 			}),
 		);
 	}
-	state.prereqList(writesPrereqs);
+	prereqs.pushList(writesPrereqs);
 	assert(!luau.list.isEmpty(writes));
-	state.prereq(
+	prereqs.push(
 		luau.create(luau.SyntaxKind.Assignment, {
 			left: writes,
 			operator: "=",
 			right: rhs,
 		}),
 	);
-	state.prereqList(statements);
+	prereqs.pushList(bindingPrereqs.statements);
 }
 
-export function transformBinaryExpression(state: TransformState, node: ts.BinaryExpression) {
+export function transformBinaryExpression(state: TransformState, prereqs: Prereqs, node: ts.BinaryExpression) {
 	const operatorKind = node.operatorToken.kind;
 
 	validateNotAnyType(state, node.left);
@@ -133,17 +130,17 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 		operatorKind === ts.SyntaxKind.BarBarToken ||
 		operatorKind === ts.SyntaxKind.QuestionQuestionToken
 	) {
-		return transformLogical(state, node);
+		return transformLogical(state, prereqs, node);
 	}
 
 	if (ts.isLogicalOrCoalescingAssignmentExpression(node)) {
-		return transformLogicalOrCoalescingAssignmentExpression(state, node);
+		return transformLogicalOrCoalescingAssignmentExpression(state, prereqs, node);
 	}
 
 	if (ts.isAssignmentOperator(operatorKind)) {
 		// in destructuring, rhs must be executed first
 		if (ts.isArrayLiteralExpression(node.left)) {
-			const rightExp = transformExpression(state, node.right);
+			const rightExp = transformExpression(state, prereqs, node.right);
 
 			// optimize empty array destructure
 			if (node.left.elements.length === 0) {
@@ -158,7 +155,7 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 				isLuaTupleType(state)(state.getType(node.right)) &&
 				!arrayLikeExpressionContainsSpread(node.left)
 			) {
-				transformOptimizedArrayAssignmentPattern(state, node.left, rightExp);
+				transformOptimizedArrayAssignmentPattern(state, prereqs, node.left, rightExp);
 				if (!isUsedAsStatement(node)) {
 					DiagnosticService.addDiagnostic(errors.noLuaTupleDestructureAssignmentExpression(node));
 				}
@@ -171,15 +168,15 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 				isUsedAsStatement(node) &&
 				!arrayLikeExpressionContainsSpread(node.left)
 			) {
-				transformOptimizedArrayAssignmentPattern(state, node.left, rightExp.members);
+				transformOptimizedArrayAssignmentPattern(state, prereqs, node.left, rightExp.members);
 				return luau.none();
 			}
 
-			const parentId = state.pushToVar(rightExp, "binding");
-			transformArrayAssignmentPattern(state, node.left, parentId);
+			const parentId = prereqs.pushToVar(rightExp, "binding");
+			transformArrayAssignmentPattern(state, prereqs, node.left, parentId);
 			return parentId;
 		} else if (ts.isObjectLiteralExpression(node.left)) {
-			const rightExp = transformExpression(state, node.right);
+			const rightExp = transformExpression(state, prereqs, node.right);
 
 			// optimize empty object destructure
 			if (node.left.properties.length === 0) {
@@ -189,8 +186,8 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 				return rightExp;
 			}
 
-			const parentId = state.pushToVar(rightExp, "binding");
-			transformObjectAssignmentPattern(state, node.left, parentId);
+			const parentId = prereqs.pushToVar(rightExp, "binding");
+			transformObjectAssignmentPattern(state, prereqs, node.left, parentId);
 			return parentId;
 		}
 
@@ -199,22 +196,23 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 		const operator = getSimpleAssignmentOperator(writableType, operatorKind as ts.AssignmentOperator, valueType);
 		const { writable, readable, value } = transformWritableAssignment(
 			state,
+			prereqs,
 			node.left,
 			node.right,
 			true,
-			operator === undefined,
+			operator !== "=",
 		);
 		if (operator !== undefined) {
 			return createAssignmentExpression(
-				state,
+				prereqs,
 				writable,
 				operator,
 				getAssignableValue(operator, value, valueType),
+				readable,
 			);
 		} else {
 			return createCompoundAssignmentExpression(
-				state,
-				node,
+				prereqs,
 				writable,
 				writableType,
 				readable,
@@ -226,10 +224,10 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 	}
 
 	if (isBitwiseOperator(operatorKind)) {
-		return createBitwiseFromOperator(state, operatorKind, node);
+		return createBitwiseFromOperator(state, prereqs, operatorKind, node);
 	}
 
-	const [left, right] = ensureTransformOrder(state, [node.left, node.right]);
+	const [left, right] = ensureTransformOrder(state, prereqs, [node.left, node.right]);
 
 	if (operatorKind === ts.SyntaxKind.InKeyword) {
 		return luau.binary(
@@ -264,5 +262,5 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 		}
 	}
 
-	return createBinaryFromOperator(state, node, left, leftType, operatorKind, right, rightType);
+	return createBinaryFromOperator(prereqs, left, leftType, operatorKind, right, rightType);
 }

@@ -1,0 +1,13 @@
+{
+	"extends": "../../tsconfig.json",
+	"include": ["src", "../external/*.d.ts"],
+	"references": [],
+	"compilerOptions": {
+		"composite": true,
+		"rootDir": "src",
+		"outDir": "out",
+		"declarationDir": "out/types",
+		"declarationMap": true,
+		"tsBuildInfoFile": "out/build.tsbuildinfo"
+	}
+}

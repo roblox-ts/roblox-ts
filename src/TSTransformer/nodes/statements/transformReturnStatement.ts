@@ -1,5 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
 import { SYMBOL_NAMES, TransformState } from "TSTransformer";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isReturnBlockedByTryStatement } from "TSTransformer/util/isBlockedByTryStatement";
@@ -15,12 +16,10 @@ function isTupleReturningCall(state: TransformState, tsExpression: ts.Expression
 	);
 }
 
-function isTupleMacro(state: TransformState, expression: ts.Expression) {
-	if (ts.isCallExpression(expression)) {
-		const symbol = getFirstDefinedSymbol(state, state.getType(expression.expression));
-		if (symbol && symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.$tuple)) {
-			return true;
-		}
+function isTupleMacro(state: TransformState, expression: ts.CallExpression) {
+	const symbol = getFirstDefinedSymbol(state, state.getType(expression.expression));
+	if (symbol && symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.$tuple)) {
+		return true;
 	}
 	return false;
 }
@@ -30,16 +29,16 @@ export function transformReturnStatementInner(
 	returnExp: ts.Expression,
 ): luau.List<luau.Statement> {
 	const result = luau.list.make<luau.Statement>();
+	const prereqs = new Prereqs();
 
 	let expression: luau.Expression | luau.List<luau.Expression>;
 
 	const innerReturnExp = skipDownwards(returnExp);
 	if (ts.isCallExpression(innerReturnExp) && isTupleMacro(state, innerReturnExp)) {
-		const [args, prereqs] = state.capture(() => ensureTransformOrder(state, innerReturnExp.arguments));
-		luau.list.pushList(result, prereqs);
+		const args = ensureTransformOrder(state, prereqs, innerReturnExp.arguments);
 		expression = luau.list.make(...args);
 	} else {
-		expression = transformExpression(state, innerReturnExp);
+		expression = transformExpression(state, prereqs, innerReturnExp);
 		if (isLuaTupleType(state)(state.getType(returnExp)) && !isTupleReturningCall(state, returnExp, expression)) {
 			if (luau.isArray(expression)) {
 				expression = expression.members;
@@ -48,6 +47,8 @@ export function transformReturnStatementInner(
 			}
 		}
 	}
+
+	luau.list.pushList(result, prereqs.statements);
 
 	if (isReturnBlockedByTryStatement(returnExp)) {
 		state.markTryUses("usesReturn");

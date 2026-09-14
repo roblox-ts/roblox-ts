@@ -1,5 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
 import { assert } from "Shared/util/assert";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { getKindName } from "TSTransformer/util/getKindName";
@@ -67,6 +68,7 @@ export function createBitwiseCall(
 
 export function createBitwiseFromOperator(
 	state: TransformState,
+	prereqs: Prereqs,
 	operatorKind: ts.BinaryOperator,
 	node: ts.BinaryExpression,
 ): luau.Expression {
@@ -79,5 +81,5 @@ export function createBitwiseFromOperator(
 		flattenedExpressions.push(node.left, node.right);
 	}
 
-	return createBitwiseCall(operatorKind, ensureTransformOrder(state, flattenedExpressions));
+	return createBitwiseCall(operatorKind, ensureTransformOrder(state, prereqs, flattenedExpressions));
 }

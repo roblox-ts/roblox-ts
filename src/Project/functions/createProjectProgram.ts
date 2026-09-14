@@ -4,7 +4,7 @@ import { ProjectData } from "Shared/types";
 import ts from "typescript";
 
 export function createProjectProgram(data: ProjectData, host?: ts.CompilerHost) {
-	const { fileNames, options } = getParsedCommandLine(data);
-	const createProgram = createProgramFactory(data, options);
+	const { fileNames, options, projectReferences } = getParsedCommandLine(data);
+	const createProgram = createProgramFactory(data, options, projectReferences);
 	return createProgram(fileNames, options, host);
 }

@@ -1,3 +1,4 @@
+import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import { getAncestor, isAncestorOf } from "TSTransformer/util/traversal";
@@ -9,9 +10,7 @@ export function checkVariableHoist(state: TransformState, node: ts.Identifier, s
 	}
 
 	const statement = getAncestor(node, ts.isStatement);
-	if (!statement) {
-		return;
-	}
+	assert(statement);
 
 	const caseClause = statement.parent;
 	if (!ts.isCaseClause(caseClause)) {

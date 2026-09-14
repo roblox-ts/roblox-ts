@@ -37,9 +37,7 @@ export function transformStatementList(
 
 	// iterate through each statement in the `statements` array
 	for (const statement of statements) {
-		// capture prerequisite statements for the `ts.Statement`
-		// transform the statement into a luau.List<...>
-		const [transformedStatements, prereqStatements] = state.capture(() => transformStatement(state, statement));
+		const transformedStatements = transformStatement(state, statement);
 
 		// iterate through each of the leading comments of the statement
 		if (state.compilerOptions.removeComments !== true) {
@@ -53,7 +51,6 @@ export function transformStatementList(
 			luau.list.push(result, hoistDeclaration);
 		}
 
-		luau.list.pushList(result, prereqStatements);
 		luau.list.pushList(result, transformedStatements);
 
 		const lastStatement = transformedStatements.tail?.value;

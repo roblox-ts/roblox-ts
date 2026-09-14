@@ -1,7 +1,8 @@
 import luau from "@roblox-ts/luau-ast";
 import { assert } from "Shared/util/assert";
-import { TransformState } from "TSTransformer/classes/TransformState";
+import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { createBitwiseCall, isBitwiseOperator } from "TSTransformer/util/bitwise";
+import { effectsCommute, getEffects, isLateRead } from "TSTransformer/util/evaluation/effects";
 import { getKindName } from "TSTransformer/util/getKindName";
 import { isDefinitelyType, isStringType } from "TSTransformer/util/types";
 import { wrapExpressionStatement } from "TSTransformer/util/wrapExpressionStatement";
@@ -39,14 +40,18 @@ function createBinaryAdd(left: luau.Expression, leftType: ts.Type, right: luau.E
 }
 
 export function createBinaryFromOperator(
-	state: TransformState,
-	node: ts.Node,
+	prereqs: Prereqs,
 	left: luau.Expression,
 	leftType: ts.Type,
 	operatorKind: ts.BinaryOperator,
 	right: luau.Expression,
 	rightType: ts.Type,
 ): luau.Expression {
+	// arithmetic and comparison instructions can read a local after the RHS call ran
+	if (isLateRead(left) && !effectsCommute(getEffects(left), getEffects(right))) {
+		left = prereqs.pushToVar(left, "left");
+	}
+
 	// simple
 	const operator = OPERATOR_MAP.get(operatorKind);
 	if (operator !== undefined) {
@@ -64,7 +69,7 @@ export function createBinaryFromOperator(
 	}
 
 	if (operatorKind === ts.SyntaxKind.CommaToken) {
-		state.prereqList(wrapExpressionStatement(left));
+		prereqs.pushList(wrapExpressionStatement(left));
 		return right;
 	}
 

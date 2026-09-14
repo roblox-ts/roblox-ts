@@ -1,4 +1,63 @@
 export = () => {
+	it("should inherit from an abstract class without a base", () => {
+		abstract class Base {
+			value = 41;
+			abstract read(): number;
+		}
+		class Derived extends Base {
+			read() {
+				return this.value + 1;
+			}
+		}
+
+		expect(new Derived().read()).to.equal(42);
+	});
+
+	it("should preserve the receiver for computed super calls", () => {
+		class Base {
+			value = 42;
+			read() {
+				return this.value;
+			}
+		}
+		class Derived extends Base {
+			read() {
+				return super["read"]() + 1;
+			}
+		}
+
+		expect(new Derived().read()).to.equal(43);
+	});
+
+	it("should honor callback and method receivers in super calls", () => {
+		type Callable<T> = (this: T, value: number) => number;
+		class Base {
+			static value = 1;
+			static callback: Callable<void> = value => value + 1;
+			static method(value: number) {
+				return this.value + value;
+			}
+		}
+
+		class Derived extends Base {
+			static value = 2;
+			static check() {
+				expect(super.callback(41)).to.equal(42);
+				expect(super["callback"](41)).to.equal(42);
+				expect((super.callback)(41)).to.equal(42);
+				expect(super.callback?.(41)).to.equal(42);
+				expect(super.method(40)).to.equal(42);
+				expect(super["method"](40)).to.equal(42);
+			}
+			static withoutReceiver(this: void) {
+				return super.callback(41) + super["callback"](41);
+			}
+		}
+
+		Derived.check();
+		expect(Derived.withoutReceiver()).to.equal(84);
+	});
+
 	it("should properly initialize static properties and use `this` in a static context correctly", () => {
 		class X {
 			static value1 = "a";
@@ -10,17 +69,6 @@ export = () => {
 
 		expect(X.value1).to.equal("ab");
 		expect(X.value2).to.equal("abc");
-	});
-	it("should create a class with a constructor", () => {
-		class Foo {
-			public bar: string;
-			constructor(bar: string) {
-				this.bar = bar;
-			}
-		}
-
-		const foo = new Foo("baz!");
-		expect(foo.bar).to.equal("baz!");
 	});
 
 	it("should construct with default parameters and accessors", () => {
@@ -147,16 +195,7 @@ export = () => {
 		expect(foo.bar).to.equal("baz");
 	});
 
-	it("should support toString", () => {
-		class Foo {
-			public toString() {
-				return "Foo";
-			}
-		}
-		expect(tostring(new Foo())).to.equal("Foo");
-	});
-
-	it("should support toString inheritance", () => {
+	it("should support toString on classes and subclasses", () => {
 		class Foo {
 			public toString() {
 				return "Foo";
@@ -164,6 +203,8 @@ export = () => {
 		}
 
 		class Bar extends Foo {}
+
+		expect(tostring(new Foo())).to.equal("Foo");
 		expect(tostring(new Bar())).to.equal("Foo");
 	});
 
@@ -344,7 +385,8 @@ export = () => {
 
 	it("should support methods keys that emit prereqs", () => {
 		let i = 0;
-		class A {
+		class Base {}
+		class A extends Base {
 			[++i]() {
 				return "first";
 			}
