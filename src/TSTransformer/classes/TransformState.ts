@@ -15,8 +15,8 @@ import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName
 import { TransformServices, TryUses } from "TSTransformer/types";
 import { createGetService } from "TSTransformer/util/createGetService";
 import { propertyAccessExpressionChain } from "TSTransformer/util/expressionChain";
-import { getModuleAncestor, skipDownwards, skipUpwards } from "TSTransformer/util/traversal";
 import { getBlockCommentText } from "TSTransformer/util/getBlockCommentText";
+import { getModuleAncestor, skipDownwards, skipUpwards } from "TSTransformer/util/traversal";
 import { VarArgsData } from "TSTransformer/util/varArgsOptimization";
 import ts from "typescript";
 
