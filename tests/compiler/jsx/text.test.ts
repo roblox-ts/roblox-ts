@@ -14,7 +14,7 @@ it("quotes decoded JSX text without changing backslashes or control characters",
 		export const value = <text>&quot;&apos;\path&#0;1&#9;&#10;&#13;&#127;&#x1f;</text>;
 	`);
 
-	expect(output.replace(/^-- Compiled with.*\n/, "")).toMatchSnapshot();
+	expect(output).toMatchSnapshot();
 });
 
 it("uses the default fragment factory for an empty JSX fragment", () => {

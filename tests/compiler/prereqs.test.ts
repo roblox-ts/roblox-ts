@@ -85,7 +85,7 @@ it.each([
 	],
 ])("preserves prerequisites for %s", (name, source) => {
 	const project = createTestProject();
-	const output = project.compileSource(source).replace(/^-- Compiled with.*\n/, "");
+	const output = project.compileSource(source);
 
 	expect(output).toMatchSnapshot();
 });

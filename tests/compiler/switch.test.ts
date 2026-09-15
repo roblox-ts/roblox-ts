@@ -20,5 +20,5 @@ it("emits enum case values directly", () => {
 			}
 		}
 	`);
-	expect(output.replace(/^-- Compiled with.*\n/, "")).toMatchSnapshot();
+	expect(output).toMatchSnapshot();
 });

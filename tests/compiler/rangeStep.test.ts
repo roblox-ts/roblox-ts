@@ -1,9 +1,7 @@
 import { createTestProject } from "./createTestProject";
 
 function compileRange(source: string) {
-	return createTestProject()
-		.compileSource(source)
-		.replace(/^-- Compiled with.*\n/, "");
+	return createTestProject().compileSource(source);
 }
 
 it.each([

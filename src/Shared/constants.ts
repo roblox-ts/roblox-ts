@@ -48,6 +48,7 @@ export const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	usePolling: false,
 	verbose: false,
 	noInclude: false,
+	noCompilerHeader: false,
 	logTruthyChanges: false,
 	writeOnlyChanged: false,
 	writeTransformedFiles: false,

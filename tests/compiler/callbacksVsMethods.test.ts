@@ -157,5 +157,5 @@ it.each([
 		project.vfs.writeFile("/src/augmentation.d.ts", declarations);
 	}
 	const output = project.compileSource(source);
-	expect(output.replace(/^-- Compiled with.*\n/, "")).toMatchSnapshot();
+	expect(output).toMatchSnapshot();
 });

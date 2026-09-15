@@ -9,7 +9,7 @@ it("captures iterators before nested defaults can reassign them", () => {
 		print(first, value, second, rest);
 	`);
 
-	expect(output.replace(/^-- Compiled with.*\n/, "")).toMatchSnapshot();
+	expect(output).toMatchSnapshot();
 });
 
 it("captures reassignable iterators before preceding bindings", () => {
@@ -25,7 +25,7 @@ it("captures reassignable iterators before preceding bindings", () => {
 		print(first, second, rest);
 	`);
 
-	expect(output.replace(/^-- Compiled with.*\n/, "")).toMatchSnapshot();
+	expect(output).toMatchSnapshot();
 });
 
 it.each(["number", "LuaTuple<[number, string]>"])(
@@ -38,7 +38,7 @@ it.each(["number", "LuaTuple<[number, string]>"])(
 			[...target()[key()]] = iterator;
 		`);
 
-		expect(output.replace(/^-- Compiled with.*\n/, "")).toMatchSnapshot();
+		expect(output).toMatchSnapshot();
 	},
 );
 
@@ -52,7 +52,7 @@ it.each([
 		export const [first, , ...rest] = iterator;
 	`);
 
-	expect(output.replace(/^-- Compiled with.*\n/, "")).toMatchSnapshot();
+	expect(output).toMatchSnapshot();
 });
 
 it.each(["number", "LuaTuple<[number, string]>"])("guards iterator assignment targets after exhaustion (%s)", type => {
@@ -63,7 +63,7 @@ it.each(["number", "LuaTuple<[number, string]>"])("guards iterator assignment ta
 			[target().value = fallback(), , ...target().rest] = iterator;
 		`);
 
-	expect(output.replace(/^-- Compiled with.*\n/, "")).toMatchSnapshot();
+	expect(output).toMatchSnapshot();
 });
 
 it("keeps nested rest within a LuaTuple value", () => {
@@ -73,5 +73,5 @@ it("keeps nested rest within a LuaTuple value", () => {
 		print(first, rest, last);
 	`);
 
-	expect(output.replace(/^-- Compiled with.*\n/, "")).toMatchSnapshot();
+	expect(output).toMatchSnapshot();
 });

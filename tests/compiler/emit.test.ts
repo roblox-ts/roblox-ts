@@ -1,11 +1,20 @@
 // keep tests alphabetized by name to match Jest's snapshot ordering
+import { COMPILER_VERSION, DEFAULT_PROJECT_OPTIONS } from "Shared/constants";
+
 import { createTestProject } from "./createTestProject";
 import { expectSuccess, ReferenceFixture } from "./referenceFixture";
 
 it("emits a module export", () => {
 	const project = createTestProject();
 	const output = project.compileSource('export const message = "hello";');
-	expect(output.replace(/^-- Compiled with.*\n/, "")).toMatchSnapshot();
+	expect(output).toMatchSnapshot();
+});
+
+it("emits the compiler version header by default", () => {
+	const project = createTestProject(DEFAULT_PROJECT_OPTIONS);
+	const output = project.compileSource("print(1);");
+
+	expect(output).toBe(`-- Compiled with roblox-ts v${COMPILER_VERSION}\nprint(1)\nreturn nil\n`);
 });
 
 it("formats JSDoc comments without delimiters or gutters", () => {
@@ -27,7 +36,7 @@ it("formats JSDoc comments without delimiters or gutters", () => {
 		print(add(1, 2));
 	`);
 
-	expect(output.replace(/^-- Compiled with.*\n/, "")).toMatchSnapshot();
+	expect(output).toMatchSnapshot();
 });
 
 it("formats plain block comments without source indentation", () => {
@@ -48,7 +57,7 @@ it("formats plain block comments without source indentation", () => {
 		run();
 	`);
 
-	expect(output.replace(/^-- Compiled with.*\n/, "")).toMatchSnapshot();
+	expect(output).toMatchSnapshot();
 });
 
 it("handles block comments longer than JavaScript's argument limit", () => {
@@ -57,7 +66,7 @@ it("handles block comments longer than JavaScript's argument limit", () => {
 
 	const output = project.compileSource(source);
 
-	expect(output.startsWith("-- Compiled with roblox-ts")).toBe(true);
+	expect(output.startsWith("--[[\n\tcontent\n")).toBe(true);
 	expect(output.endsWith("\tcontent\n]]\nprint(1)\nreturn nil\n")).toBe(true);
 });
 
@@ -74,14 +83,20 @@ it("normalizes CRLF line endings in block comments", () => {
 	const output = project.compileSource("/**\r\n * first\r\n * second\r\n */\r\nprint(1);\r\n");
 
 	// snapshots normalize line endings, which would hide a leftover \r
-	expect(output.replace(/^-- Compiled with.*\n/, "")).toBe("--[[\n\tfirst\n\tsecond\n]]\nprint(1)\nreturn nil\n");
+	expect(output).toBe("--[[\n\tfirst\n\tsecond\n]]\nprint(1)\nreturn nil\n");
 });
 
 it("places Luau directives before the compiler header", () => {
 	const project = createTestProject();
-	const output = project.compileSource("//!strict\n//!native\nexport const value = 1;");
+	const source = "//!strict\n//!native\nexport const value = 1;";
+	const output = project.compileSource(source);
 
-	expect(output.replace(/^-- Compiled with.*\n/m, "")).toMatchSnapshot();
+	expect(output).toMatchSnapshot();
+
+	const projectWithHeader = createTestProject({ noCompilerHeader: false });
+	expect(projectWithHeader.compileSource(source)).toBe(
+		`--!strict\n--!native\n-- Compiled with roblox-ts v${COMPILER_VERSION}\nlocal value = 1\nreturn {\n\tvalue = value,\n}\n`,
+	);
 });
 
 it.each(["!strict", "[[ note"])("renders a one-line block comment starting with %s after a space", text => {
@@ -90,7 +105,7 @@ it.each(["!strict", "[[ note"])("renders a one-line block comment starting with 
 		const output = project.compileSource(`${source}\nprint(1);`);
 
 		// --!strict would be a Luau directive and --[[ would comment out the code after it
-		expect(output.replace(/^-- Compiled with.*\n/, "")).toBe(`-- ${text}\nprint(1)\nreturn nil\n`);
+		expect(output).toBe(`-- ${text}\nprint(1)\nreturn nil\n`);
 	}
 });
 
