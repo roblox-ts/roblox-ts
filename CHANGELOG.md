@@ -21,7 +21,9 @@
 - Added support for iterating over `SharedTable` ([#2938][2938])
 - Added math macros for the `vector` type ([#2916][2916])
 	- requires an updated `@rbxts/types` package
-- Improved destructuring emit to avoid unnecessary temporaries ([#2946][2946])
+- Improved destructuring emit to avoid unnecessary temporaries ([#2946][2946], [#3090][3090])
+	- single named object bindings and standalone assignments to identifiers can now omit the receiver temporary
+	- for example, `const { Terrain } = game.GetService("Workspace")` now emits `local Terrain = game:GetService("Workspace").Terrain`
 - Removed unnecessary brackets and quotes from valid identifier keys in object rest destructuring output ([#3087][3087])
 - Improved block comment and JSDoc formatting in Luau output by removing extra indentation and leading `*` characters ([#3070][3070])
 - Improved chained bitwise operations to use a single `bit32.band()`, `bit32.bor()`, or `bit32.bxor()` call ([#2940][2940])
@@ -823,4 +825,5 @@ Changes prior to 1.0.0-beta.0 have been removed from this page since the entire 
 [3082]: https://github.com/roblox-ts/roblox-ts/pull/3082
 [3083]: https://github.com/roblox-ts/roblox-ts/pull/3083
 [3087]: https://github.com/roblox-ts/roblox-ts/pull/3087
+[3090]: https://github.com/roblox-ts/roblox-ts/pull/3090
 [roblox-ts/luau-ast#483]: https://github.com/roblox-ts/luau-ast/pull/483
