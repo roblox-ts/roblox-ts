@@ -11,6 +11,7 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { transformWritableExpression } from "TSTransformer/nodes/transformWritable";
+import { arrayLikeExpressionContainsSpread } from "TSTransformer/util/arrayLikeExpressionContainsSpread";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { getLiteralNumberValue } from "TSTransformer/util/getLiteralNumberValue";
@@ -214,11 +215,11 @@ const buildMapLoop: LoopBuilder = makeForLoopBuilder((state, prereqs, initialize
 	// TEST
 	if (ts.isVariableDeclarationList(initializer)) {
 		const name = initializer.declarations[0].name;
-		if (ts.isArrayBindingPattern(name)) {
+		if (ts.isArrayBindingPattern(name) && !arrayLikeExpressionContainsSpread(name)) {
 			transformInLineArrayBindingPattern(state, name, ids, initializers);
 			return exp;
 		}
-	} else if (ts.isArrayLiteralExpression(initializer)) {
+	} else if (ts.isArrayLiteralExpression(initializer) && !arrayLikeExpressionContainsSpread(initializer)) {
 		transformInLineArrayAssignmentPattern(state, initializer, ids, initializers);
 		return exp;
 	}
@@ -285,10 +286,10 @@ const buildIterableFunctionLuaTupleLoop: (type: ts.Type) => LoopBuilder =
 		if (ts.isVariableDeclarationList(initializer)) {
 			// for (const [a, b] of iter())
 			const name = initializer.declarations[0].name;
-			if (ts.isArrayBindingPattern(name)) {
+			if (ts.isArrayBindingPattern(name) && !arrayLikeExpressionContainsSpread(name)) {
 				return makeIterableFunctionLuaTupleShorthand(state, name, statements, exp);
 			}
-		} else if (ts.isArrayLiteralExpression(initializer)) {
+		} else if (ts.isArrayLiteralExpression(initializer) && !arrayLikeExpressionContainsSpread(initializer)) {
 			// for ([a, b] of iter())
 			return makeIterableFunctionLuaTupleShorthand(state, initializer, statements, exp);
 		}
