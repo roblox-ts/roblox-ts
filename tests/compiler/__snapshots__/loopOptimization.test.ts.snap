@@ -20,7 +20,7 @@ return nil
 "
 `;
 
-exports[`fallback arithmetic bound 1`] = `
+exports[`fallback arithmetic overflow 1`] = `
 "do
 	local i = 0
 	local _shouldIncrement = false
@@ -30,10 +30,11 @@ exports[`fallback arithmetic bound 1`] = `
 		else
 			_shouldIncrement = true
 		end
-		if not (i < 1 + 2) then
+		if not (i < 9007199254740991 + 1) then
 			break
 		end
 		print(i)
+		break
 	end
 end
 return nil
@@ -61,32 +62,11 @@ return nil
 "
 `;
 
-exports[`fallback computed constant bound 1`] = `
+exports[`fallback computed unknown constant 1`] = `
 "local function getLimit()
 	return 3
 end
 local limit = getLimit()
-do
-	local i = 0
-	local _shouldIncrement = false
-	while true do
-		if _shouldIncrement then
-			i += 1
-		else
-			_shouldIncrement = true
-		end
-		if not (i < limit) then
-			break
-		end
-		print(i)
-	end
-end
-return nil
-"
-`;
-
-exports[`fallback destructured constant bound 1`] = `
-"local limit = 3
 do
 	local i = 0
 	local _shouldIncrement = false
@@ -174,6 +154,30 @@ return nil
 "
 `;
 
+exports[`fallback effectful arithmetic bound 1`] = `
+"local function getLimit()
+	print("check")
+	return 3
+end
+do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i < getLimit() + 1) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+"
+`;
+
 exports[`fallback effectful bound with a literal return type 1`] = `
 "local function limit()
 	print("limit")
@@ -189,6 +193,30 @@ do
 			_shouldIncrement = true
 		end
 		if not (i < limit()) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+"
+`;
+
+exports[`fallback effectful step 1`] = `
+"local function step()
+	print("step")
+	return 1
+end
+do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += step()
+		else
+			_shouldIncrement = true
+		end
+		if not (i < 3) then
 			break
 		end
 		print(i)
@@ -239,6 +267,26 @@ return nil
 "
 `;
 
+exports[`fallback multiplicative assignment increment 1`] = `
+"do
+	local i = 1
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i = i * 2
+		else
+			_shouldIncrement = true
+		end
+		if not (i < 8) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+"
+`;
+
 exports[`fallback multiplicative step 1`] = `
 "do
 	local i = 1
@@ -253,6 +301,28 @@ exports[`fallback multiplicative step 1`] = `
 			break
 		end
 		print(i)
+	end
+end
+return nil
+"
+`;
+
+exports[`fallback mutable constant alias 1`] = `
+"local initial = 3
+local limit = initial
+do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i < limit) then
+			break
+		end
+		limit -= 1
 	end
 end
 return nil
@@ -306,21 +376,42 @@ return nil
 "
 `;
 
-exports[`fallback negated identifier bound 1`] = `
-"local limit = 3
-do
+exports[`fallback nonlinear assignment increment 1`] = `
+"do
 	local i = 0
 	local _shouldIncrement = false
 	while true do
 		if _shouldIncrement then
-			i -= 1
+			i = 1 - i
 		else
 			_shouldIncrement = true
 		end
-		if not (i > -limit) then
+		if not (i < 3) then
 			break
 		end
 		print(i)
+		break
+	end
+end
+return nil
+"
+`;
+
+exports[`fallback nonmutating binary incrementor 1`] = `
+"do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			local _ = i + 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i < 3) then
+			break
+		end
+		print(i)
+		break
 	end
 end
 return nil
@@ -370,6 +461,53 @@ exports[`fallback parameter bound 1`] = `
 	end
 end
 run()
+return nil
+"
+`;
+
+exports[`fallback replacing assignment increment 1`] = `
+"do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i = 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i < 2) then
+			break
+		end
+		print(i)
+		break
+	end
+end
+return nil
+"
+`;
+
+exports[`fallback step before initialization 1`] = `
+"local step
+local function run()
+	do
+		local i = 0
+		local _shouldIncrement = false
+		while true do
+			if _shouldIncrement then
+				i += step
+			else
+				_shouldIncrement = true
+			end
+			if not (i < 1) then
+				break
+			end
+			print(i)
+			break
+		end
+	end
+end
+run()
+step = 1
 return nil
 "
 `;
@@ -430,6 +568,28 @@ return nil
 "
 `;
 
+exports[`fallback zero constant step 1`] = `
+"local step = 0
+do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += step
+		else
+			_shouldIncrement = true
+		end
+		if not (i < 3) then
+			break
+		end
+		print(i)
+		break
+	end
+end
+return nil
+"
+`;
+
 exports[`fallback zero step 1`] = `
 "do
 	local i = 0
@@ -449,6 +609,60 @@ exports[`fallback zero step 1`] = `
 end
 return nil
 "
+`;
+
+exports[`optimized arithmetic bound 1`] = `
+{
+  "optimized": "for i = 0, 1 + 1 do
+	print(i)
+end
+return nil
+",
+  "unoptimized": "do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i < 1 + 2) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+",
+}
+`;
+
+exports[`optimized arithmetic step 1`] = `
+{
+  "optimized": "for i = 0, 4, 1 + 1 do
+	print(i)
+end
+return nil
+",
+  "unoptimized": "do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += 1 + 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i < 5) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+",
+}
 `;
 
 exports[`optimized ascending exclusive bound 1`] = `
@@ -495,6 +709,186 @@ return nil
 			_shouldIncrement = true
 		end
 		if not (i <= 4) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+",
+}
+`;
+
+exports[`optimized assignment increment 1`] = `
+{
+  "optimized": "for i = 0, 2 do
+	print(i)
+end
+return nil
+",
+  "unoptimized": "do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i = i + 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i < 3) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+",
+}
+`;
+
+exports[`optimized commuted assignment increment 1`] = `
+{
+  "optimized": "for i = 0, 2 do
+	print(i)
+end
+return nil
+",
+  "unoptimized": "do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i = 1 + i
+		else
+			_shouldIncrement = true
+		end
+		if not (i < 3) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+",
+}
+`;
+
+exports[`optimized computed constant bound 1`] = `
+{
+  "optimized": "local function getLimit()
+	return 3
+end
+local limit = getLimit()
+for i = 0, limit - 1 do
+	print(i)
+end
+return nil
+",
+  "unoptimized": "local function getLimit()
+	return 3
+end
+local limit = getLimit()
+do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i < limit) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+",
+}
+`;
+
+exports[`optimized constant alias 1`] = `
+{
+  "optimized": "local baseLimit = 3
+local limit = baseLimit
+for i = 0, limit - 1 do
+	print(i)
+end
+return nil
+",
+  "unoptimized": "local baseLimit = 3
+local limit = baseLimit
+do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i < limit) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+",
+}
+`;
+
+exports[`optimized constant arithmetic 1`] = `
+{
+  "optimized": "local baseLimit = 2
+local limit = baseLimit * 3 - 1
+for i = 0, limit - 1 do
+	print(i)
+end
+return nil
+",
+  "unoptimized": "local baseLimit = 2
+local limit = baseLimit * 3 - 1
+do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i < limit) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+",
+}
+`;
+
+exports[`optimized constant assertion 1`] = `
+{
+  "optimized": "local limit = 3
+for i = 0, limit - 1 do
+	print(i)
+end
+return nil
+",
+  "unoptimized": "local limit = 3
+do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i < limit) then
 			break
 		end
 		print(i)
@@ -555,6 +949,93 @@ do
 			_shouldIncrement = true
 		end
 		if not (i <= limit) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+",
+}
+`;
+
+exports[`optimized constant satisfies 1`] = `
+{
+  "optimized": "local limit = 3
+for i = 0, limit - 1 do
+	print(i)
+end
+return nil
+",
+  "unoptimized": "local limit = 3
+do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i < limit) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+",
+}
+`;
+
+exports[`optimized constant step 1`] = `
+{
+  "optimized": "local step = 2
+for i = 0, 4, step do
+	print(i)
+end
+return nil
+",
+  "unoptimized": "local step = 2
+do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += step
+		else
+			_shouldIncrement = true
+		end
+		if not (i < 5) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+",
+}
+`;
+
+exports[`optimized descending assignment increment 1`] = `
+{
+  "optimized": "local step = 2
+for i = 5, 1, -step do
+	print(i)
+end
+return nil
+",
+  "unoptimized": "local step = 2
+do
+	local i = 5
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i = i - step
+		else
+			_shouldIncrement = true
+		end
+		if not (i > 0) then
 			break
 		end
 		print(i)
@@ -650,6 +1131,74 @@ return nil
 }
 `;
 
+exports[`optimized destructured constant bound 1`] = `
+{
+  "optimized": "local limit = 3
+for i = 0, limit - 1 do
+	print(i)
+end
+return nil
+",
+  "unoptimized": "local limit = 3
+do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i < limit) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+",
+}
+`;
+
+exports[`optimized destructured literal type 1`] = `
+{
+  "optimized": "local function bounds()
+	return {
+		limit = 3,
+	}
+end
+local limit = bounds().limit
+for i = 0, limit - 1 do
+	print(i)
+end
+return nil
+",
+  "unoptimized": "local function bounds()
+	return {
+		limit = 3,
+	}
+end
+local limit = bounds().limit
+do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i < limit) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+",
+}
+`;
+
 exports[`optimized literal spelling 1`] = `
 {
   "optimized": "for i = 0x10, 19 do
@@ -667,6 +1216,35 @@ return nil
 			_shouldIncrement = true
 		end
 		if not (i < 2_0) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+",
+}
+`;
+
+exports[`optimized negated identifier bound 1`] = `
+{
+  "optimized": "local limit = 3
+for i = 0, -limit + 1, -1 do
+	print(i)
+end
+return nil
+",
+  "unoptimized": "local limit = 3
+do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i -= 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i > -limit) then
 			break
 		end
 		print(i)
@@ -704,6 +1282,35 @@ return nil
 }
 `;
 
+exports[`optimized negative constant step 1`] = `
+{
+  "optimized": "local step = -1
+for i = 3, 1, step do
+	print(i)
+end
+return nil
+",
+  "unoptimized": "local step = -1
+do
+	local i = 3
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += step
+		else
+			_shouldIncrement = true
+		end
+		if not (i > 0) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+",
+}
+`;
+
 exports[`optimized negative zero initializer 1`] = `
 {
   "optimized": "for i = -0, 0 do
@@ -724,6 +1331,276 @@ return nil
 			break
 		end
 		print(1 / i)
+	end
+end
+return nil
+",
+}
+`;
+
+exports[`optimized parenthesized bound 1`] = `
+{
+  "optimized": "for i = 0, 2 do
+	print(i)
+end
+return nil
+",
+  "unoptimized": "do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i < 3) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+",
+}
+`;
+
+exports[`optimized parenthesized condition 1`] = `
+{
+  "optimized": "for i = 0, 2 do
+	print(i)
+end
+return nil
+",
+  "unoptimized": "do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i < 3) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+",
+}
+`;
+
+exports[`optimized parenthesized condition variable 1`] = `
+{
+  "optimized": "for i = 0, 2 do
+	print(i)
+end
+return nil
+",
+  "unoptimized": "do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i < 3) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+",
+}
+`;
+
+exports[`optimized parenthesized increment target 1`] = `
+{
+  "optimized": "for i = 0, 2 do
+	print(i)
+end
+return nil
+",
+  "unoptimized": "do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i < 3) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+",
+}
+`;
+
+exports[`optimized parenthesized start 1`] = `
+{
+  "optimized": "for i = 0, 2 do
+	print(i)
+end
+return nil
+",
+  "unoptimized": "do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i < 3) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+",
+}
+`;
+
+exports[`optimized parenthesized step 1`] = `
+{
+  "optimized": "for i = 0, 2 do
+	print(i)
+end
+return nil
+",
+  "unoptimized": "do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i < 3) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+",
+}
+`;
+
+exports[`optimized reversed ascending comparison 1`] = `
+{
+  "optimized": "for i = 0, 2 do
+	print(i)
+end
+return nil
+",
+  "unoptimized": "do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += 1
+		else
+			_shouldIncrement = true
+		end
+		if not (3 > i) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+",
+}
+`;
+
+exports[`optimized reversed ascending inclusive comparison 1`] = `
+{
+  "optimized": "for i = 0, 3 do
+	print(i)
+end
+return nil
+",
+  "unoptimized": "do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += 1
+		else
+			_shouldIncrement = true
+		end
+		if not (3 >= i) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+",
+}
+`;
+
+exports[`optimized reversed descending comparison 1`] = `
+{
+  "optimized": "for i = 3, 1, -1 do
+	print(i)
+end
+return nil
+",
+  "unoptimized": "do
+	local i = 3
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i -= 1
+		else
+			_shouldIncrement = true
+		end
+		if not (0 < i) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+",
+}
+`;
+
+exports[`optimized reversed descending inclusive comparison 1`] = `
+{
+  "optimized": "for i = 3, 0, -1 do
+	print(i)
+end
+return nil
+",
+  "unoptimized": "do
+	local i = 3
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i -= 1
+		else
+			_shouldIncrement = true
+		end
+		if not (0 <= i) then
+			break
+		end
+		print(i)
 	end
 end
 return nil
