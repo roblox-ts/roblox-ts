@@ -96,3 +96,31 @@ it.each([false, true])("prints build errors and exits unsuccessfully (missing co
 		fixture.close();
 	}
 });
+
+it.each(["1", "getInitial()"])("compiles shared constant dependencies within the CLI timeout (seed: %s)", seed => {
+	const fixture = new ReferenceFixture();
+	try {
+		fixture.project("game");
+		const source = ["function getInitial(): number { return 1; }", `const c0 = ${seed};`];
+		for (let i = 1; i <= 40; i++) {
+			source.push(`const c${i} = c${i - 1} + c${i - 1};`);
+		}
+		source.push("for (let i = 0; i < c40; i++) { print(i); break; }");
+		fixture.write("game/src/index.ts", source.join("\n"));
+
+		// run in a child so exponential analysis fails at the timeout instead of hanging Jest
+		const result = run([
+			"-p",
+			fixture.file("game"),
+			"--rojo",
+			fixture.file("default.project.json"),
+			"-i",
+			fixture.file("include"),
+		]);
+
+		expect(result.status).toBe(0);
+		expect(fixture.read("out/game/init.luau")).toContain(seed === "1" ? "for i = 0, c40 - 1 do" : "while true do");
+	} finally {
+		fixture.close();
+	}
+});

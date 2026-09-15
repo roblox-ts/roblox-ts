@@ -476,6 +476,10 @@ export function transformForOfRangeMacro(
 
 	luau.list.pushList(statements, transformStatementList(state, node.statement, getStatements(node.statement)));
 
+	const stepNode = macroCall.arguments[2] && skipDownwards(macroCall.arguments[2]);
+	const stepIsNegation =
+		stepNode && ts.isPrefixUnaryExpression(stepNode) && stepNode.operator === ts.SyntaxKind.MinusToken;
+
 	luau.list.push(
 		result,
 		luau.create(luau.SyntaxKind.NumericForStatement, {
@@ -483,9 +487,9 @@ export function transformForOfRangeMacro(
 			start,
 			end,
 			// a numeric for loop throws on a nil step, so dynamic steps fall back to 1
-			// literal steps, including unary-minus literals like `-1`, can never be nil
+			// literals and numeric negations cannot produce nil
 			step:
-				step === undefined || getLiteralNumberValue(step) !== undefined
+				step === undefined || getLiteralNumberValue(step) !== undefined || stepIsNegation
 					? step
 					: luau.binary(step, "or", luau.number(1)),
 			statements,

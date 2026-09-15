@@ -16,7 +16,7 @@ function difference<T>(set1: Set<T>, set2: Set<T>): Set<T> {
 export = () => {
 	it("should retain loop finalizers around empty blocks and branches", () => {
 		const callbacks = new Array<() => number>();
-		const limit = 3;
+		let limit = 3;
 		for (let i = 0; i < limit; i++) {
 			if (i === 1) {
 			}
@@ -50,7 +50,7 @@ export = () => {
 	});
 
 	it("should run loop increments around empty branches and blocks", () => {
-		const limit = 3;
+		let limit = 3;
 		let visits = 0;
 		for (let i = 0; i < limit; i++) {
 			if (i === 0) {
@@ -67,7 +67,7 @@ export = () => {
 	it("should finalize captured loop variables before nested continues", () => {
 		const values = new Array<() => number>();
 		const visited = new Array<number>();
-		const limit = 4;
+		let limit = 4;
 		for (let i = 0; i < limit; i++) {
 			values.push(() => i);
 			if (i === 0) {
@@ -143,6 +143,329 @@ export = () => {
 
 		expect(iterations).to.equal(3);
 		expect(checks).to.equal(3);
+	});
+
+	it("should optimize local constant bounds while retaining captures and continue", () => {
+		const MAX_SLOTS = 10;
+		const slots = new Array<number>();
+		const callbacks = new Array<() => number>();
+		for (let slot = 0; slot < MAX_SLOTS; slot++) {
+			callbacks.push(() => slot);
+			if (slot === 2) {
+				continue;
+			}
+			slots.push(slot);
+		}
+
+		expect(slots.join(",")).to.equal("0,1,3,4,5,6,7,8,9");
+		expect(callbacks.map(read => read()).join(",")).to.equal("0,1,2,3,4,5,6,7,8,9");
+	});
+
+	it("should support inclusive and descending local constant bounds", () => {
+		const start: number = 3;
+		const limit: number = -2;
+		const ascending = new Array<number>();
+		for (let i = limit; i <= start; i += 2) {
+			ascending.push(i);
+		}
+
+		const descending = new Array<number>();
+		for (let i = start; i > limit; i -= 2) {
+			descending.push(i);
+		}
+
+		expect(ascending.join(",")).to.equal("-2,0,2");
+		expect(descending.join(",")).to.equal("3,1,-1");
+	});
+
+	it("should retain writes to induction variables with constant bounds", () => {
+		const limit = 10;
+		const values = new Array<number>();
+		for (let i = 0; i < limit; i++) {
+			values.push(i);
+			i += 2;
+		}
+
+		expect(values.join(",")).to.equal("0,3,6,9");
+	});
+
+	it("should reevaluate mutable identifier bounds", () => {
+		let limit = 4;
+		const values = new Array<number>();
+		for (let i = 0; i < limit; i++) {
+			values.push(i);
+			limit--;
+		}
+
+		expect(values.join(",")).to.equal("0,1");
+	});
+
+	it("should normalize loop parentheses and erased type wrappers", () => {
+		const limit = ((3 as const) satisfies number);
+		const values = new Array<number>();
+		for (let i = (0); ((i) < (limit)); ((i)++)) {
+			values.push(i);
+		}
+
+		expect(values.join(",")).to.equal("0,1,2");
+	});
+
+	it("should retain constant aliases and steps in normalized loops", () => {
+		const initial: number = 1;
+		const start = initial;
+		const limit = start + 2 * 3;
+		const step = 2;
+		const ascending = new Array<number>();
+		for (let i = start; limit > i; i = step + i) {
+			ascending.push(i);
+		}
+
+		const descending = new Array<number>();
+		for (let i = limit; start <= i; i = i - step) {
+			descending.push(i);
+		}
+
+		expect(ascending.join(",")).to.equal("1,3,5");
+		expect(descending.join(",")).to.equal("7,5,3,1");
+	});
+
+	it("should evaluate constant initializers once before loops", () => {
+		let calls = 0;
+		function getLimit(): 3 {
+			calls++;
+			return 3;
+		}
+		function getStep(): 1 {
+			calls++;
+			return 1;
+		}
+
+		const limit: number = getLimit();
+		const step = getStep();
+		const values = new Array<number>();
+		for (let i = 0; i < limit; i += step) {
+			values.push(i);
+		}
+
+		expect(values.join(",")).to.equal("0,1,2");
+		expect(calls).to.equal(2);
+	});
+
+	it("should preserve fractional bounds copied from literal-typed properties", () => {
+		const source: { limit: 3 } = { limit: 3 };
+		const alias: { limit: number } = source;
+		alias.limit = 2.5;
+		function getLimit(): 3 {
+			return source.limit;
+		}
+
+		const computed = getLimit();
+		const { limit: destructured } = source;
+		const [element] = [source.limit];
+		const values = new Array<number>();
+		for (let i = 0; i < computed; i++) {
+			values.push(i);
+		}
+		for (let i = 0; i < destructured; i++) {
+			values.push(i);
+		}
+		for (let i = 0; i < element; i++) {
+			values.push(i);
+		}
+
+		expect(values.join(",")).to.equal("0,1,2,0,1,2,0,1,2");
+	});
+
+	it("should preserve fractional starts copied from literal-typed properties", () => {
+		const source: { start: 0 } = { start: 0 };
+		const alias: { start: number } = source;
+		alias.start = 0.5;
+		const start = source.start;
+		const values = new Array<number>();
+		for (let i = start; i < 3; i++) {
+			values.push(i);
+		}
+
+		expect(values.join(",")).to.equal("0.5,1.5,2.5");
+	});
+
+	it("should preserve step signs copied from literal-typed properties", () => {
+		const source: { step: 1 } = { step: 1 };
+		const alias: { step: number } = source;
+		alias.step = -1;
+		const step = source.step;
+		const values = new Array<number>();
+		for (let i = 0; i < 3; i += step) {
+			values.push(i);
+			if (values.size() === 3) {
+				break;
+			}
+		}
+
+		expect(values.join(",")).to.equal("0,-1,-2");
+	});
+
+	it("should use copied integer constants from destructuring", () => {
+		let calls = 0;
+		function getOptions(): { step: 1 } {
+			calls++;
+			return { step: 1 };
+		}
+
+		const [start, , limit] = [0, 99, 3];
+		const { step } = getOptions();
+		const values = new Array<number>();
+		for (let i = start; i < limit; i += step) {
+			values.push(i);
+		}
+
+		expect(values.join(",")).to.equal("0,1,2");
+		expect(calls).to.equal(1);
+	});
+
+	it("should support negated constants and integer arithmetic in loops", () => {
+		const limit = 3;
+		const step = -1;
+		const descending = new Array<number>();
+		for (let i = 0; i > -limit; i += step) {
+			descending.push(i);
+		}
+
+		const ascending = new Array<number>();
+		for (let i = 0; i < 6 / 2 + 2; i += 2 ** 1) {
+			ascending.push(i);
+		}
+
+		expect(descending.join(",")).to.equal("0,-1,-2");
+		expect(ascending.join(",")).to.equal("0,2,4");
+	});
+
+	it("should preserve negative zero through a constant loop initializer", () => {
+		const start = -0;
+		const limit = 0;
+		const step = 1;
+		for (let i = start; i <= limit; i += step) {
+			expect(1 / i).to.equal(-math.huge);
+		}
+	});
+
+	it("should retain effectful arithmetic conditions and step calls", () => {
+		let checks = 0;
+		let increments = 0;
+		function bound(): 2 {
+			checks++;
+			return 2;
+		}
+		function step(): 1 {
+			increments++;
+			return 1;
+		}
+
+		const values = new Array<number>();
+		for (let i = 0; i < bound() + 1; i += step()) {
+			values.push(i);
+		}
+
+		expect(values.join(",")).to.equal("0,1,2");
+		expect(checks).to.equal(4);
+		expect(increments).to.equal(3);
+	});
+
+	it("should evaluate dynamic range negations once", () => {
+		let calls = 0;
+		function step() {
+			calls++;
+			return 1;
+		}
+
+		const values = new Array<number>();
+		for (const i of $range(3, 1, (-step()))) {
+			values.push(i);
+		}
+
+		expect(values.join(",")).to.equal("3,2,1");
+		expect(calls).to.equal(1);
+	});
+
+	it("should retain assignment updates that are not constant steps", () => {
+		const assigned = new Array<number>();
+		for (let i = 0; i < 2; i = 1) {
+			assigned.push(i);
+			if (assigned.size() === 3) {
+				break;
+			}
+		}
+
+		const multiplied = new Array<number>();
+		for (let i = 1; i < 8; i = i * 2) {
+			multiplied.push(i);
+		}
+
+		expect(assigned.join(",")).to.equal("0,1,1");
+		expect(multiplied.join(",")).to.equal("1,2,4");
+	});
+
+	it("should reevaluate nonbinary loop conditions", () => {
+		let checks = 0;
+		function keepGoing() {
+			checks++;
+			return checks <= 3;
+		}
+
+		const values = new Array<number>();
+		for (let i = 0; keepGoing(); i++) {
+			values.push(i);
+		}
+
+		expect(values.join(",")).to.equal("0,1,2");
+		expect(checks).to.equal(4);
+	});
+
+	it("should support dynamic and missing destructured loop bounds", () => {
+		const bounds = [3, 4];
+		const [dynamic] = bounds;
+		const [missing = 2] = [];
+		const [spread] = [...bounds];
+		const values = new Array<number>();
+		for (let i = 0; i < dynamic; i++) {
+			values.push(i);
+		}
+		for (let i = 0; i < missing; i++) {
+			values.push(i);
+		}
+		for (let i = 0; i < spread; i++) {
+			values.push(i);
+		}
+
+		expect(values.join(",")).to.equal("0,1,2,0,1,0,1,2");
+	});
+
+	it("should reevaluate negated mutable loop bounds", () => {
+		let limit = 3;
+		const values = new Array<number>();
+		for (let i = 0; i > -limit; i--) {
+			limit--;
+			values.push(i);
+		}
+
+		expect(values.join(",")).to.equal("0,-1");
+	});
+
+	it("should not read an uninitialized constant step before the increment", () => {
+		let visited = 0;
+		function run() {
+			for (let i = 1; i < 0; i += step) {
+				visited++;
+			}
+			for (let i = 0; i < 1; i += step) {
+				visited++;
+				break;
+			}
+		}
+
+		run();
+		const step = 1;
+		expect(visited).to.equal(1);
 	});
 
 	it("should support numeric separators in loop bounds and steps", () => {
