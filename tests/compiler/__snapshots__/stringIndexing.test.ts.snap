@@ -118,10 +118,9 @@ return {
 `;
 
 exports[`uses byte indexing for numeric object destructuring keys 1`] = `
-"local _binding = value
-local first = if 0 < #_binding then string.sub(_binding, 1, 1) else nil
-local second = if 1 < #_binding then string.sub(_binding, 2, 2) else nil
-local missing = if 5 < #_binding then string.sub(_binding, 6, 6) else nil
+"local first = if 0 < #value then string.sub(value, 1, 1) else nil
+local second = if 1 < #value then string.sub(value, 2, 2) else nil
+local missing = if 5 < #value then string.sub(value, 6, 6) else nil
 if missing == nil then
 	missing = "fallback"
 end

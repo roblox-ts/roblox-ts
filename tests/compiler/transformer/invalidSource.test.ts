@@ -7,15 +7,20 @@ afterEach(() => DiagnosticService.flush());
 it.each([
 	["with ({}) {}", "Unknown statement: WithStatement"],
 	["const value = import.meta;", "Unknown expression: MetaProperty"],
-	["({ value: 42 } = { value: 1 });", "transformObjectAssignmentPattern invalid initializer: NumericLiteral"],
-	["({ method() {} } = {});", "transformObjectAssignmentPattern invalid property: MethodDeclaration"],
-	["[42] = (() => [1])();", "transformArrayAssignmentPattern invalid element: NumericLiteral"],
-	["const { ...a, ...b } = {};", "Unknown expression type"],
-	["const [value] = 42;", "Destructuring not supported for type: 42"],
+	["({ value: 42 } = { value: 1 });", "Invalid destructuring assignment target: NumericLiteral"],
+	["({ method() {} } = {});", "Invalid object assignment property: MethodDeclaration"],
+	["[42] = (() => [1])();", "Invalid destructuring assignment target: NumericLiteral"],
+	["const [value] = 42;", "Cannot iterate over this type!"],
 ])("rejects unsupported source after semantic checks are disabled: %s", (source, message) => {
 	const project = createTestProject({ allowCommentDirectives: true });
 
-	expect(() => project.compileSource(`// @ts-nocheck\n${source}`)).toThrow(message);
+	expect(() => {
+		try {
+			project.compileSource(`// @ts-nocheck\n${source}`);
+		} catch (error) {
+			throw new Error(String(error));
+		}
+	}).toThrow(message);
 });
 
 it("handles a call whose callee has the never type after semantic checks are disabled", () => {

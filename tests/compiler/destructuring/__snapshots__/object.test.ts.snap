@@ -65,7 +65,8 @@ local key = 0
 local _binding = receiver()
 local _original = key
 key += 1
-value = _binding[_original]
+local _key = _original
+value = _binding[_key]
 return nil
 "
 `;
@@ -125,12 +126,9 @@ local other
 local rest
 local key = 0
 local _binding = receiver()
-local _extracted = {}
 local _rest = {}
-for _k, _v in _binding do
-	if not _extracted[_k] then
-		_rest[_k] = _v
-	end
+for _key, _value in _binding do
+	_rest[_key] = _value
 end
 rest = _rest
 return nil
@@ -142,7 +140,8 @@ exports[`keeps receiver captures for computed keys 1`] = `
 local _binding = receiver()
 local _original = key
 key += 1
-local value = _binding[_original]
+local _key = _original
+local value = _binding[_key]
 return nil
 "
 `;
@@ -176,12 +175,9 @@ return nil
 exports[`keeps receiver captures for rest bindings 1`] = `
 "local key = 0
 local _binding = receiver()
-local _extracted = {}
 local _rest = {}
-for _k, _v in _binding do
-	if not _extracted[_k] then
-		_rest[_k] = _v
-	end
+for _key, _value in _binding do
+	_rest[_key] = _value
 end
 local rest = _rest
 return nil

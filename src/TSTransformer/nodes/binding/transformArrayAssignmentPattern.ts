@@ -1,17 +1,9 @@
 import luau from "@roblox-ts/luau-ast";
-import { errors } from "Shared/diagnostics";
-import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
-import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { Prereqs } from "TSTransformer/classes/Prereqs";
-import { transformObjectAssignmentPattern } from "TSTransformer/nodes/binding/transformObjectAssignmentPattern";
-import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
-import { captureWritableAssignmentTarget, transformWritableExpression } from "TSTransformer/nodes/transformWritable";
-import { getAccessorForBindingType } from "TSTransformer/util/binding/getAccessorForBindingType";
-import { getEffects } from "TSTransformer/util/evaluation/effects";
-import { getKindName } from "TSTransformer/util/getKindName";
-import { getSpreadDestructorForType } from "TSTransformer/util/spreadDestructuring";
-import { skipDownwards } from "TSTransformer/util/traversal";
+import { transformAssignmentPatternElement } from "TSTransformer/nodes/binding/transformAssignmentPatternElement";
+import { createArrayBindingAccessor } from "TSTransformer/util/binding/createArrayBindingAccessor";
+import { getAssignmentPatternType } from "TSTransformer/util/binding/getAssignmentPatternType";
 import ts from "typescript";
 
 export function transformArrayAssignmentPattern(
@@ -20,86 +12,18 @@ export function transformArrayAssignmentPattern(
 	assignmentPattern: ts.ArrayLiteralExpression,
 	parentId: luau.AnyIdentifier,
 ) {
-	let index = 0;
-	const idStack = new Array<luau.Identifier>();
-	const patternType = state.typeChecker.getTypeOfAssignmentPattern(assignmentPattern);
-
-	const hasRest = assignmentPattern.elements.some(ts.isSpreadElement);
-	const accessor = getAccessorForBindingType(state, assignmentPattern, patternType, hasRest);
-	const destructor = getSpreadDestructorForType(state, assignmentPattern, patternType);
-
-	for (let element of assignmentPattern.elements) {
+	const type = getAssignmentPatternType(state, assignmentPattern);
+	const accessor = createArrayBindingAccessor(state, prereqs, assignmentPattern, type, parentId);
+	for (let index = 0; index < assignmentPattern.elements.length; index++) {
+		const element = assignmentPattern.elements[index];
 		if (ts.isOmittedExpression(element)) {
-			accessor(prereqs, parentId, index, idStack, true);
-		} else {
-			let initializer: ts.Expression | undefined;
-			if (ts.isBinaryExpression(element)) {
-				initializer = skipDownwards(element.right);
-				element = skipDownwards(element.left);
-			}
-
-			const valuePrereqs = new Prereqs();
-			const value = ts.isSpreadElement(element)
-				? destructor(valuePrereqs, parentId, index, idStack)
-				: accessor(valuePrereqs, parentId, index, idStack, false);
-
-			// diagnostic is needed because getTypeOfAssignmentPattern is implemented incorrectly:
-			// it errors, if that parent of node being passed in is ts.SpreadElement
-			if (
-				ts.isSpreadElement(element) &&
-				(ts.isObjectLiteralExpression(element.expression) || ts.isArrayLiteralExpression(element.expression))
-			) {
-				DiagnosticService.addDiagnostic(errors.noNestedSpreadsInAssignmentPatterns(element.parent));
-				continue;
-			}
-
-			if (
-				ts.isIdentifier(element) ||
-				ts.isElementAccessExpression(element) ||
-				ts.isPropertyAccessExpression(element) ||
-				ts.isSpreadElement(element)
-			) {
-				let id = transformWritableExpression(
-					state,
-					prereqs,
-					ts.isSpreadElement(element) ? element.expression : element,
-					initializer !== undefined,
-				);
-				id = captureWritableAssignmentTarget(
-					prereqs,
-					id,
-					getEffects(valuePrereqs.statements),
-					getEffects(value),
-				);
-				prereqs.pushList(valuePrereqs.statements);
-				prereqs.push(
-					luau.create(luau.SyntaxKind.Assignment, {
-						left: id,
-						operator: "=",
-						right: value,
-					}),
-				);
-				if (initializer) {
-					prereqs.push(transformInitializer(state, id, initializer));
-				}
-			} else if (ts.isArrayLiteralExpression(element)) {
-				prereqs.pushList(valuePrereqs.statements);
-				const id = prereqs.pushToVar(value, "binding");
-				if (initializer) {
-					prereqs.push(transformInitializer(state, id, initializer));
-				}
-				transformArrayAssignmentPattern(state, prereqs, element, id);
-			} else if (ts.isObjectLiteralExpression(element)) {
-				prereqs.pushList(valuePrereqs.statements);
-				const id = prereqs.pushToVar(value, "binding");
-				if (initializer) {
-					prereqs.push(transformInitializer(state, id, initializer));
-				}
-				transformObjectAssignmentPattern(state, prereqs, element, id);
-			} else {
-				assert(false, `transformArrayAssignmentPattern invalid element: ${getKindName(element.kind)}`);
-			}
+			accessor.read(prereqs, index, true);
+			continue;
 		}
-		index++;
+
+		const valuePrereqs = new Prereqs();
+		const spread = ts.isSpreadElement(element);
+		const value = spread ? accessor.rest(valuePrereqs, index) : accessor.read(valuePrereqs, index, false);
+		transformAssignmentPatternElement(state, prereqs, spread ? element.expression : element, valuePrereqs, value);
 	}
 }

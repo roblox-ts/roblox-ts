@@ -140,7 +140,7 @@ function tryTransformOptimizedObjectAssignmentPattern(
 		return false;
 	}
 
-	const value = objectAccessor(
+	const { value } = objectAccessor(
 		state,
 		prereqs,
 		convertToIndexableExpression(rhs),
