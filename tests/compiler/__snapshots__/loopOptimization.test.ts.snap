@@ -1,5 +1,25 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
+exports[`fallback ambient constant bound 1`] = `
+"do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i < limit) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+"
+`;
+
 exports[`fallback arithmetic bound 1`] = `
 "do
 	local i = 0
@@ -41,7 +61,31 @@ return nil
 "
 `;
 
-exports[`fallback constant identifier bound 1`] = `
+exports[`fallback computed constant bound 1`] = `
+"local function getLimit()
+	return 3
+end
+local limit = getLimit()
+do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i < limit) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+"
+`;
+
+exports[`fallback destructured constant bound 1`] = `
 "local limit = 3
 do
 	local i = 0
@@ -154,6 +198,27 @@ return nil
 "
 `;
 
+exports[`fallback fractional constant bound 1`] = `
+"local limit = 2.5
+do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i < limit) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+"
+`;
+
 exports[`fallback fractional initializer 1`] = `
 "do
 	local i = 0.5
@@ -185,6 +250,53 @@ exports[`fallback multiplicative step 1`] = `
 			_shouldIncrement = true
 		end
 		if not (i < 4) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+"
+`;
+
+exports[`fallback mutable identifier bound 1`] = `
+"local limit = 3
+do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i < limit) then
+			break
+		end
+		limit -= 1
+	end
+end
+return nil
+"
+`;
+
+exports[`fallback namespace constant bound 1`] = `
+"local Resources = {}
+do
+	local _container = Resources
+	local LIMIT = 3
+	_container.LIMIT = LIMIT
+end
+do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i < Resources.LIMIT) then
 			break
 		end
 		print(i)
@@ -232,6 +344,32 @@ exports[`fallback nonmutating unary incrementor 1`] = `
 		break
 	end
 end
+return nil
+"
+`;
+
+exports[`fallback parameter bound 1`] = `
+"local function run(limit)
+	if limit == nil then
+		limit = 3
+	end
+	do
+		local i = 0
+		local _shouldIncrement = false
+		while true do
+			if _shouldIncrement then
+				i += 1
+			else
+				_shouldIncrement = true
+			end
+			if not (i < limit) then
+				break
+			end
+			limit -= 1
+		end
+	end
+end
+run()
 return nil
 "
 `;
@@ -357,6 +495,97 @@ return nil
 			_shouldIncrement = true
 		end
 		if not (i <= 4) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+",
+}
+`;
+
+exports[`optimized constant identifier bound 1`] = `
+{
+  "optimized": "local MAX_SLOTS = 10
+for slot = 0, MAX_SLOTS - 1 do
+	print(slot)
+end
+return nil
+",
+  "unoptimized": "local MAX_SLOTS = 10
+do
+	local slot = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			slot += 1
+		else
+			_shouldIncrement = true
+		end
+		if not (slot < MAX_SLOTS) then
+			break
+		end
+		print(slot)
+	end
+end
+return nil
+",
+}
+`;
+
+exports[`optimized constant inclusive bounds 1`] = `
+{
+  "optimized": "local start = 1
+local limit = 3
+for i = start, limit do
+	print(i)
+end
+return nil
+",
+  "unoptimized": "local start = 1
+local limit = 3
+do
+	local i = start
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i <= limit) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+",
+}
+`;
+
+exports[`optimized descending constant bounds 1`] = `
+{
+  "optimized": "local start = 3
+local limit = -2
+for i = start, limit + 1, -2 do
+	print(i)
+end
+return nil
+",
+  "unoptimized": "local start = 3
+local limit = -2
+do
+	local i = start
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i -= 2
+		else
+			_shouldIncrement = true
+		end
+		if not (i > limit) then
 			break
 		end
 		print(i)

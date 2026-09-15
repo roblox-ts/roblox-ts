@@ -16,7 +16,7 @@ function difference<T>(set1: Set<T>, set2: Set<T>): Set<T> {
 export = () => {
 	it("should retain loop finalizers around empty blocks and branches", () => {
 		const callbacks = new Array<() => number>();
-		const limit = 3;
+		let limit = 3;
 		for (let i = 0; i < limit; i++) {
 			if (i === 1) {
 			}
@@ -50,7 +50,7 @@ export = () => {
 	});
 
 	it("should run loop increments around empty branches and blocks", () => {
-		const limit = 3;
+		let limit = 3;
 		let visits = 0;
 		for (let i = 0; i < limit; i++) {
 			if (i === 0) {
@@ -67,7 +67,7 @@ export = () => {
 	it("should finalize captured loop variables before nested continues", () => {
 		const values = new Array<() => number>();
 		const visited = new Array<number>();
-		const limit = 4;
+		let limit = 4;
 		for (let i = 0; i < limit; i++) {
 			values.push(() => i);
 			if (i === 0) {
@@ -143,6 +143,61 @@ export = () => {
 
 		expect(iterations).to.equal(3);
 		expect(checks).to.equal(3);
+	});
+
+	it("should optimize local constant bounds while retaining captures and continue", () => {
+		const MAX_SLOTS = 10;
+		const slots = new Array<number>();
+		const callbacks = new Array<() => number>();
+		for (let slot = 0; slot < MAX_SLOTS; slot++) {
+			callbacks.push(() => slot);
+			if (slot === 2) {
+				continue;
+			}
+			slots.push(slot);
+		}
+
+		expect(slots.join(",")).to.equal("0,1,3,4,5,6,7,8,9");
+		expect(callbacks.map(read => read()).join(",")).to.equal("0,1,2,3,4,5,6,7,8,9");
+	});
+
+	it("should support inclusive and descending local constant bounds", () => {
+		const start: number = 3;
+		const limit: number = -2;
+		const ascending = new Array<number>();
+		for (let i = limit; i <= start; i += 2) {
+			ascending.push(i);
+		}
+
+		const descending = new Array<number>();
+		for (let i = start; i > limit; i -= 2) {
+			descending.push(i);
+		}
+
+		expect(ascending.join(",")).to.equal("-2,0,2");
+		expect(descending.join(",")).to.equal("3,1,-1");
+	});
+
+	it("should retain writes to induction variables with constant bounds", () => {
+		const limit = 10;
+		const values = new Array<number>();
+		for (let i = 0; i < limit; i++) {
+			values.push(i);
+			i += 2;
+		}
+
+		expect(values.join(",")).to.equal("0,3,6,9");
+	});
+
+	it("should reevaluate mutable identifier bounds", () => {
+		let limit = 4;
+		const values = new Array<number>();
+		for (let i = 0; i < limit; i++) {
+			values.push(i);
+			limit--;
+		}
+
+		expect(values.join(",")).to.equal("0,1");
 	});
 
 	it("should support numeric separators in loop bounds and steps", () => {

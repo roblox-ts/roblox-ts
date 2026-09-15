@@ -15,6 +15,7 @@ import { transformStatementList } from "TSTransformer/nodes/transformStatementLi
 import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
 import { getDeclaredVariables } from "TSTransformer/util/getDeclaredVariables";
 import { getStatements } from "TSTransformer/util/getStatements";
+import { offset } from "TSTransformer/util/offset";
 import { getAncestor, isAncestorOf } from "TSTransformer/util/traversal";
 import ts from "typescript";
 
@@ -283,8 +284,6 @@ function transformForStatementFallback(state: TransformState, node: ts.ForStatem
 		: luau.list.make(luau.create(luau.SyntaxKind.DoStatement, { statements: result }));
 }
 
-// Numeric for loops evaluate their bounds once. Only literal bounds can be
-// moved out of a TypeScript condition without analyzing reads and side effects.
 function getIntegerLiteral(expression: ts.Expression): number | undefined {
 	if (ts.isNumericLiteral(expression)) {
 		const value = Number(expression.text);
@@ -296,6 +295,30 @@ function getIntegerLiteral(expression: ts.Expression): number | undefined {
 			return -value;
 		}
 	}
+}
+
+// numeric for loops evaluate bounds once, so only accept literals and immutable local bindings
+function getOptimizedBoundValue(state: TransformState, expression: ts.Expression): number | undefined {
+	if (ts.isIdentifier(expression)) {
+		const symbol = state.typeChecker.getSymbolAtLocation(expression);
+		assert(symbol);
+
+		const declaration = symbol.valueDeclaration;
+		if (
+			!declaration ||
+			!ts.isVariableDeclaration(declaration) ||
+			declaration.getSourceFile() !== expression.getSourceFile() ||
+			!(declaration.parent.flags & ts.NodeFlags.Const) ||
+			(ts.getCombinedModifierFlags(declaration) & ts.ModifierFlags.Ambient) !== 0 ||
+			!declaration.initializer
+		) {
+			return undefined;
+		}
+
+		return getIntegerLiteral(declaration.initializer);
+	}
+
+	return getIntegerLiteral(expression);
 }
 
 function getOptimizedIncrementorStepValue(state: TransformState, incrementor: ts.Expression, idSymbol: ts.Symbol) {
@@ -357,7 +380,7 @@ function transformForStatementOptimized(state: TransformState, node: ts.ForState
 	const idSymbol = state.typeChecker.getSymbolAtLocation(decName);
 	assert(idSymbol);
 
-	const startValue = getIntegerLiteral(decInit);
+	const startValue = getOptimizedBoundValue(state, decInit);
 	if (startValue === undefined) {
 		return undefined;
 	}
@@ -407,7 +430,7 @@ function transformForStatementOptimized(state: TransformState, node: ts.ForState
 		return undefined;
 	}
 
-	const endValue = getIntegerLiteral(condition.right);
+	const endValue = getOptimizedBoundValue(state, condition.right);
 	if (endValue === undefined) {
 		return undefined;
 	}
@@ -433,9 +456,9 @@ function transformForStatementOptimized(state: TransformState, node: ts.ForState
 	const statements = transformStatementList(state, statement, getStatements(statement));
 
 	if (condition.operatorToken.kind === ts.SyntaxKind.LessThanToken) {
-		end = luau.number(endValue - 1);
+		end = offset(end, -1);
 	} else if (condition.operatorToken.kind === ts.SyntaxKind.GreaterThanToken) {
-		end = luau.number(endValue + 1);
+		end = offset(end, 1);
 	}
 
 	luau.list.push(result, luau.create(luau.SyntaxKind.NumericForStatement, { id, start, end, step, statements }));
