@@ -16,8 +16,16 @@ describe("fallback", () => {
 			"const values = [1, 2, 3, 4];\n\t\t\tfor (let i = 0; i < values.size(); i++) { values.pop(); }",
 		],
 		[
+			"computed constant bound",
+			"function getLimit(): 3 { return 3; } const limit = getLimit(); for (let i = 0; i < limit; i++) { print(i); }",
+		],
+		[
 			"computed unknown constant",
 			"function getLimit(): number { return 3; } const limit = getLimit(); for (let i = 0; i < limit; i++) { print(i); }",
+		],
+		[
+			"destructured literal type",
+			"function bounds(): { limit: 3 } { return { limit: 3 }; } const { limit } = bounds(); for (let i = 0; i < limit; i++) { print(i); }",
 		],
 		["destructuring write to induction variable", "for (let i = 0; i < 3; i++) { [i] = [5]; }"],
 		[
@@ -42,6 +50,22 @@ describe("fallback", () => {
 		],
 		["fractional constant bound", "const limit = 2.5; for (let i = 0; i < limit; i++) { print(i); }"],
 		["fractional initializer", "for (let i = 0.5; i < 3; i++) { print(i); }"],
+		[
+			"literal-typed bound mutated through an alias",
+			"const source: { value: 3 } = { value: 3 }; const alias: { value: number } = source; alias.value = 2.5; function getLimit(): 3 { return source.value; } const limit = getLimit(); for (let i = 0; i < limit; i++) { print(i); }",
+		],
+		[
+			"literal-typed destructured bound mutated through an alias",
+			"const source: { limit: 3 } = { limit: 3 }; const alias: { limit: number } = source; alias.limit = 2.5; const { limit } = source; for (let i = 0; i < limit; i++) { print(i); }",
+		],
+		[
+			"literal-typed initializer mutated through an alias",
+			"const source: { start: 0 } = { start: 0 }; const alias: { start: number } = source; alias.start = 0.5; const start = source.start; for (let i = start; i < 3; i++) { print(i); }",
+		],
+		[
+			"literal-typed step mutated through an alias",
+			"const source: { step: 1 } = { step: 1 }; const alias: { step: number } = source; alias.step = -1; const step = source.step; for (let i = 0; i < 3; i += step) { print(i); break; }",
+		],
 		["multiplicative assignment increment", "for (let i = 1; i < 8; i = i * 2) { print(i); }"],
 		["multiplicative step", "for (let i = 1; i < 4; i *= 2) { print(i); }"],
 		[
@@ -88,10 +112,6 @@ describe("optimized", () => {
 		["assignment increment", "for (let i = 0; i < 3; i = i + 1) { print(i); }"],
 		["commuted assignment increment", "for (let i = 0; i < 3; i = 1 + i) { print(i); }"],
 		[
-			"computed constant bound",
-			"function getLimit(): 3 { return 3; } const limit = getLimit(); for (let i = 0; i < limit; i++) { print(i); }",
-		],
-		[
 			"constant alias",
 			"const baseLimit: number = 3; const limit = baseLimit; for (let i = 0; i < limit; i++) { print(i); }",
 		],
@@ -118,10 +138,6 @@ describe("optimized", () => {
 		["descending exclusive bound", "for (let i = 3; i > 0; --i) { print(i); }"],
 		["descending inclusive bound with a step", "for (let i = 4; i >= 0; i -= 2) { print(i); }"],
 		["destructured constant bound", "const [limit] = [3]; for (let i = 0; i < limit; i++) { print(i); }"],
-		[
-			"destructured literal type",
-			"function bounds(): { limit: 3 } { return { limit: 3 }; } const { limit } = bounds(); for (let i = 0; i < limit; i++) { print(i); }",
-		],
 		["literal spelling", "for (let i = 0x10; i < 2_0; i++) { print(i); }"],
 		["negated identifier bound", "const limit = 3; for (let i = 0; i > -limit; i--) { print(i); }"],
 		["negative bounds", "for (let i = -1; i >= -3; i--) { print(i); }"],

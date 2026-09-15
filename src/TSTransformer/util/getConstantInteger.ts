@@ -98,22 +98,13 @@ function getConstantNumber(
 
 		const initializer = getBindingInitializer(declaration);
 		if (initializer) {
-			const value = getConstantInteger(state, initializer, requireInitialized);
-			if (value !== undefined) {
-				return value;
-			}
-		}
-
-		// initializer effects have already happened, and the copied local cannot change
-		// literal types are only used after proving that the reference is a local const
-		const type = state.getType(initializer ? skipDownwards(initializer) : declaration.name);
-		if (type.isNumberLiteral()) {
-			return type.value;
+			return getConstantInteger(state, initializer, requireInitialized);
 		}
 	}
 }
 
 // numeric loops hoist bound and step reads, so reject effects and mutable references
+// infer values from initializers, since literal-typed properties can change through wider aliases
 export function getConstantInteger(
 	state: TransformState,
 	expression: ts.Expression,

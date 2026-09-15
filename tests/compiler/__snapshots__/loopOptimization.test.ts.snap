@@ -62,11 +62,61 @@ return nil
 "
 `;
 
+exports[`fallback computed constant bound 1`] = `
+"local function getLimit()
+	return 3
+end
+local limit = getLimit()
+do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i < limit) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+"
+`;
+
 exports[`fallback computed unknown constant 1`] = `
 "local function getLimit()
 	return 3
 end
 local limit = getLimit()
+do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i < limit) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+"
+`;
+
+exports[`fallback destructured literal type 1`] = `
+"local function bounds()
+	return {
+		limit = 3,
+	}
+end
+local limit = bounds().limit
 do
 	local i = 0
 	local _shouldIncrement = false
@@ -261,6 +311,114 @@ exports[`fallback fractional initializer 1`] = `
 			break
 		end
 		print(i)
+	end
+end
+return nil
+"
+`;
+
+exports[`fallback literal-typed bound mutated through an alias 1`] = `
+"local source = {
+	value = 3,
+}
+local alias = source
+alias.value = 2.5
+local function getLimit()
+	return source.value
+end
+local limit = getLimit()
+do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i < limit) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+"
+`;
+
+exports[`fallback literal-typed destructured bound mutated through an alias 1`] = `
+"local source = {
+	limit = 3,
+}
+local alias = source
+alias.limit = 2.5
+local limit = source.limit
+do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i < limit) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+"
+`;
+
+exports[`fallback literal-typed initializer mutated through an alias 1`] = `
+"local source = {
+	start = 0,
+}
+local alias = source
+alias.start = 0.5
+local start = source.start
+do
+	local i = start
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i < 3) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+"
+`;
+
+exports[`fallback literal-typed step mutated through an alias 1`] = `
+"local source = {
+	step = 1,
+}
+local alias = source
+alias.step = -1
+local step = source.step
+do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += step
+		else
+			_shouldIncrement = true
+		end
+		if not (i < 3) then
+			break
+		end
+		print(i)
+		break
 	end
 end
 return nil
@@ -773,41 +931,6 @@ return nil
 }
 `;
 
-exports[`optimized computed constant bound 1`] = `
-{
-  "optimized": "local function getLimit()
-	return 3
-end
-local limit = getLimit()
-for i = 0, limit - 1 do
-	print(i)
-end
-return nil
-",
-  "unoptimized": "local function getLimit()
-	return 3
-end
-local limit = getLimit()
-do
-	local i = 0
-	local _shouldIncrement = false
-	while true do
-		if _shouldIncrement then
-			i += 1
-		else
-			_shouldIncrement = true
-		end
-		if not (i < limit) then
-			break
-		end
-		print(i)
-	end
-end
-return nil
-",
-}
-`;
-
 exports[`optimized constant alias 1`] = `
 {
   "optimized": "local baseLimit = 3
@@ -1140,45 +1263,6 @@ end
 return nil
 ",
   "unoptimized": "local limit = 3
-do
-	local i = 0
-	local _shouldIncrement = false
-	while true do
-		if _shouldIncrement then
-			i += 1
-		else
-			_shouldIncrement = true
-		end
-		if not (i < limit) then
-			break
-		end
-		print(i)
-	end
-end
-return nil
-",
-}
-`;
-
-exports[`optimized destructured literal type 1`] = `
-{
-  "optimized": "local function bounds()
-	return {
-		limit = 3,
-	}
-end
-local limit = bounds().limit
-for i = 0, limit - 1 do
-	print(i)
-end
-return nil
-",
-  "unoptimized": "local function bounds()
-	return {
-		limit = 3,
-	}
-end
-local limit = bounds().limit
 do
 	local i = 0
 	local _shouldIncrement = false

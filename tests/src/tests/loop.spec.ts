@@ -229,7 +229,7 @@ export = () => {
 		expect(descending.join(",")).to.equal("7,5,3,1");
 	});
 
-	it("should evaluate constant initializers once before optimized loops", () => {
+	it("should evaluate constant initializers once before loops", () => {
 		let calls = 0;
 		function getLimit(): 3 {
 			calls++;
@@ -249,6 +249,60 @@ export = () => {
 
 		expect(values.join(",")).to.equal("0,1,2");
 		expect(calls).to.equal(2);
+	});
+
+	it("should preserve fractional bounds copied from literal-typed properties", () => {
+		const source: { limit: 3 } = { limit: 3 };
+		const alias: { limit: number } = source;
+		alias.limit = 2.5;
+		function getLimit(): 3 {
+			return source.limit;
+		}
+
+		const computed = getLimit();
+		const { limit: destructured } = source;
+		const [element] = [source.limit];
+		const values = new Array<number>();
+		for (let i = 0; i < computed; i++) {
+			values.push(i);
+		}
+		for (let i = 0; i < destructured; i++) {
+			values.push(i);
+		}
+		for (let i = 0; i < element; i++) {
+			values.push(i);
+		}
+
+		expect(values.join(",")).to.equal("0,1,2,0,1,2,0,1,2");
+	});
+
+	it("should preserve fractional starts copied from literal-typed properties", () => {
+		const source: { start: 0 } = { start: 0 };
+		const alias: { start: number } = source;
+		alias.start = 0.5;
+		const start = source.start;
+		const values = new Array<number>();
+		for (let i = start; i < 3; i++) {
+			values.push(i);
+		}
+
+		expect(values.join(",")).to.equal("0.5,1.5,2.5");
+	});
+
+	it("should preserve step signs copied from literal-typed properties", () => {
+		const source: { step: 1 } = { step: 1 };
+		const alias: { step: number } = source;
+		alias.step = -1;
+		const step = source.step;
+		const values = new Array<number>();
+		for (let i = 0; i < 3; i += step) {
+			values.push(i);
+			if (values.size() === 3) {
+				break;
+			}
+		}
+
+		expect(values.join(",")).to.equal("0,-1,-2");
 	});
 
 	it("should use copied integer constants from destructuring", () => {
