@@ -38,7 +38,7 @@ it("builds a reference chain in dependency order and reuses unchanged output", (
 	);
 	fixture.write("game/src/index.ts", 'import { answer } from "../../shared/src"; export const result = answer();');
 
-	const build = fixture.createBuild({ noCompilerHeader: true });
+	const build = fixture.createBuild();
 	expectSuccess(build.build());
 
 	expect(fixture.read("out/shared/init.luau")).toContain('"common"');

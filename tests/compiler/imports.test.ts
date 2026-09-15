@@ -13,7 +13,7 @@ it.each([false, true])("elides type-only CommonJS imports (verbatimModuleSyntax:
 			'import type Value = require("./value"); const value: Value = { value: 42 }; print(value.value);',
 		);
 
-		expectSuccess(fixture.createBuild({ noCompilerHeader: true }).build());
+		expectSuccess(fixture.createBuild().build());
 
 		const output = fixture.read("out/game/init.luau");
 		expect(output).not.toContain("RuntimeLib");
@@ -120,7 +120,7 @@ it.each([false, true])(
 				'import Shape = require("./shape"); const value: Shape = { value: 42 }; print(value.value);',
 			);
 
-			expectSuccess(fixture.createBuild({ noCompilerHeader: true }).build());
+			expectSuccess(fixture.createBuild().build());
 
 			const output = fixture.read("out/game/init.luau");
 			expect(output.includes("TS.import")).toBe(verbatimModuleSyntax);
@@ -163,7 +163,7 @@ it("uses relative imports within an isolated game container", () => {
 		fixture.write("game/src/value.ts", "export const value = 7;");
 		fixture.write("game/src/index.ts", 'import { value } from "./value"; print(value);');
 
-		expectSuccess(fixture.createBuild({ noCompilerHeader: true }).build());
+		expectSuccess(fixture.createBuild().build());
 
 		expect(fixture.read("out/game/init.luau")).toMatchSnapshot();
 	} finally {
