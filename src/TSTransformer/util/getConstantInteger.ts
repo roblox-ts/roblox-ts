@@ -30,21 +30,22 @@ function getConstantNumber(
 	state: TransformState,
 	expression: ts.Expression,
 	requireInitialized: boolean,
+	getInteger: (expression: ts.Expression) => number | undefined,
 ): number | undefined {
 	if (ts.isNumericLiteral(expression)) {
 		return Number(expression.text);
 	}
 
 	if (ts.isPrefixUnaryExpression(expression) && expression.operator === ts.SyntaxKind.MinusToken) {
-		const value = getConstantInteger(state, expression.operand, requireInitialized);
+		const value = getInteger(expression.operand);
 		if (value !== undefined) {
 			return -value;
 		}
 	}
 
 	if (ts.isBinaryExpression(expression)) {
-		const left = getConstantInteger(state, expression.left, requireInitialized);
-		const right = getConstantInteger(state, expression.right, requireInitialized);
+		const left = getInteger(expression.left);
+		const right = getInteger(expression.right);
 		if (left !== undefined && right !== undefined) {
 			switch (expression.operatorToken.kind) {
 				case ts.SyntaxKind.PlusToken:
@@ -98,7 +99,7 @@ function getConstantNumber(
 
 		const initializer = getBindingInitializer(declaration);
 		if (initializer) {
-			return getConstantInteger(state, initializer, requireInitialized);
+			return getInteger(initializer);
 		}
 	}
 }
@@ -110,6 +111,20 @@ export function getConstantInteger(
 	expression: ts.Expression,
 	requireInitialized = false,
 ): number | undefined {
-	const value = getConstantNumber(state, skipDownwards(expression), requireInitialized);
-	return value !== undefined && Number.isSafeInteger(value) ? value : undefined;
+	// share initializer results within this analysis, including failures to prove an integer
+	// separate calls retain their own initialization requirements and reference checks
+	const cache = new Map<ts.Expression, number | undefined>();
+	function getInteger(expression: ts.Expression): number | undefined {
+		expression = skipDownwards(expression);
+		if (cache.has(expression)) {
+			return cache.get(expression);
+		}
+
+		const value = getConstantNumber(state, expression, requireInitialized, getInteger);
+		const integer = value !== undefined && Number.isSafeInteger(value) ? value : undefined;
+		cache.set(expression, integer);
+		return integer;
+	}
+
+	return getInteger(expression);
 }

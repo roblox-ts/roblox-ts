@@ -83,6 +83,10 @@ describe("fallback", () => {
 		["parameter bound", "function run(limit = 3) { for (let i = 0; i < limit; i++) { limit--; } } run();"],
 		["replacing assignment increment", "for (let i = 0; i < 2; i = 1) { print(i); break; }"],
 		[
+			"shared unknown constant expression",
+			"function getInitial(): number { return 1; } const initial = getInitial(); const limit = initial + initial; for (let i = 0; i < limit; i++) { print(i); }",
+		],
+		[
 			"step before initialization",
 			"function run() { for (let i = 0; i < 1; i += step) { print(i); break; } } run(); const step = 1;",
 		],
@@ -153,6 +157,10 @@ describe("optimized", () => {
 		["reversed ascending inclusive comparison", "for (let i = 0; 3 >= i; i++) { print(i); }"],
 		["reversed descending comparison", "for (let i = 3; 0 < i; i--) { print(i); }"],
 		["reversed descending inclusive comparison", "for (let i = 3; 0 <= i; i--) { print(i); }"],
+		[
+			"shared constant expression",
+			"const initial = 1; const limit = initial + initial; for (let i = 0; i < limit; i++) { print(i); }",
+		],
 	])("%s", (_name, source) => {
 		const optimized = compileLoop(source, true);
 		const unoptimized = compileLoop(source, false);

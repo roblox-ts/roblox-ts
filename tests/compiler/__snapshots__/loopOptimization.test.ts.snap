@@ -644,6 +644,31 @@ return nil
 "
 `;
 
+exports[`fallback shared unknown constant expression 1`] = `
+"local function getInitial()
+	return 1
+end
+local initial = getInitial()
+local limit = initial + initial
+do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i < limit) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+"
+`;
+
 exports[`fallback step before initialization 1`] = `
 "local step
 local function run()
@@ -1682,6 +1707,37 @@ return nil
 			_shouldIncrement = true
 		end
 		if not (0 <= i) then
+			break
+		end
+		print(i)
+	end
+end
+return nil
+",
+}
+`;
+
+exports[`optimized shared constant expression 1`] = `
+{
+  "optimized": "local initial = 1
+local limit = initial + initial
+for i = 0, limit - 1 do
+	print(i)
+end
+return nil
+",
+  "unoptimized": "local initial = 1
+local limit = initial + initial
+do
+	local i = 0
+	local _shouldIncrement = false
+	while true do
+		if _shouldIncrement then
+			i += 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i < limit) then
 			break
 		end
 		print(i)
