@@ -1,0 +1,264 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`inlines a single aliased assignment 1`] = `
+"local alias
+alias = receiver().value
+return nil
+"
+`;
+
+exports[`inlines a single aliased binding 1`] = `
+"local alias = receiver().value
+return nil
+"
+`;
+
+exports[`inlines a single service property assignment 1`] = `
+"local Terrain
+Terrain = game:GetService("Workspace").Terrain
+return nil
+"
+`;
+
+exports[`inlines a single service property binding 1`] = `
+"local Terrain = game:GetService("Workspace").Terrain
+return nil
+"
+`;
+
+exports[`keeps a single assignment default after the property read (value) 1`] = `
+"local value
+local alias
+value = receiver().value
+if value == nil then
+	value = fallback()
+end
+return nil
+"
+`;
+
+exports[`keeps a single assignment default after the property read (value: alias) 1`] = `
+"local value
+local alias
+alias = receiver().value
+if alias == nil then
+	alias = fallback()
+end
+return nil
+"
+`;
+
+exports[`keeps a single binding default after the property read 1`] = `
+"local value = receiver().value
+if value == nil then
+	value = fallback()
+end
+return nil
+"
+`;
+
+exports[`keeps assignment receiver captures for computed keys 1`] = `
+"local value
+local other
+local rest
+local key = 0
+local _binding = receiver()
+local _original = key
+key += 1
+value = _binding[_original]
+return nil
+"
+`;
+
+exports[`keeps assignment receiver captures for indexed targets 1`] = `
+"local value
+local other
+local rest
+local key = 0
+local _binding = receiver()
+local _exp = target()
+local _original = key
+key += 1
+_exp[_original] = _binding.value
+return nil
+"
+`;
+
+exports[`keeps assignment receiver captures for multiple properties 1`] = `
+"local value
+local other
+local rest
+local key = 0
+local _binding = receiver()
+value = _binding.value
+other = _binding.other
+return nil
+"
+`;
+
+exports[`keeps assignment receiver captures for nested patterns 1`] = `
+"local value
+local other
+local rest
+local key = 0
+local _binding = receiver()
+local _binding_1 = _binding.nested
+value = _binding_1.value
+return nil
+"
+`;
+
+exports[`keeps assignment receiver captures for property targets 1`] = `
+"local value
+local other
+local rest
+local key = 0
+local _binding = receiver()
+target().value = _binding.value
+return nil
+"
+`;
+
+exports[`keeps assignment receiver captures for rest assignments 1`] = `
+"local value
+local other
+local rest
+local key = 0
+local _binding = receiver()
+local _extracted = {}
+local _rest = {}
+for _k, _v in _binding do
+	if not _extracted[_k] then
+		_rest[_k] = _v
+	end
+end
+rest = _rest
+return nil
+"
+`;
+
+exports[`keeps receiver captures for computed keys 1`] = `
+"local key = 0
+local _binding = receiver()
+local _original = key
+key += 1
+local value = _binding[_original]
+return nil
+"
+`;
+
+exports[`keeps receiver captures for multiple bindings 1`] = `
+"local key = 0
+local _binding = receiver()
+local first = _binding.first
+local second = _binding.second
+return nil
+"
+`;
+
+exports[`keeps receiver captures for nested bindings 1`] = `
+"local key = 0
+local _binding = receiver()
+local _binding_1 = _binding.nested
+local value = _binding_1.value
+return nil
+"
+`;
+
+exports[`keeps receiver captures for numeric keys 1`] = `
+"local key = 0
+local _binding = receiver()
+local value = _binding[0]
+return nil
+"
+`;
+
+exports[`keeps receiver captures for rest bindings 1`] = `
+"local key = 0
+local _binding = receiver()
+local _extracted = {}
+local _rest = {}
+for _k, _v in _binding do
+	if not _extracted[_k] then
+		_rest[_k] = _v
+	end
+end
+local rest = _rest
+return nil
+"
+`;
+
+exports[`keeps receiver captures for string keys 1`] = `
+"local key = 0
+local _binding = receiver()
+local value = _binding.first
+return nil
+"
+`;
+
+exports[`keeps the receiver when the assignment result is used 1`] = `
+"local value
+local _binding = receiver()
+value = _binding.value
+local result = _binding
+return nil
+"
+`;
+
+exports[`parenthesizes a literal assignment receiver 1`] = `
+"local value
+value = ({
+	value = 42,
+}).value
+return nil
+"
+`;
+
+exports[`parenthesizes a literal receiver 1`] = `
+"local value = ({
+	value = 42,
+}).value
+return nil
+"
+`;
+
+exports[`preserves assignment receiver prerequisites 1`] = `
+"local count = 0
+local value
+local _original = count
+count += 1
+value = receiver(_original).value
+return nil
+"
+`;
+
+exports[`preserves mutable exports and their assignment defaults 1`] = `
+"local exports = {}
+exports.value = 0
+exports.value = receiver().value
+if exports.value == nil then
+	exports.value = 42
+end
+return exports
+"
+`;
+
+exports[`preserves mutable exports and their defaults 1`] = `
+"local exports = {}
+exports.value = receiver().value
+if exports.value == nil then
+	exports.value = 42
+end
+exports.value += 1
+return exports
+"
+`;
+
+exports[`preserves receiver prerequisites 1`] = `
+"local count = 0
+local _original = count
+count += 1
+local value = receiver(_original).value
+return nil
+"
+`;
