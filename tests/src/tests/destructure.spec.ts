@@ -362,6 +362,27 @@ export = () => {
 		}
 	});
 
+	it("should apply aliased defaults before later object assignment properties", () => {
+		for (const input of [{ value: undefined }, { value: 0 }, { value: 42 }]) {
+			let source = { value: input.value, other: 1 };
+			let fallbackCalls = 0;
+			function fallback() {
+				fallbackCalls++;
+				source.other = 2;
+				source = { value: 99, other: 3 };
+				return 7;
+			}
+
+			let alias: number;
+			let other: number;
+			({ value: alias = fallback(), other } = source);
+			expect(alias).to.equal(input.value === undefined ? 7 : input.value);
+			expect(other).to.equal(input.value === undefined ? 2 : 1);
+			expect(source.other).to.equal(input.value === undefined ? 3 : 1);
+			expect(fallbackCalls).to.equal(input.value === undefined ? 1 : 0);
+		}
+	});
+
 	it("should return the original assignment receiver when a default rebinds it", () => {
 		let calls = 0;
 		let source: { value: number | undefined } = { value: undefined };
