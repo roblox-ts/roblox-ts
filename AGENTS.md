@@ -48,6 +48,9 @@ Use `package.json` for scripts and versions, `foreman.toml` for tool pins, and `
   in `tests/compiler/` for output quality. Add runtime assertions and snapshots when both behavior and emit can regress.
 - For compiler or runtime behavior changes, build before focused validation, run focused regressions while iterating,
   then run `npm test` and `npm run eslint` on the final code. `npm test` includes the build, Jest, Rojo, and Lune stages.
+- The full test suite launches Node subprocesses for CLI, watch, and project-reference checks. In restricted agent
+  environments, arrange the required subprocess permissions before running it. Treat `spawnSync ... EPERM` as an
+  environment signal first; rerun the affected validation with those permissions before diagnosing a compiler failure.
 - A focused snapshot run does **not** refresh the complete runtime output. Before running Rojo and Lune separately,
   compile the runtime project with `tests/compiler/compile.test.ts` or the full Jest suite.
 - For documentation-only changes, check formatting, referenced paths, and the diff. Compiler tests are unnecessary.
