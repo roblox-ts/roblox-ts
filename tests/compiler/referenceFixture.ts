@@ -92,7 +92,11 @@ export class ReferenceFixture {
 	}
 
 	public createBuild(options: Partial<ProjectOptions> = {}, project = "game") {
-		const build = new ProjectBuild(this.file(`${project}/tsconfig.json`), { ...this.options(), ...options });
+		const build = new ProjectBuild(this.file(`${project}/tsconfig.json`), {
+			...this.options(),
+			noCompilerHeader: true,
+			...options,
+		});
 		this.builds.push(build);
 
 		return build;

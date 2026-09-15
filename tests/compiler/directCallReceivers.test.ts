@@ -14,5 +14,5 @@ it("supplies receiver slots only for direct calls that require them", () => {
 		adapted(41);
 	`);
 
-	expect(output.replace(/^-- Compiled with.*\n/, "")).toMatchSnapshot();
+	expect(output).toMatchSnapshot();
 });

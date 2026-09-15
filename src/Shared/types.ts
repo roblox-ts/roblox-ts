@@ -8,6 +8,7 @@ export interface ProjectOptions {
 	type: ProjectType | undefined;
 	logTruthyChanges: boolean;
 	noInclude: boolean;
+	noCompilerHeader: boolean;
 	usePolling: boolean;
 	verbose: boolean;
 	watch: boolean;

@@ -3,7 +3,7 @@ import { createTestProject } from "./createTestProject";
 
 function compile(source: string) {
 	const project = createTestProject();
-	return project.compileSource(source).replace(/^-- Compiled with.*\n/, "");
+	return project.compileSource(source);
 }
 
 it("captures a receiver before an index call rebinds it", () => {

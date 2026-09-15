@@ -18,7 +18,7 @@ it.each([false, true])("elides type-only CommonJS imports (verbatimModuleSyntax:
 		const output = fixture.read("out/game/init.luau");
 		expect(output).not.toContain("RuntimeLib");
 		expect(output).not.toContain("TS.import");
-		expect(output.replace(/^-- Compiled with.*\n/, "")).toMatchSnapshot();
+		expect(output).toMatchSnapshot();
 	} finally {
 		fixture.close();
 	}
@@ -32,7 +32,7 @@ it.each(["export { Value };", "export default Value;", "export = Value;"])(
 
 		const output = project.compileSource(`import type Value = require("./value"); ${exportStatement}`);
 
-		expect(output.replace(/^-- Compiled with.*\n/, "")).toBe("return nil\n");
+		expect(output).toBe("return nil\n");
 	},
 );
 
@@ -58,7 +58,7 @@ it("imports a local module in VirtualProject without project references", () => 
 
 	const output = project.compileSource('import { value } from "./value"; export const result = value;');
 
-	expect(output.replace(/^-- Compiled with.*\n/, "")).toMatchSnapshot();
+	expect(output).toMatchSnapshot();
 });
 
 it("imports a package described by an ambient module declaration", () => {
@@ -69,7 +69,7 @@ it("imports a package described by an ambient module declaration", () => {
 
 	const output = project.compileSource('import { value } from "@rbxts/example"; export { value };');
 
-	expect(output.replace(/^-- Compiled with.*\n/, "")).toMatchSnapshot();
+	expect(output).toMatchSnapshot();
 });
 
 it("imports a scoped dependency from a package", () => {
@@ -79,7 +79,7 @@ it("imports a scoped dependency from a package", () => {
 
 	const output = project.compileSource('import { value } from "@rbxts/example"; export const result = value;');
 
-	expect(output.replace(/^-- Compiled with.*\n/, "")).toMatchSnapshot();
+	expect(output).toMatchSnapshot();
 });
 
 it.each([false, true])(
@@ -124,7 +124,7 @@ it.each([false, true])(
 
 			const output = fixture.read("out/game/init.luau");
 			expect(output.includes("TS.import")).toBe(verbatimModuleSyntax);
-			expect(output.replace(/^-- Compiled with.*\n/, "")).toMatchSnapshot();
+			expect(output).toMatchSnapshot();
 		} finally {
 			fixture.close();
 		}
@@ -165,7 +165,7 @@ it("uses relative imports within an isolated game container", () => {
 
 		expectSuccess(fixture.createBuild().build());
 
-		expect(fixture.read("out/game/init.luau").replace(/^-- Compiled with.*\n/, "")).toMatchSnapshot();
+		expect(fixture.read("out/game/init.luau")).toMatchSnapshot();
 	} finally {
 		fixture.close();
 	}

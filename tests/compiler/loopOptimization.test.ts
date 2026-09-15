@@ -2,7 +2,7 @@ import { createTestProject } from "./createTestProject";
 
 function compileLoop(source: string, optimizedLoops: boolean) {
 	const project = createTestProject({ optimizedLoops });
-	return project.compileSource(source).replace(/^-- Compiled with.*\n/, "");
+	return project.compileSource(source);
 }
 
 // Keep cases alphabetized to match Jest's snapshot ordering. Runtime tests check

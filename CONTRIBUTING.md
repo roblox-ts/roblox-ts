@@ -125,7 +125,7 @@ the name against `errors` in [src/Shared/diagnostics.ts](src/Shared/diagnostics.
 without unrelated ones.
 
 For output quality, use `createTestProject()` from [tests/compiler/createTestProject.ts](tests/compiler/createTestProject.ts)
-and snapshot the complete `compileSource()` result, removing only the compiler version header as existing suites do.
+and snapshot the complete `compileSource()` result. The helper disables the compiler version header by default.
 Keep subject-specific suites in `tests/compiler/`; reusable TypeScript input fixtures go in `tests/compiler/fixtures/`.
 Runtime assertions establish behavior; snapshots establish exact spelling, parentheses, and temporary placement.
 Add both when both can regress. A snapshot alone does not prove the output parses or runs.
