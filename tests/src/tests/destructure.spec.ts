@@ -278,6 +278,162 @@ export = () => {
 		expect(d).to.equal(3);
 	});
 
+	it("should evaluate a single object binding receiver once", () => {
+		let calls = 0;
+		function receiver() {
+			calls++;
+			return { value: calls };
+		}
+
+		const { value: alias } = receiver();
+		expect(alias).to.equal(1);
+		expect(calls).to.equal(1);
+	});
+
+	it("should evaluate single binding defaults after reading the property", () => {
+		for (const input of [{ value: undefined }, { value: 0 }, { value: 42 }]) {
+			const initial = input.value;
+			const events = new Array<string>();
+			let source = { value: initial };
+			function receiver() {
+				events.push("receiver");
+				return source;
+			}
+			function fallback() {
+				events.push("fallback");
+				source = { value: 99 };
+				return 7;
+			}
+
+			const { value = fallback() } = receiver();
+			expect(value).to.equal(initial === undefined ? 7 : initial);
+			expect(events.join(",")).to.equal(initial === undefined ? "receiver,fallback" : "receiver");
+			expect(source.value).to.equal(initial === undefined ? 99 : initial);
+		}
+	});
+
+	it("should evaluate the receiver before computed binding key prerequisites", () => {
+		let key = 0;
+		function receiver() {
+			expect(key).to.equal(0);
+			return [42];
+		}
+
+		const { [key++]: value } = receiver();
+		expect(value).to.equal(42);
+		expect(key).to.equal(1);
+	});
+
+	it("should evaluate a single object assignment receiver once", () => {
+		let calls = 0;
+		function receiver() {
+			calls++;
+			return { value: calls };
+		}
+
+		let alias: number;
+		({ value: alias } = receiver());
+		expect(alias).to.equal(1);
+		expect(calls).to.equal(1);
+	});
+
+	it("should evaluate single assignment defaults after the receiver", () => {
+		for (const input of [{ value: undefined }, { value: 0 }, { value: 42 }]) {
+			const events = new Array<string>();
+			function receiver() {
+				events.push("receiver");
+				return input;
+			}
+			function fallback() {
+				events.push("fallback");
+				return 7;
+			}
+
+			let value: number;
+			({ value = fallback() } = receiver());
+			expect(value).to.equal(input.value === undefined ? 7 : input.value);
+			expect(events.join(",")).to.equal(input.value === undefined ? "receiver,fallback" : "receiver");
+
+			events.clear();
+			let alias: number;
+			({ value: alias = fallback() } = receiver());
+			expect(alias).to.equal(input.value === undefined ? 7 : input.value);
+			expect(events.join(",")).to.equal(input.value === undefined ? "receiver,fallback" : "receiver");
+		}
+	});
+
+	it("should apply aliased defaults before later object assignment properties", () => {
+		for (const input of [{ value: undefined }, { value: 0 }, { value: 42 }]) {
+			let source = { value: input.value, other: 1 };
+			let fallbackCalls = 0;
+			function fallback() {
+				fallbackCalls++;
+				source.other = 2;
+				source = { value: 99, other: 3 };
+				return 7;
+			}
+
+			let alias: number;
+			let other: number;
+			({ value: alias = fallback(), other } = source);
+			expect(alias).to.equal(input.value === undefined ? 7 : input.value);
+			expect(other).to.equal(input.value === undefined ? 2 : 1);
+			expect(source.other).to.equal(input.value === undefined ? 3 : 1);
+			expect(fallbackCalls).to.equal(input.value === undefined ? 1 : 0);
+		}
+	});
+
+	it("should return the original assignment receiver when a default rebinds it", () => {
+		let calls = 0;
+		let source: { value: number | undefined } = { value: undefined };
+		const original = source;
+		function receiver() {
+			calls++;
+			return source;
+		}
+		function fallback() {
+			source = { value: 99 };
+			return 7;
+		}
+
+		let value: number;
+		const result = ({ value = fallback() } = receiver());
+		expect(result).to.equal(original);
+		expect(value).to.equal(7);
+		expect(source.value).to.equal(99);
+		expect(calls).to.equal(1);
+	});
+
+	it("should evaluate the receiver before computed assignment key prerequisites", () => {
+		let key = 0;
+		function receiver() {
+			expect(key).to.equal(0);
+			return [42];
+		}
+
+		let value: number;
+		({ [key++]: value } = receiver());
+		expect(value).to.equal(42);
+		expect(key).to.equal(1);
+	});
+
+	it("should evaluate the receiver before an assignment target call", () => {
+		const events = new Array<string>();
+		const destination = { value: 0 };
+		function receiver() {
+			events.push("receiver");
+			return { value: 42 };
+		}
+		function target() {
+			events.push("target");
+			return destination;
+		}
+
+		({ value: target().value } = receiver());
+		expect(destination.value).to.equal(42);
+		expect(events.join(",")).to.equal("receiver,target");
+	});
+
 	it("should spread destructure objects", () => {
 		const a = {
 			b: 1,

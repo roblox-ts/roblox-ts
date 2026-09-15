@@ -12,11 +12,14 @@ import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { arrayBindingPatternContainsHoists } from "TSTransformer/util/arrayBindingPatternContainsHoists";
 import { arrayLikeExpressionContainsSpread } from "TSTransformer/util/arrayLikeExpressionContainsSpread";
 import { getTargetIdForBindingPattern } from "TSTransformer/util/binding/getTargetIdForBindingPattern";
+import { objectAccessor } from "TSTransformer/util/binding/objectAccessor";
 import { checkVariableHoist } from "TSTransformer/util/checkVariableHoist";
+import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { copyValueFacts, getCallEffects, isConstantReference } from "TSTransformer/util/evaluation/facts";
 import { isSymbolMutable } from "TSTransformer/util/isSymbolMutable";
 import { isLuaTupleType } from "TSTransformer/util/types";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
+import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import { wrapExpressionStatement } from "TSTransformer/util/wrapExpressionStatement";
 import ts from "typescript";
 
@@ -114,6 +117,32 @@ function transformOptimizedArrayBindingPattern(
 	return statements;
 }
 
+function transformOptimizedObjectBindingPattern(
+	state: TransformState,
+	bindingPattern: ts.ObjectBindingPattern,
+	rhs: luau.Expression,
+) {
+	validateNotAnyType(state, bindingPattern);
+	const element = bindingPattern.elements[0];
+	assert(ts.isIdentifier(element.name));
+
+	// a single named property reads the receiver once without computed key prerequisites
+	const prereqs = new Prereqs();
+	const access = objectAccessor(
+		state,
+		prereqs,
+		convertToIndexableExpression(rhs),
+		state.getType(bindingPattern),
+		element.propertyName ?? element.name,
+	);
+	const id = transformVariable(state, prereqs, element.name, access);
+	if (element.initializer) {
+		prereqs.push(transformInitializer(state, id, element.initializer));
+	}
+
+	return prereqs.statements;
+}
+
 export function transformVariableDeclaration(
 	state: TransformState,
 	node: ts.VariableDeclaration,
@@ -167,10 +196,20 @@ export function transformVariableDeclaration(
 				luau.list.pushList(statements, bindingPrereqs.statements);
 			}
 		} else {
-			const bindingPrereqs = new Prereqs();
-			const target = getTargetIdForBindingPattern(bindingPrereqs, name, value);
-			transformObjectBindingPattern(state, bindingPrereqs, name, target);
-			luau.list.pushList(statements, bindingPrereqs.statements);
+			const element = name.elements[0];
+			if (
+				name.elements.length === 1 &&
+				ts.isIdentifier(element.name) &&
+				!element.dotDotDotToken &&
+				(!element.propertyName || ts.isIdentifier(element.propertyName))
+			) {
+				luau.list.pushList(statements, transformOptimizedObjectBindingPattern(state, name, value));
+			} else {
+				const bindingPrereqs = new Prereqs();
+				const target = getTargetIdForBindingPattern(bindingPrereqs, name, value);
+				transformObjectBindingPattern(state, bindingPrereqs, name, target);
+				luau.list.pushList(statements, bindingPrereqs.statements);
+			}
 		}
 	}
 

@@ -14,7 +14,7 @@ import ts from "typescript";
 export const objectAccessor = (
 	state: TransformState,
 	prereqs: Prereqs,
-	parentId: luau.AnyIdentifier,
+	parentId: luau.IndexableExpression,
 	receiverType: ts.Type,
 	name: ts.PropertyName,
 ): luau.Expression => {
