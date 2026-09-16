@@ -13,9 +13,12 @@ import {
 } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
+import { getConstantInteger } from "TSTransformer/util/getConstantInteger";
 import { getDeclaredVariables } from "TSTransformer/util/getDeclaredVariables";
+import { getLiteralNumberValue } from "TSTransformer/util/getLiteralNumberValue";
 import { getStatements } from "TSTransformer/util/getStatements";
-import { getAncestor, isAncestorOf } from "TSTransformer/util/traversal";
+import { offset } from "TSTransformer/util/offset";
+import { getAncestor, isAncestorOf, skipDownwards } from "TSTransformer/util/traversal";
 import ts from "typescript";
 
 function addFinalizersToIfStatement(node: luau.IfStatement, finalizers: luau.List<luau.Statement>) {
@@ -283,46 +286,104 @@ function transformForStatementFallback(state: TransformState, node: ts.ForStatem
 		: luau.list.make(luau.create(luau.SyntaxKind.DoStatement, { statements: result }));
 }
 
-// Numeric for loops evaluate their bounds once. Only literal bounds can be
-// moved out of a TypeScript condition without analyzing reads and side effects.
-function getIntegerLiteral(expression: ts.Expression): number | undefined {
-	if (ts.isNumericLiteral(expression)) {
-		const value = Number(expression.text);
-		return Number.isSafeInteger(value) ? value : undefined;
-	}
-	if (ts.isPrefixUnaryExpression(expression) && expression.operator === ts.SyntaxKind.MinusToken) {
-		const value = getIntegerLiteral(expression.operand);
+function isLoopVariable(state: TransformState, expression: ts.Expression, symbol: ts.Symbol) {
+	const node = skipDownwards(expression);
+	return ts.isIdentifier(node) && state.typeChecker.getSymbolAtLocation(node) === symbol;
+}
+
+interface OptimizedStep {
+	value: number;
+	expression?: ts.Expression;
+	negate: boolean;
+}
+
+function getOptimizedIncrementorStep(
+	state: TransformState,
+	incrementor: ts.Expression,
+	idSymbol: ts.Symbol,
+): OptimizedStep | undefined {
+	incrementor = skipDownwards(incrementor);
+	if (ts.isBinaryExpression(incrementor) && isLoopVariable(state, incrementor.left, idSymbol)) {
+		let update = incrementor;
+		if (incrementor.operatorToken.kind === ts.SyntaxKind.EqualsToken) {
+			const right = skipDownwards(incrementor.right);
+			if (!ts.isBinaryExpression(right)) {
+				return undefined;
+			}
+			update = right;
+		} else if (
+			incrementor.operatorToken.kind !== ts.SyntaxKind.PlusEqualsToken &&
+			incrementor.operatorToken.kind !== ts.SyntaxKind.MinusEqualsToken
+		) {
+			return undefined;
+		}
+
+		const operator = update.operatorToken.kind;
+		let negate: boolean;
+		if (operator === ts.SyntaxKind.PlusToken || operator === ts.SyntaxKind.PlusEqualsToken) {
+			negate = false;
+		} else if (operator === ts.SyntaxKind.MinusToken || operator === ts.SyntaxKind.MinusEqualsToken) {
+			negate = true;
+		} else {
+			return undefined;
+		}
+
+		let expression: ts.Expression;
+		if (isLoopVariable(state, update.left, idSymbol)) {
+			expression = update.right;
+		} else if (operator === ts.SyntaxKind.PlusToken && isLoopVariable(state, update.right, idSymbol)) {
+			expression = update.left;
+		} else {
+			return undefined;
+		}
+
+		const value = getConstantInteger(state, expression, true);
 		if (value !== undefined) {
-			return -value;
+			return { value: negate ? -value : value, expression, negate };
+		}
+	} else if (
+		(ts.isPostfixUnaryExpression(incrementor) || ts.isPrefixUnaryExpression(incrementor)) &&
+		isLoopVariable(state, incrementor.operand, idSymbol)
+	) {
+		if (incrementor.operator === ts.SyntaxKind.PlusPlusToken) {
+			return { value: 1, negate: false };
+		} else if (incrementor.operator === ts.SyntaxKind.MinusMinusToken) {
+			return { value: -1, negate: false };
 		}
 	}
 }
 
-function getOptimizedIncrementorStepValue(state: TransformState, incrementor: ts.Expression, idSymbol: ts.Symbol) {
-	if (
-		ts.isBinaryExpression(incrementor) &&
-		ts.isIdentifier(incrementor.left) &&
-		state.typeChecker.getSymbolAtLocation(incrementor.left) === idSymbol
-	) {
-		const value = getIntegerLiteral(incrementor.right);
-		if (value !== undefined) {
-			if (incrementor.operatorToken.kind === ts.SyntaxKind.PlusEqualsToken) {
-				return value;
-			} else if (incrementor.operatorToken.kind === ts.SyntaxKind.MinusEqualsToken) {
-				return -value;
-			}
+function getOptimizedCondition(state: TransformState, condition: ts.Expression, idSymbol: ts.Symbol) {
+	condition = skipDownwards(condition);
+	if (!ts.isBinaryExpression(condition)) {
+		return undefined;
+	}
+
+	let bound = condition.right;
+	let operator = condition.operatorToken.kind;
+	if (!isLoopVariable(state, condition.left, idSymbol)) {
+		if (!isLoopVariable(state, condition.right, idSymbol)) {
+			return undefined;
 		}
-	} else if (
-		(ts.isPostfixUnaryExpression(incrementor) || ts.isPrefixUnaryExpression(incrementor)) &&
-		ts.isIdentifier(incrementor.operand) &&
-		state.typeChecker.getSymbolAtLocation(incrementor.operand) === idSymbol
-	) {
-		if (incrementor.operator === ts.SyntaxKind.PlusPlusToken) {
-			return 1;
-		} else if (incrementor.operator === ts.SyntaxKind.MinusMinusToken) {
-			return -1;
+
+		bound = condition.left;
+		switch (operator) {
+			case ts.SyntaxKind.LessThanToken:
+				operator = ts.SyntaxKind.GreaterThanToken;
+				break;
+			case ts.SyntaxKind.LessThanEqualsToken:
+				operator = ts.SyntaxKind.GreaterThanEqualsToken;
+				break;
+			case ts.SyntaxKind.GreaterThanToken:
+				operator = ts.SyntaxKind.LessThanToken;
+				break;
+			case ts.SyntaxKind.GreaterThanEqualsToken:
+				operator = ts.SyntaxKind.LessThanEqualsToken;
+				break;
 		}
 	}
+
+	return { bound, operator };
 }
 
 function isMutatedInBody(state: TransformState, identifier: ts.Identifier, body: ts.Statement): boolean {
@@ -357,7 +418,7 @@ function transformForStatementOptimized(state: TransformState, node: ts.ForState
 	const idSymbol = state.typeChecker.getSymbolAtLocation(decName);
 	assert(idSymbol);
 
-	const startValue = getIntegerLiteral(decInit);
+	const startValue = getConstantInteger(state, decInit);
 	if (startValue === undefined) {
 		return undefined;
 	}
@@ -368,47 +429,30 @@ function transformForStatementOptimized(state: TransformState, node: ts.ForState
 		return undefined;
 	}
 
-	const stepValue = getOptimizedIncrementorStepValue(state, incrementor, idSymbol);
-	if (stepValue === undefined || stepValue === 0) {
+	const increment = getOptimizedIncrementorStep(state, incrementor, idSymbol);
+	if (!increment || increment.value === 0) {
 		return undefined;
 	}
 
-	// validate condition exists and is a BinaryExpression with an operator that matches the incrementor
-
-	if (
-		!condition ||
-		!ts.isBinaryExpression(condition) ||
-		!ts.isIdentifier(condition.left) ||
-		state.typeChecker.getSymbolAtLocation(condition.left) !== idSymbol
-	) {
+	const comparison = condition && getOptimizedCondition(state, condition, idSymbol);
+	if (!comparison) {
 		return undefined;
 	}
 
-	if (
-		condition.operatorToken.kind === ts.SyntaxKind.LessThanToken ||
-		condition.operatorToken.kind === ts.SyntaxKind.LessThanEqualsToken
-	) {
-		// do not optimize for cases which should never run like:
-		// for (let i = 10; i < 0; i--)
-		if (stepValue < 0) {
+	const { bound, operator } = comparison;
+	if (operator === ts.SyntaxKind.LessThanToken || operator === ts.SyntaxKind.LessThanEqualsToken) {
+		if (increment.value < 0) {
 			return undefined;
 		}
-	} else if (
-		condition.operatorToken.kind === ts.SyntaxKind.GreaterThanToken ||
-		condition.operatorToken.kind === ts.SyntaxKind.GreaterThanEqualsToken
-	) {
-		// do not optimize for cases which should never run like:
-		// for (let i = 0; i > 10; i++)
-		if (stepValue > 0) {
+	} else if (operator === ts.SyntaxKind.GreaterThanToken || operator === ts.SyntaxKind.GreaterThanEqualsToken) {
+		if (increment.value > 0) {
 			return undefined;
 		}
 	} else {
-		// do not optimize for other comparison operators like !==, ===
 		return undefined;
 	}
 
-	const endValue = getIntegerLiteral(condition.right);
-	if (endValue === undefined) {
+	if (getConstantInteger(state, bound) === undefined) {
 		return undefined;
 	}
 
@@ -426,16 +470,27 @@ function transformForStatementOptimized(state: TransformState, node: ts.ForState
 	const start = transformExpression(state, startPrereqs, decInit);
 	assert(luau.list.isEmpty(startPrereqs.statements));
 	const endPrereqs = new Prereqs();
-	let end = transformExpression(state, endPrereqs, condition.right);
+	let end = transformExpression(state, endPrereqs, bound);
 	assert(luau.list.isEmpty(endPrereqs.statements));
 
-	const step = luau.number(stepValue);
+	let step: luau.Expression = luau.number(increment.value);
+	if (increment.expression) {
+		const stepPrereqs = new Prereqs();
+		const expression = transformExpression(state, stepPrereqs, increment.expression);
+		assert(luau.list.isEmpty(stepPrereqs.statements));
+
+		// retain references and arithmetic, but keep the existing compact spelling of literal steps
+		if (getLiteralNumberValue(expression) === undefined) {
+			step = increment.negate ? luau.unary("-", expression) : expression;
+		}
+	}
+
 	const statements = transformStatementList(state, statement, getStatements(statement));
 
-	if (condition.operatorToken.kind === ts.SyntaxKind.LessThanToken) {
-		end = luau.number(endValue - 1);
-	} else if (condition.operatorToken.kind === ts.SyntaxKind.GreaterThanToken) {
-		end = luau.number(endValue + 1);
+	if (operator === ts.SyntaxKind.LessThanToken) {
+		end = offset(end, -1);
+	} else if (operator === ts.SyntaxKind.GreaterThanToken) {
+		end = offset(end, 1);
 	}
 
 	luau.list.push(result, luau.create(luau.SyntaxKind.NumericForStatement, { id, start, end, step, statements }));
