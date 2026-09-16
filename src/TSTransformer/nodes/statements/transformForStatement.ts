@@ -304,43 +304,42 @@ function getOptimizedIncrementorStep(
 ): OptimizedStep | undefined {
 	incrementor = skipDownwards(incrementor);
 	if (ts.isBinaryExpression(incrementor) && isLoopVariable(state, incrementor.left, idSymbol)) {
-		let expression = incrementor.right;
-		let operator = incrementor.operatorToken.kind;
-		if (
-			operator !== ts.SyntaxKind.EqualsToken &&
-			operator !== ts.SyntaxKind.PlusEqualsToken &&
-			operator !== ts.SyntaxKind.MinusEqualsToken
+		let update = incrementor;
+		if (incrementor.operatorToken.kind === ts.SyntaxKind.EqualsToken) {
+			const right = skipDownwards(incrementor.right);
+			if (!ts.isBinaryExpression(right)) {
+				return undefined;
+			}
+			update = right;
+		} else if (
+			incrementor.operatorToken.kind !== ts.SyntaxKind.PlusEqualsToken &&
+			incrementor.operatorToken.kind !== ts.SyntaxKind.MinusEqualsToken
 		) {
 			return undefined;
 		}
 
-		if (operator === ts.SyntaxKind.EqualsToken) {
-			const right = skipDownwards(expression);
-			if (!ts.isBinaryExpression(right)) {
-				return undefined;
-			}
-
-			operator = right.operatorToken.kind;
-			if (isLoopVariable(state, right.left, idSymbol)) {
-				expression = right.right;
-			} else if (operator === ts.SyntaxKind.PlusToken && isLoopVariable(state, right.right, idSymbol)) {
-				expression = right.left;
-			} else {
-				return undefined;
-			}
+		const operator = update.operatorToken.kind;
+		let negate: boolean;
+		if (operator === ts.SyntaxKind.PlusToken || operator === ts.SyntaxKind.PlusEqualsToken) {
+			negate = false;
+		} else if (operator === ts.SyntaxKind.MinusToken || operator === ts.SyntaxKind.MinusEqualsToken) {
+			negate = true;
+		} else {
+			return undefined;
 		}
 
-		if (
-			operator === ts.SyntaxKind.PlusEqualsToken ||
-			operator === ts.SyntaxKind.MinusEqualsToken ||
-			operator === ts.SyntaxKind.PlusToken ||
-			operator === ts.SyntaxKind.MinusToken
-		) {
-			const value = getConstantInteger(state, expression, true);
-			if (value !== undefined) {
-				const negate = operator === ts.SyntaxKind.MinusEqualsToken || operator === ts.SyntaxKind.MinusToken;
-				return { value: negate ? -value : value, expression, negate };
-			}
+		let expression: ts.Expression;
+		if (isLoopVariable(state, update.left, idSymbol)) {
+			expression = update.right;
+		} else if (operator === ts.SyntaxKind.PlusToken && isLoopVariable(state, update.right, idSymbol)) {
+			expression = update.left;
+		} else {
+			return undefined;
+		}
+
+		const value = getConstantInteger(state, expression, true);
+		if (value !== undefined) {
+			return { value: negate ? -value : value, expression, negate };
 		}
 	} else if (
 		(ts.isPostfixUnaryExpression(incrementor) || ts.isPrefixUnaryExpression(incrementor)) &&
