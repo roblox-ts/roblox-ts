@@ -1,4 +1,107 @@
 export = () => {
+	it("destructures IterableIterator sources through their next method", () => {
+		function* values() {
+			yield 1;
+			yield 2;
+		}
+		const source: IterableIterator<number> = values();
+		const [first, second, missing = 7] = source;
+		assert(first === 1 && second === 2 && missing === 7);
+
+		let assigned = 0;
+		let rest: number[] = [];
+		const other: IterableIterator<number> = values();
+		[assigned, ...rest] = other;
+		assert(assigned === 1 && rest.size() === 1 && rest[0] === 2);
+	});
+
+	it("destructures structurally typed generators", () => {
+		function* values() {
+			yield 3;
+			yield 4;
+		}
+		type Values = Pick<Generator<number>, keyof Generator<number>>;
+		const source: Values = values();
+		const [first, ...rest] = source;
+		assert(first === 3 && rest.size() === 1 && rest[0] === 4);
+
+		let assigned = 0;
+		const other: Values = values();
+		[, assigned] = other;
+		assert(assigned === 4);
+	});
+
+	it("resolves variadic tuple positions inside nested rest assignments", () => {
+		const source: [number, ...number[][]] = [1, [42], [99]];
+		let first = 0;
+		let value = 0;
+		[first, ...[[value]]] = source;
+		assert(first === 1 && value === 42);
+
+		[
+			first,
+			...{
+				0: [value],
+			}
+		] = source;
+		assert(first === 1 && value === 42);
+
+		[first, ...[, ...[[value]]]] = source;
+		assert(value === 99);
+
+		[
+			...[
+				{
+					1: [value],
+				},
+			]
+		] = [source];
+		assert(value === 42);
+	});
+
+	it("resolves generic variadic tuple elements and unions inside nested rest", () => {
+		function read<T extends number>(source: [string, ...T[][]]) {
+			let value: T;
+			[, ...[[value]]] = source;
+			return value;
+		}
+		assert(read(["prefix", [42]]) === 42);
+
+		function readUnion(source: [number, ...number[][]] | [string, ...number[][]]) {
+			let value = 0;
+			[
+				,
+				...{
+					0: [value],
+				}
+			] = source;
+			return value;
+		}
+		assert(readUnion(["prefix", [99]]) === 99);
+	});
+
+	it("keeps independent assignments inside expression spreads on their own source", () => {
+		let value = 0;
+		const source = [42];
+		// preserve unparenthesized assignments to exercise their immediate array and property parents
+		// prettier-ignore
+		const arrays = [...[[value] = source]];
+		assert(value === 42 && arrays[0] === source);
+
+		// prettier-ignore
+		const properties = [...[{ item: [value] = source }]];
+		assert(value === 42 && properties[0].item === source);
+
+		const object = { value: 99 };
+		// prettier-ignore
+		const objects = [...[{ value } = object]];
+		assert(value === 99 && objects[0] === object);
+
+		// prettier-ignore
+		const nested = [...[[1, [value] = source]]];
+		assert(value === 42 && nested[0][1] === source);
+	});
+
 	it("evaluates a computed rest key once", () => {
 		let calls = 0;
 		function key(): "a" {

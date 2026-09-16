@@ -39,8 +39,13 @@ function getElementType(state: TransformState, pattern: ts.ArrayLiteralExpressio
 		return getElementType(state, spread.parent, spread.parent.elements.indexOf(spread) + index);
 	}
 	const type = getAssignmentPatternType(state, pattern);
+	const checker = state.typeChecker;
+	// contextual property lookup includes tuple positions beyond the fixed prefix
 	return (
-		state.typeChecker.getTypeOfPropertyOfType(type, String(index)) ?? getIterableElementType(state, type, pattern)
+		checker.getTypeOfPropertyOfContextualType(
+			checker.getApparentType(type),
+			ts.escapeLeadingUnderscores(String(index)),
+		) ?? getIterableElementType(state, type, pattern)
 	);
 }
 
@@ -65,7 +70,10 @@ function getPropertyType(state: TransformState, pattern: ts.ObjectLiteralExpress
 					spread.parent.elements.indexOf(spread) + Number(key.value),
 				);
 			} else {
-				value = checker.getTypeOfPropertyOfType(type, String(key.value));
+				value = checker.getTypeOfPropertyOfContextualType(
+					checker.getApparentType(type),
+					ts.escapeLeadingUnderscores(String(key.value)),
+				);
 			}
 		}
 		value ??= checker.getIndexTypeOfType(
@@ -78,10 +86,23 @@ function getPropertyType(state: TransformState, pattern: ts.ObjectLiteralExpress
 	return checker.getUnionType(values);
 }
 
+function hasRestAssignmentAncestor(pattern: ts.AssignmentPattern) {
+	let node: ts.Node = pattern;
+	while (ts.isAssignmentTarget(node)) {
+		const parent = node.parent;
+		if (ts.isSpreadElement(parent)) {
+			return true;
+		}
+		// property wrappers belong to the pattern, but independent assignments end the search
+		node = ts.isPropertyAssignment(parent) ? parent.parent : parent;
+	}
+	return false;
+}
+
 // TypeScript's assignment-pattern query cannot traverse a rest element's parent
 // resolve that part of the source path here, retaining tuple positions through nested rest
 export function getAssignmentPatternType(state: TransformState, pattern: ts.AssignmentPattern): ts.Type {
-	if (!ts.findAncestor(pattern.parent, ts.isSpreadElement)) {
+	if (!hasRestAssignmentAncestor(pattern)) {
 		return state.typeChecker.getTypeOfAssignmentPattern(pattern);
 	}
 	const parent = pattern.parent;
@@ -97,10 +118,9 @@ export function getAssignmentPatternType(state: TransformState, pattern: ts.Assi
 	let source: ts.Type;
 	if (ts.isArrayLiteralExpression(container)) {
 		source = getElementType(state, container, container.elements.indexOf(element));
-	} else if (ts.isPropertyAssignment(container)) {
-		source = getPropertyType(state, container.parent, container.name);
 	} else {
-		return state.typeChecker.getTypeOfAssignmentPattern(pattern);
+		assert(ts.isPropertyAssignment(container));
+		source = getPropertyType(state, container.parent, container.name);
 	}
 	return ts.isBinaryExpression(element)
 		? state.typeChecker.getUnionType([state.typeChecker.getNonNullableType(source), state.getType(element.right)])

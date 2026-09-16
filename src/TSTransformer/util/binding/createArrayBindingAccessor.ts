@@ -6,7 +6,6 @@ import { Prereqs } from "TSTransformer/classes/Prereqs";
 import {
 	isArrayType,
 	isDefinitelyType,
-	isGeneratorType,
 	isIterableFunctionLuaTupleType,
 	isIterableFunctionType,
 	isIterableType,
@@ -238,7 +237,12 @@ export function createArrayBindingAccessor(
 		return createFunctionAccessor(parentId, isDefinitelyType(type, isIterableFunctionLuaTupleType(state)));
 	}
 
-	if (isDefinitelyType(type, isGeneratorType(state))) {
+	if (
+		isDefinitelyType(type, type => {
+			const next = state.typeChecker.getTypeOfPropertyOfType(type, "next");
+			return next !== undefined && next.getCallSignatures().length > 0;
+		})
+	) {
 		const next = prereqs.pushToVar(luau.property(parentId, "next"), "next");
 		return createIteratorAccessor(prereqs => {
 			const result = prereqs.pushToVar(luau.call(next), "result");
