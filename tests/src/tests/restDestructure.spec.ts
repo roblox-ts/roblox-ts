@@ -578,4 +578,145 @@ export = () => {
 		const spread = [...values()];
 		assert(rest.join(",") === "1,2,3" && rest.join(",") === spread.join(","));
 	});
+
+	it("collects Set and Map rest after destinations clear and repopulate the source", () => {
+		const source = new Set([1, 2]);
+		let first = 0;
+		const target = { rest: new Array<number>() };
+		function destination() {
+			source.clear();
+			source.add(42);
+			return target;
+		}
+		[first, ...destination().rest] = source;
+		assert(target.rest.size() === 1 && target.rest[0] === 42);
+
+		const map = new Map([
+			[1, 10],
+			[2, 20],
+		]);
+		let pair: [number, number];
+		const mapTarget = { rest: new Array<[number, number]>() };
+		function mapDestination() {
+			map.clear();
+			map.set(42, 99);
+			return mapTarget;
+		}
+		[pair, ...mapDestination().rest] = map;
+		assert(mapTarget.rest.size() === 1 && mapTarget.rest[0][0] === 42 && mapTarget.rest[0][1] === 99);
+	});
+
+	it("does not repeat consumed keys when a collection cursor is removed", () => {
+		const source = new Set([1, 2, 3, 4]);
+		let first = 0;
+		let second = 0;
+		const target = { rest: new Array<number>() };
+		function destination() {
+			source.delete(second);
+			return target;
+		}
+		[first, second, ...destination().rest] = source;
+		assert(target.rest.size() === 2);
+		assert(!target.rest.includes(first) && !target.rest.includes(second));
+
+		const map = new Map([
+			[1, 10],
+			[2, 20],
+			[3, 30],
+			[4, 40],
+		]);
+		let firstPair: [number, number];
+		let secondPair: [number, number];
+		const mapTarget = { rest: new Array<[number, number]>() };
+		function mapDestination() {
+			map.delete(secondPair[0]);
+			return mapTarget;
+		}
+		[firstPair, secondPair, ...mapDestination().rest] = map;
+		assert(mapTarget.rest.size() === 2);
+		for (const [key, value] of mapTarget.rest) {
+			assert(key !== firstPair[0] && key !== secondPair[0] && map.get(key) === value);
+		}
+	});
+
+	it("resolves numeric-string keys inside nested rest assignments", () => {
+		let value = 0;
+		let key: `${number}` = "0";
+		const source = [[42], [99]];
+		[
+			...{
+				[key]: [value],
+			}
+		] = source;
+		assert(value === 42);
+		key = "1";
+		[
+			...{
+				[key]: [value],
+			}
+		] = source;
+		assert(value === 99);
+	});
+
+	it("excludes consumed tuple positions from dynamically indexed rest types", () => {
+		let value = 0;
+		const key: number = 0;
+		[
+			,
+			...{
+				[key]: [value],
+			}
+		] = [1, [42]] as const;
+		assert(value === 42);
+
+		const optional: [number, number[]?] = [1];
+		[, ...{ [key]: [value] = [99] }] = optional;
+		assert(value === 99);
+
+		function read(source: [number, number[]] | [string, number[]]) {
+			[
+				,
+				...{
+					[key]: [value],
+				}
+			] = source;
+			return value;
+		}
+		assert(read([1, [42]]) === 42 && read(["prefix", [99]]) === 99);
+	});
+
+	it("retains variadic tuple elements after consuming part of the tail", () => {
+		let value = 0;
+		const key: number = 0;
+		const source: [number, ...number[][]] = [1, [42], [99]];
+		[
+			,
+			,
+			...{
+				[key]: [value],
+			}
+		] = source;
+		assert(value === 99);
+		[
+			,
+			...[
+				,
+				...{
+					[key]: [value],
+				}
+			]
+		] = source;
+		assert(value === 99);
+
+		function read<T extends number[][]>(source: [number, ...T]) {
+			[
+				,
+				...{
+					[key]: [value],
+				}
+			] = source;
+			return value;
+		}
+		assert(read([1, [42]]) === 42);
+	});
 };

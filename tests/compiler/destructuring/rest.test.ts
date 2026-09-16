@@ -92,6 +92,7 @@ it.each([
 		`function* values() { yield 1; return 99; }
 		const [first, second = 7, ...rest] = values(); print(first, second, rest);`,
 	],
+	["map first element", "function read(source: Map<string, number>) { const [first] = source; return first; }"],
 	["map loop rest", `for (const [key, ...rest] of new Map([["a", 42]])) { print(key, rest); }`],
 	[
 		"map prefix and rest",
@@ -121,6 +122,7 @@ it.each([
 		`declare const source: IterableFunction<number>;
 		const [first, , ...rest] = source; print(first, rest);`,
 	],
+	["set first element", "function read(source: Set<number>) { const [first] = source; return first; }"],
 	[
 		"set prefix and rest",
 		`function read(source: Set<number>) { const [, second = 9, ...rest] = source; return rest; }`,

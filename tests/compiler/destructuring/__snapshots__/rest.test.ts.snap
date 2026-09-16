@@ -348,6 +348,19 @@ return nil
 "
 `;
 
+exports[`preserves rest destructuring emit for map first element 1`] = `
+"local function read(source)
+	local _key
+	local _value
+	_key, _value = next(source, _key)
+	local _done = _key == nil
+	local first = if _done then nil else { _key, _value }
+	return first
+end
+return nil
+"
+`;
+
 exports[`preserves rest destructuring emit for map loop rest 1`] = `
 "for _k, _v in {
 	a = 42,
@@ -367,17 +380,36 @@ exports[`preserves rest destructuring emit for map prefix and rest 1`] = `
 	local _value
 	_key, _value = next(source, _key)
 	local _done = _key == nil
+	local _consumed = {}
+	if _key ~= nil then
+		_consumed[_key] = true
+	end
 	local first = if _done then nil else { _key, _value }
 	if not _done then
+		if _key ~= nil and source[_key] == nil then
+			_key = nil
+		end
 		_key = next(source, _key)
+		while _key ~= nil and _consumed[_key] do
+			_key = next(source, _key)
+		end
 		_done = _key == nil
+	end
+	if _key ~= nil then
+		_consumed[_key] = true
 	end
 	local _rest = {}
 	if not _done then
 		local _length = 0
 		while true do
 			local _value_1
+			if _key ~= nil and source[_key] == nil then
+				_key = nil
+			end
 			_key, _value_1 = next(source, _key)
+			while _key ~= nil and _consumed[_key] do
+				_key, _value_1 = next(source, _key)
+			end
 			if _key == nil then
 				break
 			end
@@ -484,16 +516,41 @@ return nil
 "
 `;
 
+exports[`preserves rest destructuring emit for set first element 1`] = `
+"local function read(source)
+	local _key
+	_key = next(source, _key)
+	local _done = _key == nil
+	local first = _key
+	return first
+end
+return nil
+"
+`;
+
 exports[`preserves rest destructuring emit for set prefix and rest 1`] = `
 "local function read(source)
 	local _key
 	_key = next(source, _key)
 	local _done = _key == nil
+	local _consumed = {}
+	if _key ~= nil then
+		_consumed[_key] = true
+	end
 	local _value
 	if not _done then
+		if _key ~= nil and source[_key] == nil then
+			_key = nil
+		end
 		_key = next(source, _key)
+		while _key ~= nil and _consumed[_key] do
+			_key = next(source, _key)
+		end
 		_done = _key == nil
 		_value = _key
+	end
+	if _key ~= nil then
+		_consumed[_key] = true
 	end
 	local second = _value
 	if second == nil then
@@ -503,7 +560,13 @@ exports[`preserves rest destructuring emit for set prefix and rest 1`] = `
 	if not _done then
 		local _length = 0
 		while true do
+			if _key ~= nil and source[_key] == nil then
+				_key = nil
+			end
 			_key = next(source, _key)
+			while _key ~= nil and _consumed[_key] do
+				_key = next(source, _key)
+			end
 			if _key == nil then
 				break
 			end

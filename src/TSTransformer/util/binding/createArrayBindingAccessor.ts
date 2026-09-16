@@ -130,10 +130,93 @@ function createFunctionAccessor(iterator: luau.AnyIdentifier, tuple: boolean) {
 	}, tuple);
 }
 
+function createCollectionAccessor(
+	prereqs: Prereqs,
+	parentId: luau.AnyIdentifier,
+	map: boolean,
+	elementCount: number,
+): BindingAccessor {
+	const key = prereqs.pushToVar(undefined, "key");
+	let consumed: luau.AnyIdentifier | undefined;
+	const accessor = createIteratorAccessor((prereqs, omitted) => {
+		const member = map && !omitted ? prereqs.pushToVar(undefined, "value") : undefined;
+		const advance = () =>
+			luau.create(luau.SyntaxKind.Assignment, {
+				left: member ? luau.list.make(key, member) : key,
+				operator: "=",
+				right: luau.call(luau.globals.next, [parentId, key]),
+			});
+		if (consumed) {
+			// destination evaluation can remove the cursor and invalidate next's continuation key
+			prereqs.push(
+				luau.create(luau.SyntaxKind.IfStatement, {
+					condition: luau.binary(
+						luau.binary(key, "~=", luau.nil()),
+						"and",
+						luau.binary(
+							luau.create(luau.SyntaxKind.ComputedIndexExpression, { expression: parentId, index: key }),
+							"==",
+							luau.nil(),
+						),
+					),
+					statements: luau.list.make(
+						luau.create(luau.SyntaxKind.Assignment, { left: key, operator: "=", right: luau.nil() }),
+					),
+					elseBody: luau.list.make(),
+				}),
+			);
+		}
+		prereqs.push(advance());
+		if (consumed) {
+			// restarting must not return prefix elements that were already consumed
+			prereqs.push(
+				luau.create(luau.SyntaxKind.WhileStatement, {
+					condition: luau.binary(
+						luau.binary(key, "~=", luau.nil()),
+						"and",
+						luau.create(luau.SyntaxKind.ComputedIndexExpression, { expression: consumed, index: key }),
+					),
+					statements: luau.list.make(advance()),
+				}),
+			);
+		}
+		return { value: member ? luau.array([key, member]) : key, done: luau.binary(key, "==", luau.nil()) };
+	}, map);
+
+	return {
+		read(prereqs, index, omitted) {
+			const value = accessor.read(prereqs, index, omitted);
+			if (index === elementCount - 1) {
+				return value;
+			}
+
+			consumed ??= prereqs.pushToVar(luau.array(), "consumed");
+			prereqs.push(
+				luau.create(luau.SyntaxKind.IfStatement, {
+					condition: luau.binary(key, "~=", luau.nil()),
+					statements: luau.list.make(
+						luau.create(luau.SyntaxKind.Assignment, {
+							left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+								expression: consumed,
+								index: key,
+							}),
+							operator: "=",
+							right: luau.bool(true),
+						}),
+					),
+					elseBody: luau.list.make(),
+				}),
+			);
+			return value;
+		},
+		rest: accessor.rest,
+	};
+}
+
 export function createArrayBindingAccessor(
 	state: TransformState,
 	prereqs: Prereqs,
-	node: ts.Node,
+	node: ts.ArrayBindingPattern | ts.ArrayLiteralExpression,
 	type: ts.Type,
 	parentId: luau.AnyIdentifier,
 ): BindingAccessor {
@@ -189,20 +272,12 @@ export function createArrayBindingAccessor(
 	}
 
 	if (isDefinitelyType(type, isSetType(state)) || isDefinitelyType(type, isMapType(state))) {
-		const map = isDefinitelyType(type, isMapType(state));
-		const key = prereqs.pushToVar(undefined, "key");
-		return createIteratorAccessor((prereqs, omitted) => {
-			const member = map && !omitted ? prereqs.pushToVar(undefined, "value") : undefined;
-			prereqs.push(
-				luau.create(luau.SyntaxKind.Assignment, {
-					left: member ? luau.list.make(key, member) : key,
-					operator: "=",
-					right: luau.call(luau.globals.next, [parentId, key]),
-				}),
-			);
-			const done = luau.binary(key, "==", luau.nil());
-			return { value: member ? luau.array([key, member]) : key, done };
-		}, map);
+		return createCollectionAccessor(
+			prereqs,
+			parentId,
+			isDefinitelyType(type, isMapType(state)),
+			node.elements.length,
+		);
 	}
 
 	if (isDefinitelyType(type, isSharedTableType(state))) {
@@ -251,10 +326,11 @@ export function createArrayBindingAccessor(
 		}, true);
 	}
 
-	DiagnosticService.addDiagnostic(
-		isDefinitelyType(type, isIterableType(state))
-			? errors.noIterableIteration(node)
-			: errors.noUnsupportedIteration(node),
-	);
+	if (isDefinitelyType(type, isIterableType(state))) {
+		DiagnosticService.addDiagnostic(errors.noIterableIteration(node));
+		return { read: () => luau.none(), rest: () => luau.none() };
+	}
+
+	DiagnosticService.addDiagnostic(errors.noUnsupportedIteration(node));
 	return { read: () => luau.none(), rest: () => luau.none() };
 }

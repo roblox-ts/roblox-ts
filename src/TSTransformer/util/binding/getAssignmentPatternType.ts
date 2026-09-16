@@ -49,6 +49,36 @@ function getElementType(state: TransformState, pattern: ts.ArrayLiteralExpressio
 	);
 }
 
+function getRestElementType(state: TransformState, pattern: ts.ArrayLiteralExpression, index: number): ts.Type {
+	if (ts.isSpreadElement(pattern.parent)) {
+		const spread = pattern.parent;
+		assert(ts.isArrayLiteralExpression(spread.parent));
+		return getRestElementType(state, spread.parent, spread.parent.elements.indexOf(spread) + index);
+	}
+
+	const checker = state.typeChecker;
+	const type = checker.getApparentType(getAssignmentPatternType(state, pattern));
+	const values = new Array<ts.Type>();
+	for (const part of type.isUnion() ? type.types : [type]) {
+		if (checker.isTupleType(part)) {
+			const tuple = part as ts.TupleTypeReference;
+			const elements = checker.getTypeArguments(tuple);
+			// a variable tail can still contribute elements after its first position was consumed
+			for (let i = Math.min(index, tuple.target.fixedLength); i < elements.length; i++) {
+				const element = elements[i];
+				values.push(
+					tuple.target.elementFlags[i] & ts.ElementFlags.Variadic
+						? getIterableElementType(state, element, pattern)
+						: element,
+				);
+			}
+		} else {
+			values.push(getIterableElementType(state, part, pattern));
+		}
+	}
+	return checker.getUnionType(values);
+}
+
 function getPropertyType(state: TransformState, pattern: ts.ObjectLiteralExpression, name: ts.PropertyName): ts.Type {
 	const checker = state.typeChecker;
 	const type = getAssignmentPatternType(state, pattern);
@@ -76,9 +106,12 @@ function getPropertyType(state: TransformState, pattern: ts.ObjectLiteralExpress
 				);
 			}
 		}
+		// valid array keys include numeric-string types, which use the number index signature
 		value ??= checker.getIndexTypeOfType(
 			type,
-			key.flags & ts.TypeFlags.NumberLike ? ts.IndexKind.Number : ts.IndexKind.String,
+			isDefinitelyType(type, isArrayType(state)) || key.flags & ts.TypeFlags.NumberLike
+				? ts.IndexKind.Number
+				: ts.IndexKind.String,
 		);
 		assert(value);
 		values.push(value);
@@ -109,7 +142,7 @@ export function getAssignmentPatternType(state: TransformState, pattern: ts.Assi
 	if (ts.isSpreadElement(parent)) {
 		assert(ts.isArrayLiteralExpression(parent.parent));
 		return state.typeChecker.createArrayType(
-			getIterableElementType(state, getAssignmentPatternType(state, parent.parent), pattern),
+			getRestElementType(state, parent.parent, parent.parent.elements.indexOf(parent)),
 		);
 	}
 
