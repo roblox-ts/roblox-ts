@@ -4,10 +4,7 @@ exports[`captures iterators before nested defaults can reassign them 1`] = `
 "local _binding = iterator
 local _value = { _binding() }
 local _done = _value[1] == nil
-if _done then
-	_value = nil
-end
-local _binding_1 = _value
+local _binding_1 = if _done then nil else _value
 local first = _binding_1[1]
 local value = _binding_1[2]
 if value == nil then
@@ -17,24 +14,21 @@ if value == nil then
 end
 local _value_1
 if not _done then
-	_value_1 = { _binding() }
-	_done = _value_1[1] == nil
-	if _done then
-		_value_1 = nil
-	end
+	local _value_2 = { _binding() }
+	_done = _value_2[1] == nil
+	_value_1 = if _done then nil else _value_2
 end
 local second = _value_1
 local _rest = {}
 if not _done then
 	local _length = 0
-	local _iterFunc = _binding
 	while true do
-		local _results = { _iterFunc() }
-		if _results[1] == nil then
+		local _value_2 = { _binding() }
+		if _value_2[1] == nil then
 			break
 		end
 		_length += 1
-		_rest[_length] = _results
+		_rest[_length] = _value_2
 	end
 end
 local rest = _rest
@@ -53,22 +47,27 @@ iterator = (function()
 	end)
 	return if calls <= 3 then calls else nil
 end)
-local _iterator = iterator
-local _value = _iterator()
+local _binding = iterator
+local _value = _binding()
 local _done = _value == nil
 local first = _value
 local _value_1
 if not _done then
-	_value_1 = _iterator()
-	_done = _value_1 == nil
+	local _value_2 = _binding()
+	_done = _value_2 == nil
+	_value_1 = _value_2
 end
 local second = _value_1
 local _rest = {}
 if not _done then
 	local _length = 0
-	for _result in _iterator do
+	while true do
+		local _value_2 = _binding()
+		if _value_2 == nil then
+			break
+		end
 		_length += 1
-		_rest[_length] = _result
+		_rest[_length] = _value_2
 	end
 end
 local rest = _rest
@@ -83,14 +82,13 @@ local _exp = target()
 local _index = key() + 1
 local _rest = {}
 local _length = 0
-local _iterFunc = _binding
 while true do
-	local _results = { _iterFunc() }
-	if _results[1] == nil then
+	local _value = { _binding() }
+	if _value[1] == nil then
 		break
 	end
 	_length += 1
-	_rest[_length] = _results
+	_rest[_length] = _value
 end
 _exp[_index] = _rest
 return nil
@@ -103,9 +101,13 @@ local _exp = target()
 local _index = key() + 1
 local _rest = {}
 local _length = 0
-for _result in _binding do
+while true do
+	local _value = _binding()
+	if _value == nil then
+		break
+	end
 	_length += 1
-	_rest[_length] = _result
+	_rest[_length] = _value
 end
 _exp[_index] = _rest
 return nil
@@ -115,24 +117,21 @@ return nil
 exports[`collects iterator rest bindings with fixed tuples after preceding elements 1`] = `
 "local _value = { iterator() }
 local _done = _value[1] == nil
-if _done then
-	_value = nil
-end
-local first = _value
+local first = if _done then nil else _value
 if not _done then
-	_done = iterator() == nil
+	local _value_1 = iterator()
+	_done = _value_1 == nil
 end
 local _rest = {}
 if not _done then
 	local _length = 0
-	local _iterFunc = iterator
 	while true do
-		local _results = { _iterFunc() }
-		if _results[1] == nil then
+		local _value_1 = { iterator() }
+		if _value_1[1] == nil then
 			break
 		end
 		_length += 1
-		_rest[_length] = _results
+		_rest[_length] = _value_1
 	end
 end
 local rest = _rest
@@ -148,14 +147,19 @@ exports[`collects iterator rest bindings with single values after preceding elem
 local _done = _value == nil
 local first = _value
 if not _done then
-	_done = iterator() == nil
+	local _value_1 = iterator()
+	_done = _value_1 == nil
 end
 local _rest = {}
 if not _done then
 	local _length = 0
-	for _result in iterator do
+	while true do
+		local _value_1 = iterator()
+		if _value_1 == nil then
+			break
+		end
 		_length += 1
-		_rest[_length] = _result
+		_rest[_length] = _value_1
 	end
 end
 local rest = _rest
@@ -169,24 +173,21 @@ return {
 exports[`collects iterator rest bindings with variadic tuples after preceding elements 1`] = `
 "local _value = { iterator() }
 local _done = _value[1] == nil
-if _done then
-	_value = nil
-end
-local first = _value
+local first = if _done then nil else _value
 if not _done then
-	_done = iterator() == nil
+	local _value_1 = iterator()
+	_done = _value_1 == nil
 end
 local _rest = {}
 if not _done then
 	local _length = 0
-	local _iterFunc = iterator
 	while true do
-		local _results = { _iterFunc() }
-		if _results[1] == nil then
+		local _value_1 = { iterator() }
+		if _value_1[1] == nil then
 			break
 		end
 		_length += 1
-		_rest[_length] = _results
+		_rest[_length] = _value_1
 	end
 end
 local rest = _rest
@@ -202,28 +203,26 @@ exports[`guards iterator assignment targets after exhaustion (LuaTuple<[number, 
 local _exp = target()
 local _value = { _binding() }
 local _done = _value[1] == nil
-if _done then
-	_value = nil
+local _binding_1 = if _done then nil else _value
+if _binding_1 == nil then
+	_binding_1 = { fallback() }
 end
-_exp.value = _value
-if _exp.value == nil then
-	_exp.value = { fallback() }
-end
+_exp.value = _binding_1
 if not _done then
-	_done = _binding() == nil
+	local _value_1 = _binding()
+	_done = _value_1 == nil
 end
 local _exp_1 = target()
 local _rest = {}
 if not _done then
 	local _length = 0
-	local _iterFunc = _binding
 	while true do
-		local _results = { _iterFunc() }
-		if _results[1] == nil then
+		local _value_1 = { _binding() }
+		if _value_1[1] == nil then
 			break
 		end
 		_length += 1
-		_rest[_length] = _results
+		_rest[_length] = _value_1
 	end
 end
 _exp_1.rest = _rest
@@ -236,20 +235,26 @@ exports[`guards iterator assignment targets after exhaustion (number) 1`] = `
 local _exp = target()
 local _value = _binding()
 local _done = _value == nil
-_exp.value = _value
-if _exp.value == nil then
-	_exp.value = fallback()
+local _binding_1 = _value
+if _binding_1 == nil then
+	_binding_1 = fallback()
 end
+_exp.value = _binding_1
 if not _done then
-	_done = _binding() == nil
+	local _value_1 = _binding()
+	_done = _value_1 == nil
 end
 local _exp_1 = target()
 local _rest = {}
 if not _done then
 	local _length = 0
-	for _result in _binding do
+	while true do
+		local _value_1 = _binding()
+		if _value_1 == nil then
+			break
+		end
 		_length += 1
-		_rest[_length] = _result
+		_rest[_length] = _value_1
 	end
 end
 _exp_1.rest = _rest
@@ -262,6 +267,423 @@ exports[`keeps nested rest within a LuaTuple value 1`] = `
 local first = _binding[1]
 local rest = table.move(_binding, 2, #_binding, 1, {})
 print(first, rest, last)
+return nil
+"
+`;
+
+exports[`preserves rest destructuring emit for array suffix 1`] = `
+"local function read(source)
+	local first = source[1]
+	local rest = table.move(source, 2, #source, 1, {})
+	return rest
+end
+return nil
+"
+`;
+
+exports[`preserves rest destructuring emit for computed object keys 1`] = `
+"local key = "a"
+local source = {
+	b = 2,
+}
+local function fallback()
+	key = "b"
+	return 10
+end
+local _key = key
+local value = source[_key]
+if value == nil then
+	value = fallback()
+end
+local _rest = {}
+for _key_1, _value in source do
+	if _key_1 ~= _key then
+		_rest[_key_1] = _value
+	end
+end
+local rest = _rest
+print(value, rest)
+return nil
+"
+`;
+
+exports[`preserves rest destructuring emit for generator completion 1`] = `
+"local TS = _G[script]
+local function values()
+	return TS.generator(function()
+		coroutine.yield(1)
+		return 99
+	end)
+end
+local _binding = values()
+local _next = _binding.next
+local _result = _next()
+local _done = _result.done
+local first = if _done then nil else _result.value
+local _value
+if not _done then
+	local _result_1 = _next()
+	_done = _result_1.done
+	_value = if _done then nil else _result_1.value
+end
+local second = _value
+if second == nil then
+	second = 7
+end
+local _rest = {}
+if not _done then
+	local _length = 0
+	while true do
+		local _result_1 = _next()
+		if _result_1.done then
+			break
+		end
+		_length += 1
+		_rest[_length] = _result_1.value
+	end
+end
+local rest = _rest
+print(first, second, rest)
+return nil
+"
+`;
+
+exports[`preserves rest destructuring emit for map first element 1`] = `
+"local function read(source)
+	local _key
+	local _value
+	_key, _value = next(source, _key)
+	local _done = _key == nil
+	local first = if _done then nil else { _key, _value }
+	return first
+end
+return nil
+"
+`;
+
+exports[`preserves rest destructuring emit for map loop rest 1`] = `
+"for _k, _v in {
+	a = 42,
+} do
+	local _binding = { _k, _v }
+	local key = _binding[1]
+	local rest = table.move(_binding, 2, #_binding, 1, {})
+	print(key, rest)
+end
+return nil
+"
+`;
+
+exports[`preserves rest destructuring emit for map prefix and rest 1`] = `
+"local function read(source)
+	local _key
+	local _value
+	_key, _value = next(source, _key)
+	local _done = _key == nil
+	local _consumed = {}
+	if _key ~= nil then
+		_consumed[_key] = true
+	end
+	local first = if _done then nil else { _key, _value }
+	if not _done then
+		if _key ~= nil and source[_key] == nil then
+			_key = nil
+		end
+		_key = next(source, _key)
+		while _key ~= nil and _consumed[_key] do
+			_key = next(source, _key)
+		end
+		_done = _key == nil
+	end
+	if _key ~= nil then
+		_consumed[_key] = true
+	end
+	local _rest = {}
+	if not _done then
+		local _length = 0
+		while true do
+			local _value_1
+			if _key ~= nil and source[_key] == nil then
+				_key = nil
+			end
+			_key, _value_1 = next(source, _key)
+			while _key ~= nil and _consumed[_key] do
+				_key, _value_1 = next(source, _key)
+			end
+			if _key == nil then
+				break
+			end
+			_length += 1
+			_rest[_length] = { _key, _value_1 }
+		end
+	end
+	local rest = _rest
+	return rest
+end
+return nil
+"
+`;
+
+exports[`preserves rest destructuring emit for nested rest assignment 1`] = `
+"local value = 0
+local tail
+local _binding = { 1, 2, 3 }
+local _binding_1 = table.move(_binding, 1, #_binding, 1, {})
+value = _binding_1[1]
+tail = table.move(_binding_1, 2, #_binding_1, 1, {})
+print(value, tail)
+return nil
+"
+`;
+
+exports[`preserves rest destructuring emit for object rest exclusions 1`] = `
+"local function read(source)
+	local _rest = {}
+	for _key, _value in source do
+		_rest[_key] = _value
+	end
+	local all = _rest
+	local a = source.a
+	local _rest_1 = {}
+	for _key, _value in source do
+		if _key ~= "a" then
+			_rest_1[_key] = _value
+		end
+	end
+	local tail = _rest_1
+	local first = source.a
+	local second = source.b
+	local _rest_2 = {}
+	local _extracted = {
+		a = true,
+		b = true,
+	}
+	for _key, _value in source do
+		if not _extracted[_key] then
+			_rest_2[_key] = _value
+		end
+	end
+	local last = _rest_2
+	return { all, tail, last }
+end
+return nil
+"
+`;
+
+exports[`preserves rest destructuring emit for object rest member assignment 1`] = `
+"local target = { {
+	a = 0,
+} }
+local index = 0
+local _binding = {
+	a = 42,
+}
+local _original = index
+index += 1
+local _rest = {}
+for _key, _value in _binding do
+	_rest[_key] = _value
+end
+target[_original + 1] = _rest
+print(target)
+return nil
+"
+`;
+
+exports[`preserves rest destructuring emit for scalar iterator rest 1`] = `
+"local _value = source()
+local _done = _value == nil
+local first = _value
+if not _done then
+	local _value_1 = source()
+	_done = _value_1 == nil
+end
+local _rest = {}
+if not _done then
+	local _length = 0
+	while true do
+		local _value_1 = source()
+		if _value_1 == nil then
+			break
+		end
+		_length += 1
+		_rest[_length] = _value_1
+	end
+end
+local rest = _rest
+print(first, rest)
+return nil
+"
+`;
+
+exports[`preserves rest destructuring emit for set first element 1`] = `
+"local function read(source)
+	local _key
+	_key = next(source, _key)
+	local _done = _key == nil
+	local first = _key
+	return first
+end
+return nil
+"
+`;
+
+exports[`preserves rest destructuring emit for set prefix and rest 1`] = `
+"local function read(source)
+	local _key
+	_key = next(source, _key)
+	local _done = _key == nil
+	local _consumed = {}
+	if _key ~= nil then
+		_consumed[_key] = true
+	end
+	local _value
+	if not _done then
+		if _key ~= nil and source[_key] == nil then
+			_key = nil
+		end
+		_key = next(source, _key)
+		while _key ~= nil and _consumed[_key] do
+			_key = next(source, _key)
+		end
+		_done = _key == nil
+		_value = _key
+	end
+	if _key ~= nil then
+		_consumed[_key] = true
+	end
+	local second = _value
+	if second == nil then
+		second = 9
+	end
+	local _rest = {}
+	if not _done then
+		local _length = 0
+		while true do
+			if _key ~= nil and source[_key] == nil then
+				_key = nil
+			end
+			_key = next(source, _key)
+			while _key ~= nil and _consumed[_key] do
+				_key = next(source, _key)
+			end
+			if _key == nil then
+				break
+			end
+			_length += 1
+			_rest[_length] = _key
+		end
+	end
+	local rest = _rest
+	return rest
+end
+return nil
+"
+`;
+
+exports[`preserves rest destructuring emit for shared table rest 1`] = `
+"local function read(source)
+	local _iterable = source
+	local _iterator = coroutine.wrap(function()
+		for _key, _value in _iterable do
+			coroutine.yield(_key, _value)
+		end
+	end)
+	local _value = { _iterator() }
+	local _done = _value[1] == nil
+	local first = if _done then nil else _value
+	local _rest = {}
+	if not _done then
+		local _length = 0
+		while true do
+			local _value_1 = { _iterator() }
+			if _value_1[1] == nil then
+				break
+			end
+			_length += 1
+			_rest[_length] = _value_1
+		end
+	end
+	local rest = _rest
+	return rest
+end
+return nil
+"
+`;
+
+exports[`preserves rest destructuring emit for source capture 1`] = `
+"local source = {
+	a = 1,
+	b = 2,
+}
+local _binding = source
+source = {
+	a = 10,
+	b = 20,
+}
+local _ = source
+local first = _binding.a
+local _rest = {}
+for _key, _value in _binding do
+	if _key ~= "a" then
+		_rest[_key] = _value
+	end
+end
+local rest = _rest
+print(first, rest)
+return nil
+"
+`;
+
+exports[`preserves rest destructuring emit for string rest 1`] = `
+"local function read(source)
+	local _matcher = string.gmatch(source, utf8.charpattern)
+	local first = _matcher()
+	_matcher()
+	local _rest = {}
+	for _char in _matcher do
+		table.insert(_rest, _char)
+	end
+	local rest = _rest
+	return rest
+end
+return nil
+"
+`;
+
+exports[`preserves rest destructuring emit for tuple iterator loop rest 1`] = `
+"local first
+local rest
+local _iterFunc = string.gmatch("ab", "(.)(.)")
+while true do
+	local _binding = { _iterFunc() }
+	if _binding[1] == nil then
+		break
+	end
+	first = _binding[1]
+	rest = table.move(_binding, 2, #_binding, 1, {})
+	print(first, rest)
+end
+return nil
+"
+`;
+
+exports[`supports narrowed iterator result declarations in nested rest 1`] = `
+"local value = 0
+local _binding = source
+local _rest = {}
+local _length = 0
+while true do
+	local _value = _binding()
+	if _value == nil then
+		break
+	end
+	_length += 1
+	_rest[_length] = _value
+end
+local _binding_1 = _rest
+value = _binding_1[1]
+print(value)
 return nil
 "
 `;

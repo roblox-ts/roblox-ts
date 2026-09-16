@@ -1,3 +1,2 @@
-declare const values: IterableIterator<number>;
+declare const values: Array<number> | Generator<number>;
 const [first, ...rest] = values;
-const array = [...values];

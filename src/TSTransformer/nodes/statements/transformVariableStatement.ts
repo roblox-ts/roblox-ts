@@ -11,8 +11,8 @@ import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/tran
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { arrayBindingPatternContainsHoists } from "TSTransformer/util/arrayBindingPatternContainsHoists";
 import { arrayLikeExpressionContainsSpread } from "TSTransformer/util/arrayLikeExpressionContainsSpread";
-import { getTargetIdForBindingPattern } from "TSTransformer/util/binding/getTargetIdForBindingPattern";
 import { objectAccessor } from "TSTransformer/util/binding/objectAccessor";
+import { transformBindingPattern } from "TSTransformer/util/binding/transformBindingPattern";
 import { checkVariableHoist } from "TSTransformer/util/checkVariableHoist";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { copyValueFacts, getCallEffects, isConstantReference } from "TSTransformer/util/evaluation/facts";
@@ -128,7 +128,7 @@ function transformOptimizedObjectBindingPattern(
 
 	// a single named property reads the receiver once without computed key prerequisites
 	const prereqs = new Prereqs();
-	const access = objectAccessor(
+	const { value: access } = objectAccessor(
 		state,
 		prereqs,
 		convertToIndexableExpression(rhs),
@@ -191,8 +191,7 @@ export function transformVariableDeclaration(
 				luau.list.pushList(statements, transformOptimizedArrayBindingPattern(state, name, value.members));
 			} else {
 				const bindingPrereqs = new Prereqs();
-				const target = getTargetIdForBindingPattern(bindingPrereqs, name, value);
-				transformArrayBindingPattern(state, bindingPrereqs, name, target);
+				transformBindingPattern(state, bindingPrereqs, name, value);
 				luau.list.pushList(statements, bindingPrereqs.statements);
 			}
 		} else {
@@ -206,8 +205,7 @@ export function transformVariableDeclaration(
 				luau.list.pushList(statements, transformOptimizedObjectBindingPattern(state, name, value));
 			} else {
 				const bindingPrereqs = new Prereqs();
-				const target = getTargetIdForBindingPattern(bindingPrereqs, name, value);
-				transformObjectBindingPattern(state, bindingPrereqs, name, target);
+				transformBindingPattern(state, bindingPrereqs, name, value);
 				luau.list.pushList(statements, bindingPrereqs.statements);
 			}
 		}
