@@ -144,6 +144,79 @@ export = () => {
 		expect(matchedAfterMutation).to.equal(false);
 	});
 
+	it("should retain the original parameter when case expressions assign to it", () => {
+		function assign(value: number) {
+			switch (value) {
+				case (value = 2):
+					return "two";
+				default:
+					return "original";
+			}
+		}
+
+		function call(value: number) {
+			function change() {
+				value = 2;
+				return 0;
+			}
+
+			switch (value) {
+				case change():
+					return "zero";
+				case 2:
+					return "two";
+				default:
+					return "original";
+			}
+		}
+
+		expect(assign(1)).to.equal("original");
+		expect(assign(2)).to.equal("two");
+		expect(call(1)).to.equal("original");
+		expect(call(2)).to.equal("two");
+	});
+
+	it("should preserve fallthrough after reassigning a literal switch operand", () => {
+		function classify(value: string) {
+			const events = new Array<string>();
+			switch (value) {
+				case "a":
+					events.push("a");
+					value = "changed";
+				case "b":
+					events.push("b");
+				case "c":
+					events.push("c");
+					break;
+				default:
+					events.push("default");
+			}
+
+			return `${events.join(",")}:${value}`;
+		}
+
+		expect(classify("a")).to.equal("a,b,c:changed");
+		expect(classify("b")).to.equal("b,c:b");
+		expect(classify("c")).to.equal("c:c");
+		expect(classify("missing")).to.equal("default:missing");
+	});
+
+	it("should preserve the operand when a shared case declaration shadows it", () => {
+		function classify(value: string) {
+			switch (value) {
+				case "a":
+					let value: string | undefined = "inner";
+				case "b":
+					return value;
+				default:
+					return "missing";
+			}
+		}
+
+		expect(classify("a")).to.equal("inner");
+		expect(classify("missing")).to.equal("missing");
+	});
+
 	it("should support switch statements with remaining empty conditions", () => {
 		function bar(s: string) {
 			switch (s) {
