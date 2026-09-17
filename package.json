@@ -40,7 +40,7 @@
 	},
 	"devDependencies": {
 		"@eslint/js": "^10.0.1",
-		"@eslint-community/eslint-plugin-eslint-comments": "^4.8.0",
+		"@eslint-community/eslint-plugin-eslint-comments": "^4.8.1",
 		"@types/fs-extra": "^11.0.4",
 		"@types/node": "^26.5.1",
 		"@types/prompts": "^2.4.9",
