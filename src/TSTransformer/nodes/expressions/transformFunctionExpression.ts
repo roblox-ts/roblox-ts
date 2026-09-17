@@ -15,7 +15,9 @@ export function transformFunctionExpression(state: TransformState, node: ts.Func
 		DiagnosticService.addDiagnostic(errors.noFunctionExpressionName(node.name));
 	}
 
-	let { statements, parameters, hasDotDotDot } = transformParameters(state, node);
+	let { statements, parameters, hasDotDotDot, varArgsData } = transformParameters(state, node);
+
+	state.pushFunction(varArgsData);
 
 	const body = node.body;
 	if (ts.isFunctionBody(body)) {
@@ -30,7 +32,7 @@ export function transformFunctionExpression(state: TransformState, node: ts.Func
 		if (isAsync) {
 			DiagnosticService.addDiagnostic(errors.noAsyncGeneratorFunctions(node));
 		}
-		statements = wrapStatementsAsGenerator(state, node, statements);
+		statements = wrapStatementsAsGenerator(state, node, statements, hasDotDotDot);
 	}
 
 	let expression: luau.Expression = luau.create(luau.SyntaxKind.FunctionExpression, {
@@ -44,6 +46,8 @@ export function transformFunctionExpression(state: TransformState, node: ts.Func
 	} else if (!node.asteriskToken) {
 		setCallEffects(expression, getFunctionEffects(parameters, statements));
 	}
+
+	state.popFunction();
 
 	return expression;
 }

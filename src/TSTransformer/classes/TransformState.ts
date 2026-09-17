@@ -16,7 +16,8 @@ import { TransformServices, TryUses } from "TSTransformer/types";
 import { createGetService } from "TSTransformer/util/createGetService";
 import { propertyAccessExpressionChain } from "TSTransformer/util/expressionChain";
 import { getBlockCommentText } from "TSTransformer/util/getBlockCommentText";
-import { getModuleAncestor, skipUpwards } from "TSTransformer/util/traversal";
+import { getModuleAncestor, skipDownwards, skipUpwards } from "TSTransformer/util/traversal";
+import { VarArgsData } from "TSTransformer/util/varArgsOptimization";
 import ts from "typescript";
 
 /**
@@ -308,5 +309,28 @@ export class TransformState {
 
 	public getClassElementObjectKey(classElement: ts.ClassElement) {
 		return this.classElementToObjectKeyMap.get(classElement);
+	}
+
+	private readonly varArgsStack = new Array<VarArgsData | false>();
+	private readonly declarationToOptimizableVarArgs = new Map<ts.Node, VarArgsData>();
+
+	public pushFunction(varArgs: VarArgsData | undefined) {
+		this.varArgsStack.push(varArgs ?? false);
+		if (varArgs) {
+			this.declarationToOptimizableVarArgs.set(varArgs.valueDeclaration, varArgs);
+		}
+	}
+
+	public popFunction() {
+		const varArgs = this.varArgsStack.pop()!;
+		if (varArgs) {
+			this.declarationToOptimizableVarArgs.delete(varArgs.valueDeclaration);
+		}
+	}
+
+	/** @param id The node that may be an identifier pointing to a varArgs */
+	public getOptimizableVarArgsData(id: ts.Expression) {
+		const valueDeclaration = this.typeChecker.getSymbolAtLocation(skipDownwards(id))?.valueDeclaration;
+		return valueDeclaration ? this.declarationToOptimizableVarArgs.get(valueDeclaration) : undefined;
 	}
 }
