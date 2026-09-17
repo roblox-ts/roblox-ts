@@ -55,8 +55,8 @@ Use `package.json` for scripts and versions, `foreman.toml` for tool pins, and `
   compile the runtime project with `tests/compiler/compile.test.ts` or the full Jest suite.
 - For documentation-only changes, check formatting, referenced paths, and the diff. Compiler tests are unnecessary.
   Repeat or broaden completed checks only when subsequent changes, failures, or unresolved concerns require it.
-- Meet the patch coverage requirement in `codecov.yml`. Prefer source-level regressions and investigate uncovered
-  branches without fabricating internal states or weakening the threshold. Check existing coverage before adding cases.
+- Meet the 100% patch coverage requirement configured in `codecov.yml`. Prefer source-level regressions and investigate
+  uncovered branches without fabricating internal states or weakening the threshold. Check existing coverage before adding cases.
 
 ## Code and comment style
 
