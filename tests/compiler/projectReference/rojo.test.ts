@@ -173,21 +173,21 @@ it.each([false, true])("watches nested Rojo changes and repairs invalid JSON (po
 });
 
 it.each([false, true])(
-	"watches added and removed project files in mapped directories (polling=%s)",
+	"watches project files inside newly created mapped subdirectories (polling=%s)",
 	async usePolling => {
 		fs.ensureDirSync(fixture.file("rojo"));
 		fixture.rojo({ nested: { $path: "rojo" } });
 		const watch = await startWatch(fixture, usePolling);
 		try {
 			await watch.edit(() => {
-				fixture.json("rojo/extra.project.json", {
+				fixture.json("rojo/new/extra.project.json", {
 					name: "extra",
-					tree: { current: { $path: "../out/shared" } },
+					tree: { current: { $path: "../../out/shared" } },
 				});
 			});
-			expect(fixture.read("out/game/init.luau")).toContain('"nested", "extra", "current"');
+			expect(fixture.read("out/game/init.luau")).toContain('"nested", "new", "extra", "current"');
 
-			await watch.edit(() => fs.removeSync(fixture.file("rojo/extra.project.json")));
+			await watch.edit(() => fs.removeSync(fixture.file("rojo/new")));
 			expect(fixture.read("out/game/init.luau")).toContain('"shared"');
 			expect(fixture.read("out/game/init.luau")).not.toContain('"extra"');
 		} finally {
