@@ -35,7 +35,9 @@ export function setupProjectWatchProgram(build: ProjectBuild, usePolling: boolea
 	const overlapsActivePath = (filePath: string) =>
 		activePaths.some(active => isPathDescendantOf(filePath, active) || isPathDescendantOf(active, filePath));
 
-	const watcher = chokidar.watch(activePaths, {
+	// missing paths can make chokidar report ready before its initial directory scan finishes
+	const existingPaths = activePaths.filter(filePath => fs.existsSync(filePath));
+	const watcher = chokidar.watch(existingPaths, {
 		// newly subscribed paths need add events to catch edits made while their watchers were being registered
 		ignoreInitial: false,
 		usePolling,
@@ -138,9 +140,9 @@ export function setupProjectWatchProgram(build: ProjectBuild, usePolling: boolea
 		timeout = setTimeout(compile, 100);
 	};
 
+	// directory additions alone are not input changes; their files include any new sources or Rojo configs
 	watcher
 		.on("add", collect)
-		.on("addDir", collect)
 		.on("change", collect)
 		.on("unlink", collect)
 		.on("unlinkDir", collect)
