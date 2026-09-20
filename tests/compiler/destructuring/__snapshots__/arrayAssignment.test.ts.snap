@@ -1,0 +1,34 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`captures array values before destination prerequisites 1`] = `
+"local _binding = table.concat({ "a", "b" }, separator)
+local _exp = target()
+_exp.value = _binding
+return nil
+"
+`;
+
+exports[`captures tuple returns before destination prerequisites 1`] = `
+"local last
+local _binding, _binding_1, _binding_2 = values()
+local _exp = target()
+_exp.value, _, last = _binding, _binding_1, _binding_2
+return nil
+"
+`;
+
+exports[`keeps independent literal values inline 1`] = `
+"local other
+local _exp = target()
+_exp.value, other = 1, 2
+return nil
+"
+`;
+
+exports[`keeps simple tuple assignments inline 1`] = `
+"local first
+local second
+first, second = values()
+return nil
+"
+`;
