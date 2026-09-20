@@ -276,10 +276,10 @@ export class ProjectBuild {
 
 		LogService.writeLineIfVerbose(`Building project: ${data.tsConfigPath}`);
 
-		const outputs = getProjectOutputs(state.project, this.graph);
 		const createProgram = createProgramFactory(data, config.options, config.projectReferences);
 		const builder = createProgram(config.fileNames, config.options, undefined, state.builder);
 		const program = builder.getProgram();
+		const outputs = getProjectOutputs(state.project, this.graph, program);
 
 		state.inputs = new Set(program.getSourceFiles().map(file => projectPathKey(file.fileName)));
 

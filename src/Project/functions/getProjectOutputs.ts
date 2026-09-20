@@ -80,7 +80,7 @@ export function validateProjectOutputs(graph: ProjectGraph) {
 	}
 }
 
-export function getProjectOutputs(project: ProjectNode, graph: ProjectGraph): ProjectOutputs {
+export function getProjectOutputs(project: ProjectNode, graph: ProjectGraph, program: ts.Program): ProjectOutputs {
 	const roots = getOutputRoots(project);
 	const files = new Map<string, string | undefined>();
 	const assets = new Map<string, { input: string; output: string }>();
@@ -98,8 +98,16 @@ export function getProjectOutputs(project: ProjectNode, graph: ProjectGraph): Pr
 		files.set(key, input);
 	};
 
-	for (const fileName of project.config.fileNames) {
-		if (ts.isDeclarationFileName(fileName) || fileName.endsWith(".json")) {
+	// imports can pull sources into the program even when files or exclude omit them
+	const config = {
+		...project.config,
+		fileNames: program
+			.getSourceFiles()
+			.filter(sourceFile => ts.sourceFileMayBeEmitted(sourceFile, program))
+			.map(sourceFile => sourceFile.fileName),
+	};
+	for (const fileName of config.fileNames) {
+		if (fileName.endsWith(".json")) {
 			continue;
 		}
 
@@ -108,7 +116,7 @@ export function getProjectOutputs(project: ProjectNode, graph: ProjectGraph): Pr
 			addOutput(translator.getOutputTransformedPath(fileName), fileName);
 		}
 
-		for (const output of ts.getOutputFileNames(project.config, fileName, !ts.sys.useCaseSensitiveFileNames)) {
+		for (const output of ts.getOutputFileNames(config, fileName, !ts.sys.useCaseSensitiveFileNames)) {
 			if (output.endsWith(".d.ts") || output.endsWith(".d.ts.map")) {
 				addOutput(output, fileName);
 			}
