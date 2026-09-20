@@ -78,6 +78,14 @@ it("preserves effects when an indexed value is discarded", () => {
 	).toMatchSnapshot();
 });
 
+it("rejects noncanonical string keys while preserving numeric indices", () => {
+	expect(
+		compile(`
+			export function read(value: string, index: number | \`\${number}\`) { return value[index]; }
+		`),
+	).toMatchSnapshot();
+});
+
 it("reuses one string iterator for bindings and rest", () => {
 	expect(compile('export const [first, , third = "fallback", ...rest] = "abc";')).toMatchSnapshot();
 });
