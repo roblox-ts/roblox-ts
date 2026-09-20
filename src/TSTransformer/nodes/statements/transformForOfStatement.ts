@@ -366,7 +366,9 @@ const buildIterableFunctionLuaTupleLoop: (type: ts.Type) => LoopBuilder =
 			);
 		}
 
-		const tupleId = transformForInitializer(state, prereqs, initializer, statements);
+		const bindingInitializers = luau.list.make<luau.Statement>();
+		const tupleId = transformForInitializer(state, prereqs, initializer, bindingInitializers);
+		luau.list.unshiftList(statements, bindingInitializers);
 
 		const builder = makeForLoopBuilder((state, prereqs, initializer, exp, ids, initializers) => {
 			for (const id of iteratorReturnIds) {
