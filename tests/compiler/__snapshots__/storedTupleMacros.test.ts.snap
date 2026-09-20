@@ -1,5 +1,24 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
+exports[`emits discarded tuple removals as call statements 1`] = `
+"table.remove(values, 1)
+table.remove(values, 1)
+local function discard(optional)
+	local _result = optional
+	if _result ~= nil then
+		table.remove(_result, 1)
+	end
+	local _result_1 = optional
+	if _result_1 ~= nil then
+		table.remove(_result_1, 1)
+	end
+end
+return {
+	discard = discard,
+}
+"
+`;
+
 exports[`keeps stored tuple map values unboxed 1`] = `
 "local present = values.present
 local missing = values.missing

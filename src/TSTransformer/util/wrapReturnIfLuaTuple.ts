@@ -6,11 +6,7 @@ import { skipUpwards } from "TSTransformer/util/traversal";
 import { isLuaTupleType } from "TSTransformer/util/types";
 import ts from "typescript";
 
-function shouldWrapLuaTuple(state: TransformState, node: ts.CallExpression, exp: luau.Expression) {
-	if (!luau.isCall(exp)) {
-		return true;
-	}
-
+function shouldWrapLuaTuple(state: TransformState, node: ts.CallExpression) {
 	const child = skipUpwards(node);
 	const parent = child.parent;
 
@@ -63,10 +59,14 @@ function shouldWrapLuaTuple(state: TransformState, node: ts.CallExpression, exp:
 	return true;
 }
 
-export function wrapReturnIfLuaTuple(state: TransformState, node: ts.CallExpression, exp: luau.Expression) {
+export function wrapReturnIfLuaTuple(
+	state: TransformState,
+	node: ts.CallExpression,
+	exp: luau.CallExpression | luau.MethodCallExpression,
+) {
 	if (
 		isLuaTupleType(state)(state.typeChecker.getNonNullableType(state.getType(node))) &&
-		shouldWrapLuaTuple(state, node, exp)
+		shouldWrapLuaTuple(state, node)
 	) {
 		return luau.array([exp]);
 	}

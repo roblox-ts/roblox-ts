@@ -50,7 +50,7 @@ function makeStringCallback(strCallback: luau.PropertyAccessExpression): Propert
 function callArrayRemove(state: TransformState, node: ts.CallExpression, args: Array<luau.Expression>) {
 	const result = luau.call(luau.globals.table.remove, args);
 	// collection methods return one stored table, even when its type is LuaTuple
-	if (isLuaTupleType(state)(state.typeChecker.getNonNullableType(state.getType(node)))) {
+	if (!isUsedAsStatement(node) && isLuaTupleType(state)(state.typeChecker.getNonNullableType(state.getType(node)))) {
 		return luau.create(luau.SyntaxKind.ParenthesizedExpression, { expression: result });
 	}
 	return result;

@@ -70,6 +70,51 @@ export = () => {
 		expect(calls).to.equal(1);
 	});
 
+	it("should run discarded optional tuple shifts", () => {
+		const tuple = [1, "one"] as LuaTuple<[number, string]>;
+		const values = [tuple];
+		function shift(array: typeof values | undefined) {
+			array?.shift();
+		}
+
+		shift(undefined);
+		shift(values);
+		expect(values.size()).to.equal(0);
+	});
+
+	it("should run discarded optional tuple removals and guard their arguments", () => {
+		const tuple = [1, "one"] as LuaTuple<[number, string]>;
+		const values = [tuple];
+		let calls = 0;
+		function index() {
+			calls++;
+			return 0;
+		}
+		function remove(array: typeof values | undefined) {
+			array?.remove(index());
+		}
+
+		remove(undefined);
+		expect(calls).to.equal(0);
+		remove(values);
+		expect(values.size()).to.equal(0);
+		expect(calls).to.equal(1);
+	});
+
+	it("should preserve used optional tuple removal results", () => {
+		const tuple = [1, "one"] as LuaTuple<[number, string]>;
+		function check(array: Array<typeof tuple> | undefined, expected: typeof tuple | undefined) {
+			expect(array?.shift()).to.equal(expected);
+			expect(array?.remove(0)).to.equal(expected);
+			expect(array?.shift()?.[1]).to.equal(expected?.[1]);
+			expect(array?.remove(0)?.[0]).to.equal(expected?.[0]);
+		}
+
+		check([tuple, tuple, tuple, tuple], tuple);
+		check([], undefined);
+		check(undefined, undefined);
+	});
+
 	it("should retain tuple accumulators between reducer callbacks", () => {
 		const singleton = [7] as LuaTuple<[number]>;
 		const singletonResult = [0].reduce(() => singleton, singleton);
