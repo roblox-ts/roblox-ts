@@ -17,6 +17,15 @@ return nil
 "
 `;
 
+exports[`captures wrapped tuple returns without dropping omitted positions 1`] = `
+"local last
+local _binding, _binding_1, _binding_2 = values()
+local _exp = target()
+_exp.value, _, last = _binding, _binding_1, _binding_2
+return nil
+"
+`;
+
 exports[`keeps independent literal values inline 1`] = `
 "local other
 local _exp = target()

@@ -70,6 +70,90 @@ export = () => {
 		expect(result[1]).to.equal(30);
 	});
 
+	it("should preserve wrapped tuple returns before destructuring destinations", () => {
+		const events = new Array<string>();
+		const result = { first: 0, second: 0 };
+		function values() {
+			events.push("values");
+			return $tuple(10, 20);
+		}
+		function target() {
+			events.push("target");
+			return result;
+		}
+
+		[target().first, target().second] = identity<[number, number]>(values());
+
+		expect(result.first).to.equal(10);
+		expect(result.second).to.equal(20);
+		expect(events.join(",")).to.equal("values,target,target");
+	});
+
+	it("should retain omitted and undefined positions in wrapped tuple returns", () => {
+		const events = new Array<string>();
+		const result = { first: 0, third: 0 };
+		function values() {
+			events.push("values");
+			return $tuple(10, undefined, 30, undefined);
+		}
+		function target() {
+			events.push("target");
+			return result;
+		}
+		function fallback() {
+			events.push("default");
+			return 40;
+		}
+		let last: number | undefined;
+
+		[target().first, , target().third, last = fallback()] = identity<[number, undefined, number, undefined]>(
+			values(),
+		);
+
+		expect(result.first).to.equal(10);
+		expect(result.third).to.equal(30);
+		expect(last).to.equal(40);
+		expect(events.join(",")).to.equal("values,target,target,default");
+	});
+
+	it("should retain trailing variadic returns needed by destructuring destinations", () => {
+		const events = new Array<string>();
+		const result = { first: 0, second: 0, third: 0 };
+		function values(): LuaTuple<[number, ...number[]]> {
+			events.push("values");
+			return $tuple(10, 20, 30, 40);
+		}
+		function target() {
+			events.push("target");
+			return result;
+		}
+
+		[target().first, target().second, target().third] = identity<[number, ...number[]]>(values());
+
+		expect(result.first).to.equal(10);
+		expect(result.second).to.equal(20);
+		expect(result.third).to.equal(30);
+		expect(events.join(",")).to.equal("values,target,target,target");
+	});
+
+	it("should evaluate unused trailing array values before destructuring destinations", () => {
+		const events = new Array<string>();
+		const result = { value: 0 };
+		function value(index: number) {
+			events.push(`value${index}`);
+			return index;
+		}
+		function target() {
+			events.push("target");
+			return result;
+		}
+
+		[target().value] = [value(1), value(2), value(3)];
+
+		expect(result.value).to.equal(1);
+		expect(events.join(",")).to.equal("value1,value2,value3,target");
+	});
+
 	it("should not resolve destructuring destinations after a source error", () => {
 		let calls = 0;
 		const result = { value: 0 };

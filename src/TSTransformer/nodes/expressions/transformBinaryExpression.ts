@@ -123,9 +123,28 @@ function transformOptimizedArrayAssignmentPattern(
 			}
 		}
 		rhs = luau.list.make(
-			...expressions.map((expression, index) =>
-				captures[index] ? prereqs.pushToVar(expression, "binding") : expression,
-			),
+			...expressions.flatMap((expression, index) => {
+				if (!captures[index]) {
+					return [expression];
+				}
+
+				// a final array member can supply multiple return values to the remaining destinations
+				if (index === expressions.length - 1 && luau.isCall(expression)) {
+					const count = luau.list.size(writes) - index;
+					if (count > 1) {
+						const ids = Array.from({ length: count }, () => luau.tempId("binding"));
+						prereqs.push(
+							luau.create(luau.SyntaxKind.VariableDeclaration, {
+								left: luau.list.make(...ids),
+								right: expression,
+							}),
+						);
+						return ids;
+					}
+				}
+
+				return [prereqs.pushToVar(expression, "binding")];
+			}),
 		);
 	} else if (!effectsCommute(getEffects(rhs), targetEffects)) {
 		const captures = luau.list.make(...luau.list.toArray(writes).map(() => luau.tempId("binding")));
