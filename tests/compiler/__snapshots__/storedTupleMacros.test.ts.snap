@@ -1,0 +1,57 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`keeps stored tuple map values unboxed 1`] = `
+"local present = values.present
+local missing = values.missing
+return {
+	present = present,
+	missing = missing,
+}
+"
+`;
+
+exports[`preserves scalar table removal results through indexing and destructuring 1`] = `
+"local first = (table.remove(values, 1))[1]
+local _binding = (table.remove(values, 1))
+local number = _binding[1]
+local text = _binding[2]
+return {
+	first = first,
+	number = number,
+	text = text,
+}
+"
+`;
+
+exports[`stores all reducer return values in the accumulator 1`] = `
+"local function reduce()
+	local _arg0 = function(previous)
+		return unpack(previous)
+	end
+	-- ▼ ReadonlyArray.reduce ▼
+	if #values == 0 then
+		error("Attempted to call \`ReadonlyArray.reduce()\` on an empty array without an initialValue.")
+	end
+	local _result = values[1]
+	for _i = 2, #values do
+		_result = { _arg0(_result, values[_i], _i - 1, values) }
+	end
+	-- ▲ ReadonlyArray.reduce ▲
+	return unpack(_result)
+end
+return {
+	reduce = reduce,
+}
+"
+`;
+
+exports[`wraps native string macro tuples only when required 1`] = `
+"local stored = { string.find("abc", "b") }
+local first, last = string.find("abc", "b")
+return {
+	stored = stored,
+	first = first,
+	last = last,
+}
+"
+`;

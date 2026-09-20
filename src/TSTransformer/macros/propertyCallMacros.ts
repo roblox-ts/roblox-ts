@@ -8,11 +8,13 @@ import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { offset } from "TSTransformer/util/offset";
 import {
 	isDefinitelyType,
+	isLuaTupleType,
 	isNumberType,
 	isPossiblyType,
 	isStringType,
 	isUndefinedType,
 } from "TSTransformer/util/types";
+import { wrapReturnIfLuaTuple } from "TSTransformer/util/wrapReturnIfLuaTuple";
 import ts from "typescript";
 
 function makeMathMethod(operator: luau.BinaryOperator): PropertyCallMacro {
@@ -41,8 +43,17 @@ function makeMathSet(...operators: Array<luau.BinaryOperator>) {
 
 function makeStringCallback(strCallback: luau.PropertyAccessExpression): PropertyCallMacro {
 	return (state, prereqs, node, expression, args) => {
-		return luau.call(strCallback, [expression, ...args]);
+		return wrapReturnIfLuaTuple(state, node, luau.call(strCallback, [expression, ...args]));
 	};
+}
+
+function callArrayRemove(state: TransformState, node: ts.CallExpression, args: Array<luau.Expression>) {
+	const result = luau.call(luau.globals.table.remove, args);
+	// collection methods return one stored table, even when its type is LuaTuple
+	if (isLuaTupleType(state)(state.typeChecker.getNonNullableType(state.getType(node)))) {
+		return luau.create(luau.SyntaxKind.ParenthesizedExpression, { expression: result });
+	}
+	return result;
 }
 
 const STRING_CALLBACKS: MacroList<PropertyCallMacro> = {
@@ -464,6 +475,20 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		const callbackId = convertToIndexableExpression(args[0]);
 
 		const iteratorId = luau.tempId("i");
+		let callbackResult: luau.Expression = luau.call(callbackId, [
+			resultId,
+			luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+				expression: convertToIndexableExpression(expression),
+				index: iteratorId,
+			}),
+			offset(iteratorId, -1),
+			expression,
+		]);
+		// keep the accumulator table-valued between calls that return multiple values
+		if (isLuaTupleType(state)(state.typeChecker.getNonNullableType(state.getType(node)))) {
+			callbackResult = luau.array([callbackResult]);
+		}
+
 		prereqs.push(
 			luau.create(luau.SyntaxKind.NumericForStatement, {
 				id: iteratorId,
@@ -474,15 +499,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 					luau.create(luau.SyntaxKind.Assignment, {
 						left: resultId,
 						operator: "=",
-						right: luau.call(callbackId, [
-							resultId,
-							luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-								expression: convertToIndexableExpression(expression),
-								index: iteratorId,
-							}),
-							offset(iteratorId, -1),
-							expression,
-						]),
+						right: callbackResult,
 					}),
 				),
 			}),
@@ -608,7 +625,7 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		return returnValueIsUsed ? retValue! : luau.none();
 	},
 
-	shift: (state, prereqs, node, expression) => luau.call(luau.globals.table.remove, [expression, luau.number(1)]),
+	shift: (state, prereqs, node, expression) => callArrayRemove(state, node, [expression, luau.number(1)]),
 
 	unshift: (state, prereqs, node, expression, args) => {
 		for (let i = args.length - 1; i >= 0; i--) {
@@ -627,8 +644,7 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		return luau.call(luau.globals.table.insert, [expression, offset(args[0], 1), args[1]]);
 	},
 
-	remove: (state, prereqs, node, expression, args) =>
-		luau.call(luau.globals.table.remove, [expression, offset(args[0], 1)]),
+	remove: (state, prereqs, node, expression, args) => callArrayRemove(state, node, [expression, offset(args[0], 1)]),
 
 	unorderedRemove: (state, prereqs, node, expression, args) => {
 		const indexExp = prereqs.pushToVarIfComplex(offset(args[0], 1), "index");
