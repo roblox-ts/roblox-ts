@@ -1,0 +1,54 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`boxes tuple branches of nullable return signatures 1`] = `
+"local function macro(enabled)
+	if enabled then
+		return { 50, 60 }
+	end
+	return nil
+end
+local function call(enabled)
+	if enabled then
+		return { pair() }
+	end
+	return nil
+end
+return {
+	macro = macro,
+	call = call,
+}
+"
+`;
+
+exports[`keeps nullable tuple forwarding and narrowed indexing scalar 1`] = `
+"local function used(values)
+	local _result = values
+	if _result ~= nil then
+		_result = (table.remove(_result, 1))
+	end
+	return _result
+end
+local result = (used(values))
+local missing = (used(nil))
+local second = (used(values))[2]
+return {
+	result = result,
+	missing = missing,
+	second = second,
+}
+"
+`;
+
+exports[`preserves multiple values inside optional call return branches 1`] = `
+"local function forward(callback)
+	local _result = callback
+	if _result ~= nil then
+		_result = { _result() }
+	end
+	return _result
+end
+return {
+	forward = forward,
+}
+"
+`;

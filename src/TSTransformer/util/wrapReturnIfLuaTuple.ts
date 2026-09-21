@@ -1,7 +1,9 @@
 import luau from "@roblox-ts/luau-ast";
+import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { arrayBindingPatternContainsHoists } from "TSTransformer/util/arrayBindingPatternContainsHoists";
 import { arrayLikeExpressionContainsSpread } from "TSTransformer/util/arrayLikeExpressionContainsSpread";
+import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { skipUpwards } from "TSTransformer/util/traversal";
 import { isLuaTupleType } from "TSTransformer/util/types";
 import ts from "typescript";
@@ -18,6 +20,11 @@ function shouldWrapLuaTuple(state: TransformState, node: ts.CallExpression) {
 	// if part of for statement definition, except if used as the condition
 	if (ts.isForStatement(parent) && parent.condition !== child) {
 		return false;
+	}
+
+	// optional calls store a tuple table inside the guarded branch
+	if (ts.isOptionalChain(node)) {
+		return true;
 	}
 
 	// `const [a] = foo()`
@@ -64,11 +71,31 @@ export function wrapReturnIfLuaTuple(
 	node: ts.CallExpression,
 	exp: luau.CallExpression | luau.MethodCallExpression,
 ) {
-	if (
-		isLuaTupleType(state)(state.typeChecker.getNonNullableType(state.getType(node))) &&
-		shouldWrapLuaTuple(state, node)
-	) {
-		return luau.array([exp]);
+	// assertions and optional-chain markers do not change the callee's return convention
+	let type = state.typeChecker.getTypeAtLocation(node);
+	if (ts.isOptionalChain(node)) {
+		// the resolved outer call includes undefined even when the selected overload always returns a tuple
+		const signature = state.typeChecker.getResolvedSignature(node);
+		assert(signature);
+		const calleeType = state.typeChecker.getNonNullableType(state.typeChecker.getTypeAtLocation(node.expression));
+		const returnsTuple = calleeType
+			.getCallSignatures()
+			.some(
+				candidate =>
+					candidate.declaration === signature.declaration &&
+					isLuaTupleType(state)(state.typeChecker.getReturnTypeOfSignature(candidate)),
+			);
+		if (returnsTuple) {
+			type = state.typeChecker.getNonNullableType(type);
+		}
+	}
+	if (isLuaTupleType(state)(type)) {
+		if (shouldWrapLuaTuple(state, node)) {
+			return luau.array([exp]);
+		}
+	} else if (isLuaTupleType(state)(state.typeChecker.getNonNullableType(type)) && !isUsedAsStatement(node)) {
+		// prevent a narrowed nullable result from being expanded as multiple returns
+		return luau.create(luau.SyntaxKind.ParenthesizedExpression, { expression: exp });
 	}
 	return exp;
 }

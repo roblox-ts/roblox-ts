@@ -164,6 +164,10 @@ export function isLuaTupleType(state: TransformState): TypeCheck {
 		state.services.macroManager.getSymbolOrThrow(NOMINAL_LUA_TUPLE_NAME);
 }
 
+export function isNullableLuaTupleType(state: TransformState): TypeCheck {
+	return type => !isLuaTupleType(state)(type) && isLuaTupleType(state)(state.typeChecker.getNonNullableType(type));
+}
+
 export function isIterableFunctionLuaTupleType(state: TransformState): TypeCheck {
 	return type => {
 		if (isIterableFunctionType(state)(type)) {

@@ -484,8 +484,13 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			offset(iteratorId, -1),
 			expression,
 		]);
-		// keep the accumulator table-valued between calls that return multiple values
-		if (isLuaTupleType(state)(state.typeChecker.getNonNullableType(state.getType(node)))) {
+		// use the callback contract before optional-chain or assertion narrowing on the reduce result
+		const signature = state.typeChecker.getResolvedSignature(node);
+		assert(signature);
+		const callbackType = state.typeChecker.getTypeOfSymbolAtLocation(signature.parameters[0], node);
+		const callbackSignature = callbackType.getCallSignatures()[0];
+		assert(callbackSignature);
+		if (isLuaTupleType(state)(state.typeChecker.getReturnTypeOfSignature(callbackSignature))) {
 			callbackResult = luau.array([callbackResult]);
 		}
 
