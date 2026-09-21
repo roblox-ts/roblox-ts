@@ -53,6 +53,14 @@ export function compileFiles(
 	pathTranslator: PathTranslator,
 	sourceFiles: Array<ts.SourceFile>,
 ): ts.EmitResult {
+	// missing roots can disappear from plugin programs and leave no source diagnostics to check
+	if (program.getRootFileNames().some(fileName => program.getSourceFile(fileName) === undefined)) {
+		const diagnostics = program.getOptionsDiagnostics();
+		if (hasErrors(diagnostics)) {
+			return { emitSkipped: true, diagnostics };
+		}
+	}
+
 	const compilerOptions = program.getCompilerOptions();
 	const emitDeclarations = ts.getEmitDeclarations(compilerOptions);
 
