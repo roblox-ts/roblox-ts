@@ -5,6 +5,7 @@ import { isMethodFromType } from "TSTransformer/util/isMethod";
 import { isValidMethodIndexWithoutCall } from "TSTransformer/util/isValidMethodIndexWithoutCall";
 import { skipDownwards, skipUpwards } from "TSTransformer/util/traversal";
 import { walkTypes } from "TSTransformer/util/types";
+import { validateLuaTupleReturnAssignment } from "TSTransformer/util/validateLuaTupleReturnAssignment";
 import ts from "typescript";
 
 function hasCallSignatures(type: ts.Type) {
@@ -16,6 +17,8 @@ function hasCallSignatures(type: ts.Type) {
 }
 
 function validateTypes(state: TransformState, node: ts.Node, baseType: ts.Type, assignmentType: ts.Type) {
+	validateLuaTupleReturnAssignment(state, node, baseType, assignmentType);
+
 	if (hasCallSignatures(baseType) && hasCallSignatures(assignmentType)) {
 		const assignmentIsMethod = isMethodFromType(state, node, assignmentType);
 		if (isMethodFromType(state, node, baseType) !== assignmentIsMethod) {
@@ -31,8 +34,23 @@ function validateTypes(state: TransformState, node: ts.Node, baseType: ts.Type, 
 export function validateMethodExpression(state: TransformState, node: ts.Expression, type: ts.Type) {
 	const parent = skipUpwards(node).parent;
 	// object literal members are checked together with their contextual property types
-	if (ts.isPropertyAssignment(parent) || ts.isShorthandPropertyAssignment(parent) || !hasCallSignatures(type)) {
+	if (ts.isPropertyAssignment(parent) || ts.isShorthandPropertyAssignment(parent)) {
 		return;
+	}
+
+	// the asserted type replaces this value's own type, so compare the value before the assertion
+	const assertion = ts.findAncestor(node.parent, ancestor => !ts.isParenthesizedExpression(ancestor));
+	if (
+		assertion &&
+		(ts.isAsExpression(assertion) || ts.isTypeAssertionExpression(assertion)) &&
+		!ts.isConstTypeReference(assertion.type)
+	) {
+		validateLuaTupleReturnAssignment(
+			state,
+			node,
+			state.typeChecker.getTypeAtLocation(node),
+			state.typeChecker.getTypeAtLocation(assertion.type),
+		);
 	}
 
 	const contextualType = state.typeChecker.getContextualType(node);

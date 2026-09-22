@@ -1,12 +1,41 @@
 import luau from "@roblox-ts/luau-ast";
+import { errors } from "Shared/diagnostics";
+import { assert } from "Shared/util/assert";
 import { SYMBOL_NAMES, TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import { adoptsNullableLuaTupleReturn } from "TSTransformer/util/adoptsNullableLuaTupleReturn";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isReturnBlockedByTryStatement } from "TSTransformer/util/isBlockedByTryStatement";
 import { skipDownwards } from "TSTransformer/util/traversal";
-import { getFirstDefinedSymbol, isLuaTupleType } from "TSTransformer/util/types";
+import { getFirstDefinedSymbol, isLuaTupleType, isNullableLuaTupleType } from "TSTransformer/util/types";
 import ts from "typescript";
+
+function returnsNullableLuaTuple(state: TransformState, node: ts.Expression) {
+	// start above the returned expression, which can itself be a function in a concise arrow body
+	const declaration = ts.findAncestor(node.parent, ts.isFunctionLikeDeclaration);
+	assert(declaration);
+	const signature = state.typeChecker.getSignatureFromDeclaration(declaration);
+	assert(signature);
+	const returnType = state.typeChecker.getReturnTypeOfSignature(signature);
+	const nullableTuple = isNullableLuaTupleType(state)(returnType);
+	if (
+		nullableTuple &&
+		declaration.name &&
+		state
+			.getType(declaration.name)
+			.getCallSignatures()
+			.some(overload => isLuaTupleType(state)(state.typeChecker.getReturnTypeOfSignature(overload)))
+	) {
+		DiagnosticService.addDiagnosticWithCache(
+			declaration,
+			errors.noLuaTupleReturnWidening(declaration),
+			state.multiTransformState.isReportedByNoLuaTupleReturnWidening,
+		);
+	}
+	return nullableTuple || adoptsNullableLuaTupleReturn(state, declaration);
+}
 
 function isTupleReturningCall(state: TransformState, tsExpression: ts.Expression, luaExpression: luau.Expression) {
 	// intentionally NOT using state.getType() here, because that uses skipUpwards
@@ -34,12 +63,21 @@ export function transformReturnStatementInner(
 	let expression: luau.Expression | luau.List<luau.Expression>;
 
 	const innerReturnExp = skipDownwards(returnExp);
+	const nullableTuple = returnsNullableLuaTuple(state, returnExp);
 	if (ts.isCallExpression(innerReturnExp) && isTupleMacro(state, innerReturnExp)) {
 		const args = ensureTransformOrder(state, prereqs, innerReturnExp.arguments);
-		expression = luau.list.make(...args);
+		expression = nullableTuple ? luau.array(args) : luau.list.make(...args);
 	} else {
 		expression = transformExpression(state, prereqs, innerReturnExp);
-		if (isLuaTupleType(state)(state.getType(returnExp)) && !isTupleReturningCall(state, returnExp, expression)) {
+		if (nullableTuple) {
+			// nullable tuple signatures return one table or nil, including nonnullable tuple branches
+			if (isTupleReturningCall(state, returnExp, expression)) {
+				expression = luau.array([expression]);
+			}
+		} else if (
+			isLuaTupleType(state)(state.getType(returnExp)) &&
+			!isTupleReturningCall(state, returnExp, expression)
+		) {
 			if (luau.isArray(expression)) {
 				expression = expression.members;
 			} else {

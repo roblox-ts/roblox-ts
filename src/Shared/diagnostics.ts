@@ -166,6 +166,12 @@ export const errors = {
 	noMixedTypeCall: error(
 		"Attempted to call a function with mixed types! All definitions must either be a method or a callback.",
 	),
+	noLuaTupleReturnWidening: error(
+		"LuaTuple and nullable LuaTuple function returns use different calling conventions.",
+		suggestion(
+			"Use an explicit nullable return annotation on a wrapper function, and keep overload return conventions consistent.",
+		),
+	),
 	noUnstableThisType: error(
 		"The generic this type can become void, changing whether a receiver is passed.",
 		suggestion("Use this: void for callbacks, or constrain the receiver type to exclude void."),

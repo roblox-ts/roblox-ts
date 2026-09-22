@@ -15,6 +15,8 @@ export class MultiTransformState {
 	public readonly bindingKeys = new Map<ts.Symbol, BindingKey>();
 	public readonly bindingUsageBySourceFile = new Map<ts.SourceFile, BindingUsage>();
 	public readonly isMethodCache = new Map<ts.Type, boolean>();
+	public readonly luaTupleReturnWideningCache = new Map<ts.Type, Map<ts.Type, boolean>>();
+	public readonly isReportedByNoLuaTupleReturnWidening = new Set<ts.Node>();
 	public readonly isReportedByNoUnstableThisType = new Set<ts.Node>();
 	public readonly isDefinedAsLetCache = new Map<ts.Symbol, boolean>();
 	public readonly isAnyOrAnyArrayCache = new Map<ts.Type, boolean>();
