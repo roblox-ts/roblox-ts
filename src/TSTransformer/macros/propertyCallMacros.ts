@@ -14,7 +14,6 @@ import {
 	isStringType,
 	isUndefinedType,
 } from "TSTransformer/util/types";
-import { wrapReturnIfLuaTuple } from "TSTransformer/util/wrapReturnIfLuaTuple";
 import ts from "typescript";
 
 function makeMathMethod(operator: luau.BinaryOperator): PropertyCallMacro {
@@ -43,7 +42,7 @@ function makeMathSet(...operators: Array<luau.BinaryOperator>) {
 
 function makeStringCallback(strCallback: luau.PropertyAccessExpression): PropertyCallMacro {
 	return (state, prereqs, node, expression, args) => {
-		return wrapReturnIfLuaTuple(state, node, luau.call(strCallback, [expression, ...args]));
+		return luau.call(strCallback, [expression, ...args]);
 	};
 }
 

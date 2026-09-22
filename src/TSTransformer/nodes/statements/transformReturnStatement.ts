@@ -5,6 +5,7 @@ import { SYMBOL_NAMES, TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import { adoptsNullableLuaTupleReturn } from "TSTransformer/util/adoptsNullableLuaTupleReturn";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isReturnBlockedByTryStatement } from "TSTransformer/util/isBlockedByTryStatement";
 import { skipDownwards } from "TSTransformer/util/traversal";
@@ -12,7 +13,8 @@ import { getFirstDefinedSymbol, isLuaTupleType, isNullableLuaTupleType } from "T
 import ts from "typescript";
 
 function returnsNullableLuaTuple(state: TransformState, node: ts.Expression) {
-	const declaration = ts.findAncestor(node, ts.isFunctionLikeDeclaration);
+	// start above the returned expression, which can itself be a function in a concise arrow body
+	const declaration = ts.findAncestor(node.parent, ts.isFunctionLikeDeclaration);
 	assert(declaration);
 	const signature = state.typeChecker.getSignatureFromDeclaration(declaration);
 	assert(signature);
@@ -32,7 +34,7 @@ function returnsNullableLuaTuple(state: TransformState, node: ts.Expression) {
 			state.multiTransformState.isReportedByNoLuaTupleReturnWidening,
 		);
 	}
-	return nullableTuple;
+	return nullableTuple || adoptsNullableLuaTupleReturn(state, declaration);
 }
 
 function isTupleReturningCall(state: TransformState, tsExpression: ts.Expression, luaExpression: luau.Expression) {

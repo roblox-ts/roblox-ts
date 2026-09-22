@@ -38,6 +38,21 @@ export function validateMethodExpression(state: TransformState, node: ts.Express
 		return;
 	}
 
+	// the asserted type replaces this value's own type, so compare the value before the assertion
+	const assertion = ts.findAncestor(node.parent, ancestor => !ts.isParenthesizedExpression(ancestor));
+	if (
+		assertion &&
+		(ts.isAsExpression(assertion) || ts.isTypeAssertionExpression(assertion)) &&
+		!ts.isConstTypeReference(assertion.type)
+	) {
+		validateLuaTupleReturnAssignment(
+			state,
+			node,
+			state.typeChecker.getTypeAtLocation(node),
+			state.typeChecker.getTypeAtLocation(assertion.type),
+		);
+	}
+
 	const contextualType = state.typeChecker.getContextualType(node);
 	if (contextualType && contextualType !== type) {
 		const expression = skipDownwards(node);

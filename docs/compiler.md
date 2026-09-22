@@ -73,10 +73,11 @@ one value or `nil`: `tonumber(foo())` can error if `foo` returns no values. Pres
 in [transformCallExpression.ts](../src/TSTransformer/nodes/expressions/transformCallExpression.ts).
 
 A function returning `LuaTuple<T> | undefined` returns one tuple table or `nil`; a function returning
-`LuaTuple<T>` returns multiple values. Keep this distinction in callable assignments and overloads, including
-callbacks nested in objects or indexed containers. Calls through unions must also agree on the return convention. To widen
-a pure tuple-returning callback, use an explicitly annotated wrapper such as
-`(): LuaTuple<[number, number]> | undefined => pair()` so its return is boxed at the boundary.
+`LuaTuple<T>` returns multiple values. Keep this distinction in callable assignments, type assertions, callback
+parameters and returns, and overloads, including callbacks nested in objects or indexed containers. Calls through unions
+must also agree on the return convention. An unannotated function expression adopts a nullable tuple return from its
+contextual type, so `run(() => pair())` boxes its result. To widen an existing pure tuple-returning function, wrap it
+in that context, or annotate a wrapper such as `(): LuaTuple<[number, number]> | undefined => pair()` elsewhere.
 
 Luau treats `0` and `""` as truthy. Use the shared truthiness helpers for TypeScript conditions. TypeScript arrays need
 index offsets; numeric keys on ordinary objects do not. Reuse the type and indexing helpers rather than applying

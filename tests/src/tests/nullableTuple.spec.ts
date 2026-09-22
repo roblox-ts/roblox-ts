@@ -154,6 +154,33 @@ export = () => {
 		expect(value?.[1]).to.equal(60);
 	});
 
+	it("should box unannotated callbacks with nullable tuple contexts", () => {
+		type Pair = LuaTuple<[number, number]>;
+		function run(callback: () => Pair | undefined) {
+			return callback();
+		}
+		const container: { callback: () => Pair | undefined } = { callback: () => pair() };
+		const callbacks: Array<() => Pair | undefined> = [() => $tuple(50, 60)];
+
+		for (const value of [
+			run(() => pair()),
+			run(function () {
+				return pair();
+			}),
+			container.callback(),
+			callbacks[0](),
+		]) {
+			expect(value?.[0]).to.equal(50);
+			expect(value?.[1]).to.equal(60);
+		}
+
+		// without a nullable context, the callback keeps multiple returns
+		const produce = () => pair();
+		const [first, second] = produce();
+		expect(first).to.equal(50);
+		expect(second).to.equal(60);
+	});
+
 	it("should preserve compatible callback containers", () => {
 		type Pair = LuaTuple<[number, number]>;
 		const callback = (): Pair | undefined => pair();

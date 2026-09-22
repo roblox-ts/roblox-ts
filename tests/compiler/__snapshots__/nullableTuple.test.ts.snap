@@ -20,6 +20,14 @@ return {
 "
 `;
 
+exports[`boxes unannotated callbacks in nullable tuple contexts 1`] = `
+"print((run(function()
+	return { pair() }
+end)))
+return nil
+"
+`;
+
 exports[`keeps nullable tuple forwarding and narrowed indexing scalar 1`] = `
 "local function used(values)
 	local _result = values

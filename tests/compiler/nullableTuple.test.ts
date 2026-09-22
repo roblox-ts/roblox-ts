@@ -39,3 +39,13 @@ it("preserves multiple values inside optional call return branches", () => {
 		`),
 	).toMatchSnapshot();
 });
+
+it("boxes unannotated callbacks in nullable tuple contexts", () => {
+	expect(
+		createTestProject().compileSource(`
+			declare function pair(): LuaTuple<[number, number]>;
+			declare function run(callback: () => LuaTuple<[number, number]> | undefined): LuaTuple<[number, number]> | undefined;
+			print(run(() => pair()));
+		`),
+	).toMatchSnapshot();
+});

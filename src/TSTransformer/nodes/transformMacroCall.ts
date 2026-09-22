@@ -8,6 +8,7 @@ import { CallMacro, PropertyCallMacro } from "TSTransformer/macros/types";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { EvaluationOperand, planEvaluation } from "TSTransformer/util/evaluation/plan";
 import { isPossiblyType, isUndefinedType } from "TSTransformer/util/types";
+import { wrapReturnIfLuaTuple } from "TSTransformer/util/wrapReturnIfLuaTuple";
 import ts from "typescript";
 
 export function transformMacroCall(
@@ -54,7 +55,7 @@ export function transformMacroCall(
 			);
 		}
 	}
-	return planEvaluation(prereqs, operands, (expansionPrereqs, [receiver, ...args]) =>
+	const result = planEvaluation(prereqs, operands, (expansionPrereqs, [receiver, ...args]) =>
 		macro(
 			state,
 			expansionPrereqs,
@@ -63,4 +64,6 @@ export function transformMacroCall(
 			args.filter(arg => !luau.isNone(arg)),
 		),
 	);
+	// only calls can return multiple values; stored tuples from collection macros are already one value
+	return luau.isCall(result) ? wrapReturnIfLuaTuple(state, node, result) : result;
 }
