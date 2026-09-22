@@ -1,11 +1,13 @@
 import luau from "@roblox-ts/luau-ast";
+import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { arrayBindingPatternContainsHoists } from "TSTransformer/util/arrayBindingPatternContainsHoists";
 import { arrayLikeExpressionContainsSpread } from "TSTransformer/util/arrayLikeExpressionContainsSpread";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { skipUpwards } from "TSTransformer/util/traversal";
-import { isLuaTupleType } from "TSTransformer/util/types";
+import { isLuaTupleType, isNullableLuaTupleType } from "TSTransformer/util/types";
 import ts from "typescript";
 
 function shouldWrapLuaTuple(state: TransformState, node: ts.CallExpression) {
@@ -71,12 +73,29 @@ export function wrapReturnIfLuaTuple(
 	node: ts.CallExpression,
 	exp: luau.CallExpression | luau.MethodCallExpression,
 ) {
+	const signature = state.typeChecker.getResolvedSignature(node);
+	assert(signature);
+	if (
+		isNullableLuaTupleType(state)(state.typeChecker.getReturnTypeOfSignature(signature)) &&
+		signature.compositeSignatures?.some(candidate =>
+			isLuaTupleType(state)(state.typeChecker.getReturnTypeOfSignature(candidate)),
+		) &&
+		signature.compositeSignatures.some(
+			candidate => !isLuaTupleType(state)(state.typeChecker.getReturnTypeOfSignature(candidate)),
+		)
+	) {
+		// a union call cannot choose between multiple returns and a stored table at runtime
+		DiagnosticService.addDiagnosticWithCache(
+			node,
+			errors.noLuaTupleReturnWidening(node),
+			state.multiTransformState.isReportedByNoLuaTupleReturnWidening,
+		);
+	}
+
 	// assertions and optional-chain markers do not change the callee's return convention
 	let type = state.typeChecker.getTypeAtLocation(node);
 	if (ts.isOptionalChain(node)) {
 		// the resolved outer call includes undefined even when the selected overload always returns a tuple
-		const signature = state.typeChecker.getResolvedSignature(node);
-		assert(signature);
 		const calleeType = state.typeChecker.getNonNullableType(state.typeChecker.getTypeAtLocation(node.expression));
 		const returnsTuple = calleeType
 			.getCallSignatures()

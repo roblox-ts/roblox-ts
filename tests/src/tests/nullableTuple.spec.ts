@@ -154,6 +154,83 @@ export = () => {
 		expect(value?.[1]).to.equal(60);
 	});
 
+	it("should preserve compatible callback containers", () => {
+		type Pair = LuaTuple<[number, number]>;
+		const callback = (): Pair | undefined => pair();
+		const original = { nested: { callback }, extra: true };
+		const container: { nested: { callback?: () => Pair | undefined } } = original;
+		expect(container.nested.callback?.()?.[1]).to.equal(60);
+
+		const callbacks = [callback];
+		const readonlyCallbacks: ReadonlyArray<() => Pair | undefined> = callbacks;
+		expect(readonlyCallbacks[0]()?.[1]).to.equal(60);
+
+		const tuples = [pair()];
+		const optionalTuples: ReadonlyArray<Pair | undefined> = tuples;
+		expect(optionalTuples[0]?.[1]).to.equal(60);
+
+		const entries = { callback };
+		const dictionary: { [name: string]: () => Pair | undefined } = entries;
+		expect(dictionary.callback()?.[1]).to.equal(60);
+
+		interface Original {
+			next?: Original;
+			callback: () => Pair | undefined;
+			extra: boolean;
+		}
+		interface Target {
+			next?: Target;
+			callback: () => Pair | undefined;
+		}
+		const recursive: Original = { callback, extra: true };
+		recursive.next = recursive;
+		const widened: Target = recursive;
+		expect(widened.next?.callback()?.[1]).to.equal(60);
+	});
+
+	it("should preserve compatible callable unions and discriminated containers", () => {
+		type Pair = LuaTuple<[number, number]>;
+		function other() {
+			return $tuple(70, 80);
+		}
+		function nullable(): Pair | undefined {
+			return pair();
+		}
+		function absent(): undefined {
+			return undefined;
+		}
+		function pure(callback: typeof pair | typeof other) {
+			return callback()[1];
+		}
+		function optional(callback: typeof pair | typeof other | undefined) {
+			return callback?.()?.[1];
+		}
+		function maybe(callback: typeof nullable | typeof absent) {
+			return callback()?.[1];
+		}
+
+		expect(pure(pair)).to.equal(60);
+		expect(pure(other)).to.equal(80);
+		expect(optional(pair)).to.equal(60);
+		expect(optional(other)).to.equal(80);
+		expect(optional(undefined)).to.equal(undefined);
+		expect(maybe(nullable)).to.equal(60);
+		expect(maybe(absent)).to.equal(undefined);
+
+		type Container =
+			{ kind: "pure"; callback: () => Pair } | { kind: "nullable"; callback: () => Pair | undefined };
+		const original = { kind: "pure" as const, callback: pair };
+		const container: Container = original;
+		function read(value: Container) {
+			if (value.kind === "pure") {
+				return value.callback()[1];
+			}
+			return value.callback()?.[1];
+		}
+		expect(read(container)).to.equal(60);
+		expect(read({ kind: "nullable", callback: nullable })).to.equal(60);
+	});
+
 	it("should preserve optional generic and overloaded tuple calls", () => {
 		function generic<T>(value: T): LuaTuple<[T, T]> {
 			return $tuple(value, value);

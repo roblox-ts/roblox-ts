@@ -4,7 +4,8 @@ import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { isMethodFromType } from "TSTransformer/util/isMethod";
 import { isValidMethodIndexWithoutCall } from "TSTransformer/util/isValidMethodIndexWithoutCall";
 import { skipDownwards, skipUpwards } from "TSTransformer/util/traversal";
-import { isLuaTupleType, isNullableLuaTupleType, walkTypes } from "TSTransformer/util/types";
+import { walkTypes } from "TSTransformer/util/types";
+import { validateLuaTupleReturnAssignment } from "TSTransformer/util/validateLuaTupleReturnAssignment";
 import ts from "typescript";
 
 function hasCallSignatures(type: ts.Type) {
@@ -16,25 +17,9 @@ function hasCallSignatures(type: ts.Type) {
 }
 
 function validateTypes(state: TransformState, node: ts.Node, baseType: ts.Type, assignmentType: ts.Type) {
-	if (hasCallSignatures(baseType) && hasCallSignatures(assignmentType)) {
-		let returnsTuple = false;
-		walkTypes(baseType, type => {
-			returnsTuple ||= type
-				.getCallSignatures()
-				.some(signature => isLuaTupleType(state)(state.typeChecker.getReturnTypeOfSignature(signature)));
-		});
-		let expectsNullableTuple = false;
-		walkTypes(assignmentType, type => {
-			expectsNullableTuple ||= type
-				.getCallSignatures()
-				.some(signature =>
-					isNullableLuaTupleType(state)(state.typeChecker.getReturnTypeOfSignature(signature)),
-				);
-		});
-		if (returnsTuple && expectsNullableTuple) {
-			DiagnosticService.addDiagnostic(errors.noLuaTupleReturnWidening(node));
-		}
+	validateLuaTupleReturnAssignment(state, node, baseType, assignmentType);
 
+	if (hasCallSignatures(baseType) && hasCallSignatures(assignmentType)) {
 		const assignmentIsMethod = isMethodFromType(state, node, assignmentType);
 		if (isMethodFromType(state, node, baseType) !== assignmentIsMethod) {
 			if (assignmentIsMethod) {
@@ -49,7 +34,7 @@ function validateTypes(state: TransformState, node: ts.Node, baseType: ts.Type, 
 export function validateMethodExpression(state: TransformState, node: ts.Expression, type: ts.Type) {
 	const parent = skipUpwards(node).parent;
 	// object literal members are checked together with their contextual property types
-	if (ts.isPropertyAssignment(parent) || ts.isShorthandPropertyAssignment(parent) || !hasCallSignatures(type)) {
+	if (ts.isPropertyAssignment(parent) || ts.isShorthandPropertyAssignment(parent)) {
 		return;
 	}
 
