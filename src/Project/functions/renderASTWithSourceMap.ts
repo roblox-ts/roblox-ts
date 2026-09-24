@@ -1,10 +1,9 @@
 import { addMapping, GenMapping, setSourceContent, toEncodedMap } from "@jridgewell/gen-mapping";
-import luau, { GeneratedPosition, renderASTWithPositions, SourcePosition } from "@roblox-ts/luau-ast";
-import { assert } from "Shared/util/assert";
+import luau, { renderASTWithPositions } from "@roblox-ts/luau-ast";
 
 interface SourceMapping {
-	generated: GeneratedPosition;
-	original: SourcePosition;
+	generated: luau.Position;
+	original: luau.Position;
 	priority: number;
 }
 
@@ -18,8 +17,11 @@ function collectMappings(ast: luau.List<luau.Statement>): { code: string; mappin
 		}
 
 		if (luau.isStatement(node)) {
-			assert(range.start.column === 0);
-			mappings.push({ generated: range.start, original: node.origin.start, priority: 1 });
+			mappings.push({
+				generated: { line: range.start.line, column: 0 },
+				original: node.origin.start,
+				priority: 1,
+			});
 		}
 
 		if (range.closing && node.origin.closing) {

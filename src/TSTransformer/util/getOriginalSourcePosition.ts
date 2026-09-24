@@ -1,5 +1,5 @@
 import { originalPositionFor } from "@jridgewell/trace-mapping";
-import type { SourcePosition } from "@roblox-ts/luau-ast";
+import type luau from "@roblox-ts/luau-ast";
 import path from "path";
 import type { MultiTransformState } from "TSTransformer/classes/MultiTransformState";
 import type ts from "typescript";
@@ -22,7 +22,7 @@ export function getOriginalSourcePosition(
 	multiTransformState: MultiTransformState,
 	node: ts.Node,
 	positionSelector?: (node: ts.Node) => number,
-): SourcePosition | undefined {
+): luau.Position | undefined {
 	const sourceFile = node.getSourceFile();
 	const sourceOffset = positionSelector ? positionSelector(node) : node.getStart();
 	const sourcePosition = sourceFile.getLineAndCharacterOfPosition(sourceOffset);

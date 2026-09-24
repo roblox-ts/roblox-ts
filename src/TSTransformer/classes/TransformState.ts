@@ -1,4 +1,4 @@
-import luau, { render, RenderState, renderStatements, setNodeOrigin, solveTempIds } from "@roblox-ts/luau-ast";
+import luau, { render, RenderState, renderStatements, solveTempIds } from "@roblox-ts/luau-ast";
 import { PathTranslator } from "@roblox-ts/path-translator";
 import { RbxPath, RbxPathParent, RojoResolver } from "@roblox-ts/rojo-resolver";
 import path from "path";
@@ -129,7 +129,7 @@ export class TransformState {
 		}
 
 		const closing = getOriginalSourcePosition(this.multiTransformState, sourceNode, n => n.getEnd() - 1);
-		return setNodeOrigin(node, { start, closing });
+		return luau.setNodeOrigin(node, { start, closing });
 	}
 
 	public readonly hoistsByStatement = new Map<ts.Statement | ts.CaseClause, Array<ts.Identifier>>();
