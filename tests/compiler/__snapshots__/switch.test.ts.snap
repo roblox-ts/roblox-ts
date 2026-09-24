@@ -1,5 +1,57 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
+exports[`avoids operand captures for boolean cases with a mutable local 1`] = `
+"local value = true
+repeat
+	local _fallthrough = false
+	if value == true then
+		value = false
+		_fallthrough = true
+	end
+	if _fallthrough or value == false then
+		print(value)
+	end
+until true
+return nil
+"
+`;
+
+exports[`avoids operand captures for literal cases with a parameter 1`] = `
+"local function handle(kind)
+	repeat
+		local _fallthrough = false
+		if kind == "a" then
+			return 1
+		end
+		if kind == "b" then
+			_fallthrough = true
+		end
+		if _fallthrough or kind == "c" then
+			return 2
+		end
+		return 0
+	until true
+end
+return nil
+"
+`;
+
+exports[`avoids operand captures for wrapped numeric and template literal cases 1`] = `
+"local function handle(value)
+	repeat
+		if value == 1 then
+			return 1
+		end
+		local _caseValue = \`two\`
+		if value == _caseValue then
+			return 2
+		end
+	until true
+end
+return nil
+"
+`;
+
 exports[`emits enum case values directly 1`] = `
 "local Kind = {
 	A = "A",
@@ -20,6 +72,79 @@ local function handle(value, enumAlias)
 		local _caseValue = enumAlias.B
 		if _exp == _caseValue then
 			break
+		end
+	until true
+end
+return nil
+"
+`;
+
+exports[`retains operand captures for case assignments 1`] = `
+"local function handle(value)
+	local _exp = value
+	repeat
+		value = 2
+		local _caseValue = value
+		if _exp == _caseValue then
+			return "two"
+		end
+		return "original"
+	until true
+end
+return nil
+"
+`;
+
+exports[`retains operand captures for case calls that mutate the parameter 1`] = `
+"local function handle(value)
+	local function change()
+		value = 2
+		return 0
+	end
+	local _exp = value
+	repeat
+		local _caseValue = change()
+		if _exp == _caseValue then
+			return "zero"
+		end
+		if _exp == 2 then
+			return "two"
+		end
+		return "original"
+	until true
+end
+return nil
+"
+`;
+
+exports[`retains operand captures for hoisted declarations that shadow the operand 1`] = `
+"local function handle(value)
+	local _exp = value
+	repeat
+		local _fallthrough = false
+		local value
+		if _exp == "a" then
+			value = "inner"
+			_fallthrough = true
+		end
+		if _fallthrough or _exp == "b" then
+			return value
+		end
+	until true
+end
+return nil
+"
+`;
+
+exports[`retains operand captures for property operands with literal cases 1`] = `
+"local function handle(value)
+	local _exp = value.kind
+	repeat
+		if _exp == "a" then
+			return 1
+		end
+		if _exp == "b" then
+			return 2
 		end
 	until true
 end

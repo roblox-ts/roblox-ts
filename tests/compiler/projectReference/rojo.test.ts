@@ -91,19 +91,6 @@ it("discovers project files through optional directory paths and junctions", () 
 	);
 });
 
-it("preserves output when a Rojo config has an invalid tree", () => {
-	expectSuccess(fixture.createBuild().build());
-	const before = fixture.read("out/game/init.luau");
-	fixture.json("default.project.json", { name: "invalid", tree: false });
-	const warn = jest.spyOn(LogService, "warn").mockImplementation(() => {});
-	try {
-		expect(fixture.createBuild().build().emitSkipped).toBe(true);
-		expect(fixture.read("out/game/init.luau")).toBe(before);
-	} finally {
-		warn.mockRestore();
-	}
-});
-
 it.each([false, true])("recovers when a newly selected child Rojo file is created (polling=%s)", async usePolling => {
 	const watch = await startWatch(fixture, usePolling);
 	try {
@@ -186,21 +173,21 @@ it.each([false, true])("watches nested Rojo changes and repairs invalid JSON (po
 });
 
 it.each([false, true])(
-	"watches added and removed project files in mapped directories (polling=%s)",
+	"watches project files inside newly created mapped subdirectories (polling=%s)",
 	async usePolling => {
 		fs.ensureDirSync(fixture.file("rojo"));
 		fixture.rojo({ nested: { $path: "rojo" } });
 		const watch = await startWatch(fixture, usePolling);
 		try {
 			await watch.edit(() => {
-				fixture.json("rojo/extra.project.json", {
+				fixture.json("rojo/new/extra.project.json", {
 					name: "extra",
-					tree: { current: { $path: "../out/shared" } },
+					tree: { current: { $path: "../../out/shared" } },
 				});
 			});
-			expect(fixture.read("out/game/init.luau")).toContain('"nested", "extra", "current"');
+			expect(fixture.read("out/game/init.luau")).toContain('"nested", "new", "extra", "current"');
 
-			await watch.edit(() => fs.removeSync(fixture.file("rojo/extra.project.json")));
+			await watch.edit(() => fs.removeSync(fixture.file("rojo/new")));
 			expect(fixture.read("out/game/init.luau")).toContain('"shared"');
 			expect(fixture.read("out/game/init.luau")).not.toContain('"extra"');
 		} finally {
@@ -209,7 +196,7 @@ it.each([false, true])(
 	},
 );
 
-it.each([null, { name: "invalid", tree: { $path: null } }])(
+it.each([null, { name: "invalid", tree: false }, { name: "invalid", tree: { $path: null } }])(
 	"preserves output when a Rojo project has no usable tree: %j",
 	config => {
 		expectSuccess(fixture.createBuild().build());

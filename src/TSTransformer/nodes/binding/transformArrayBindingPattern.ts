@@ -4,8 +4,7 @@ import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformObjectBindingPattern } from "TSTransformer/nodes/binding/transformObjectBindingPattern";
 import { transformVariable } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
-import { getAccessorForBindingType } from "TSTransformer/util/binding/getAccessorForBindingType";
-import { getSpreadDestructorForType } from "TSTransformer/util/spreadDestructuring";
+import { createArrayBindingAccessor } from "TSTransformer/util/binding/createArrayBindingAccessor";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import ts from "typescript";
 
@@ -17,21 +16,18 @@ export function transformArrayBindingPattern(
 ) {
 	validateNotAnyType(state, bindingPattern);
 
+	const type = state.getType(bindingPattern);
 	let index = 0;
-	const idStack = new Array<luau.AnyIdentifier>();
-	const accessor = getAccessorForBindingType(state, bindingPattern, state.getType(bindingPattern));
-	const destructor = getSpreadDestructorForType(state, bindingPattern, state.getType(bindingPattern));
+	const accessor = createArrayBindingAccessor(state, prereqs, bindingPattern, type, parentId);
 
 	for (const element of bindingPattern.elements) {
 		if (ts.isOmittedExpression(element)) {
-			accessor(prereqs, parentId, index, idStack, true);
+			accessor.read(prereqs, index, true);
 		} else {
 			const name = element.name;
 
 			const isSpreadElement = element.dotDotDotToken !== undefined;
-			const value = isSpreadElement
-				? destructor(prereqs, parentId, index, idStack)
-				: accessor(prereqs, parentId, index, idStack, false);
+			const value = isSpreadElement ? accessor.rest(prereqs, index) : accessor.read(prereqs, index, false);
 
 			if (ts.isIdentifier(name)) {
 				const id = transformVariable(state, prereqs, name, value);

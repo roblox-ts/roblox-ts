@@ -17,6 +17,7 @@ import {
 	createCompoundAssignmentExpression,
 	getSimpleAssignmentOperator,
 } from "TSTransformer/util/assignment";
+import { objectAccessor } from "TSTransformer/util/binding/objectAccessor";
 import { createBitwiseFromOperator, isBitwiseOperator } from "TSTransformer/util/bitwise";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOperator";
@@ -109,6 +110,52 @@ function transformOptimizedArrayAssignmentPattern(
 	prereqs.pushList(bindingPrereqs.statements);
 }
 
+function tryTransformOptimizedObjectAssignmentPattern(
+	state: TransformState,
+	prereqs: Prereqs,
+	assignmentPattern: ts.ObjectLiteralExpression,
+	rhs: luau.Expression,
+) {
+	if (assignmentPattern.properties.length !== 1) {
+		return false;
+	}
+
+	const property = assignmentPattern.properties[0];
+	if (
+		!(ts.isShorthandPropertyAssignment(property) || ts.isPropertyAssignment(property)) ||
+		!ts.isIdentifier(property.name)
+	) {
+		return false;
+	}
+
+	let target = ts.isShorthandPropertyAssignment(property) ? property.name : property.initializer;
+	let initializer = ts.isShorthandPropertyAssignment(property) ? property.objectAssignmentInitializer : undefined;
+	if (ts.isBinaryExpression(target)) {
+		initializer = skipDownwards(target.right);
+		target = skipDownwards(target.left);
+	}
+
+	// property and indexed targets can evaluate before an inline receiver
+	if (!ts.isIdentifier(target)) {
+		return false;
+	}
+
+	const { value } = objectAccessor(
+		state,
+		prereqs,
+		convertToIndexableExpression(rhs),
+		state.typeChecker.getTypeOfAssignmentPattern(assignmentPattern),
+		property.name,
+	);
+	const writable = transformWritableExpression(state, prereqs, target, initializer !== undefined);
+	prereqs.push(luau.create(luau.SyntaxKind.Assignment, { left: writable, operator: "=", right: value }));
+	if (initializer) {
+		prereqs.push(transformInitializer(state, writable, initializer));
+	}
+
+	return true;
+}
+
 export function transformBinaryExpression(state: TransformState, prereqs: Prereqs, node: ts.BinaryExpression) {
 	const operatorKind = node.operatorToken.kind;
 
@@ -184,6 +231,14 @@ export function transformBinaryExpression(state: TransformState, prereqs: Prereq
 					return luau.none();
 				}
 				return rightExp;
+			}
+
+			// a used assignment expression must still return the original receiver
+			if (
+				isUsedAsStatement(node) &&
+				tryTransformOptimizedObjectAssignmentPattern(state, prereqs, node.left, rightExp)
+			) {
+				return luau.none();
 			}
 
 			const parentId = prereqs.pushToVar(rightExp, "binding");

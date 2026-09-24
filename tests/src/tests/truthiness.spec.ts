@@ -1,4 +1,28 @@
 export = () => {
+	it("should preserve a defined return value passed through a macro", () => {
+		function value(): defined {
+			return 42;
+		}
+
+		expect(identity(value())).to.equal(42);
+	});
+
+	it("should support truthiness of template literal types", () => {
+		function numberText(value: `${number}`) {
+			return !!value;
+		}
+		function prefixed(value: `prefix${number}`) {
+			return !!value;
+		}
+		function suffixed(value: `${number}suffix`) {
+			return !!value;
+		}
+
+		expect(numberText("0")).to.equal(true);
+		expect(prefixed("prefix0")).to.equal(true);
+		expect(suffixed("0suffix")).to.equal(true);
+	});
+
 	it("should support JS truthiness", () => {
 		function isTruthy(x?: unknown) {
 			const y = !!x;

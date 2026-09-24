@@ -35,7 +35,8 @@ function expectCleanEquivalent(result?: ts.EmitResult) {
 	const clean = new ReferenceFixture();
 	try {
 		copyRepresentativeSources(fixture, clean);
-		const cleanResult = clean.createBuild().build();
+		// keep headers enabled to match the CLI's output in watch comparisons
+		const cleanResult = clean.createBuild({ noCompilerHeader: false }).build();
 		if (result) {
 			expect(diagnostics(result, fixture.directory)).toEqual(diagnostics(cleanResult, clean.directory));
 		}
@@ -48,7 +49,7 @@ function expectCleanEquivalent(result?: ts.EmitResult) {
 
 it.each([false, true])("matches clean builds after a seeded edit history (incremental=%s)", incremental => {
 	createRepresentativeProject(fixture, incremental);
-	const build = fixture.createBuild();
+	const build = fixture.createBuild({ noCompilerHeader: false });
 	expectSuccess(build.build());
 
 	const outputs = readRepresentativeOutputs(fixture);
@@ -101,7 +102,7 @@ it.each([false, true])("matches clean builds after a seeded edit history (increm
 
 it("preserves a failed dependency and matches a clean build after repair", () => {
 	createRepresentativeProject(fixture);
-	const build = fixture.createBuild();
+	const build = fixture.createBuild({ noCompilerHeader: false });
 	expectSuccess(build.build());
 	const before = readRepresentativeOutputs(fixture);
 	const relative = "core/src/types.ts";

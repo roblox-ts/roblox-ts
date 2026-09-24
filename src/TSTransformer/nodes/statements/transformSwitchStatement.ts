@@ -5,7 +5,38 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { createHoistDeclaration } from "TSTransformer/util/createHoistDeclaration";
 import { expressionMightMutate } from "TSTransformer/util/expressionMightMutate";
+import { skipDownwards } from "TSTransformer/util/traversal";
 import ts from "typescript";
+
+function canCompareIdentifierDirectly(state: TransformState, node: ts.SwitchStatement, expression: luau.Expression) {
+	const identifier = skipDownwards(node.expression);
+	if (!ts.isIdentifier(identifier) || !luau.isIdentifier(expression)) {
+		return false;
+	}
+
+	// declarations shared by case bodies can be hoisted ahead of their comparisons
+	if (
+		state.typeChecker.resolveName(identifier.text, node.caseBlock, ts.SymbolFlags.Value, false) !==
+		state.typeChecker.getSymbolAtLocation(identifier)
+	) {
+		return false;
+	}
+
+	// literal labels cannot mutate the operand, and fallthrough skips later comparisons
+	return node.caseBlock.clauses.every(clause => {
+		if (ts.isDefaultClause(clause)) {
+			return true;
+		}
+
+		const label = skipDownwards(clause.expression);
+		return (
+			ts.isStringLiteralLike(label) ||
+			ts.isNumericLiteral(label) ||
+			label.kind === ts.SyntaxKind.TrueKeyword ||
+			label.kind === ts.SyntaxKind.FalseKeyword
+		);
+	});
+}
 
 function transformCaseClauseExpression(
 	state: TransformState,
@@ -132,7 +163,10 @@ export function transformSwitchStatement(state: TransformState, node: ts.SwitchS
 	const result = luau.list.make<luau.Statement>();
 	const prereqs = new Prereqs();
 	const switchExpression = transformExpression(state, prereqs, node.expression);
-	const expression = expressionMightMutate(state, switchExpression, node.expression)
+	const needsCapture =
+		expressionMightMutate(state, switchExpression, node.expression) &&
+		!canCompareIdentifierDirectly(state, node, switchExpression);
+	const expression = needsCapture
 		? prereqs.pushToVar(switchExpression, "exp")
 		: prereqs.pushToVarIfComplex(switchExpression, "exp");
 	luau.list.pushList(result, prereqs.statements);

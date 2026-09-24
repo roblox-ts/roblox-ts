@@ -7,8 +7,8 @@ return nil
 "
 `;
 
-exports[`dynamic negation retains fallback 1`] = `
-"for i = 3, 1, -step or 1 do
+exports[`dynamic negation omits fallback 1`] = `
+"for i = 3, 1, -step do
 end
 return nil
 "
@@ -16,6 +16,13 @@ return nil
 
 exports[`negative literal omits fallback 1`] = `
 "for i = 3, 1, -1 do
+end
+return nil
+"
+`;
+
+exports[`parenthesized dynamic negation omits fallback 1`] = `
+"for i = 3, 1, (-step) do
 end
 return nil
 "

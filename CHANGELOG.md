@@ -1,6 +1,7 @@
 ## 3.1.0
 - Improved temporary variable optimization for cleaner Luau output ([#3028][3028])
-	- macro calls and expressions now avoid unnecessary locals while preserving evaluation order and side effects
+	- macro calls and expressions now avoid unnecessary locals
+	- fixed evaluation order bugs with macro operands, binary expressions, and assignments
 	- for example, `array.push(value())` can now emit:
 		```diff
 		-local _array = array
@@ -13,30 +14,44 @@
 	- `rbxtsc -p game` now builds referenced projects in dependency order, including in watch mode
 	- based on [#3002][3002] by [@jackTabsCode](https://github.com/jackTabsCode)
 - Added support for rest destructuring of arrays, objects, maps, sets, and generators ([#2761][2761])
+- Added support for rest destructuring of iterator functions, including `IterableFunction<LuaTuple<T>>` ([#3064][3064])
 - Added support for string indexing and rest destructuring ([#2849][2849])
 	- string indexing uses zero-based UTF-8 byte offsets; invalid or out-of-bounds indices return `undefined`
-	- string destructuring follows UTF-8 character iteration
+	- array destructuring of strings follows UTF-8 character iteration
 - Added support for iterating over `SharedTable` ([#2938][2938])
 - Added math macros for the `vector` type ([#2916][2916])
 	- requires an updated `@rbxts/types` package
-- Improved destructuring emit to avoid unnecessary temporaries ([#2946][2946])
+- Improved destructuring emit to avoid unnecessary temporaries ([#2946][2946], [#3090][3090])
+	- single named object bindings and standalone assignments to identifiers can now omit the receiver temporary
+	- for example, `const { Terrain } = game.GetService("Workspace")` now emits `local Terrain = game:GetService("Workspace").Terrain`
+- Removed unnecessary brackets and quotes from valid identifier keys in object rest destructuring output ([#3087][3087])
+- Improved block comment and JSDoc formatting in Luau output by removing extra indentation and leading `*` characters ([#3070][3070])
 - Improved chained bitwise operations to use a single `bit32.band()`, `bit32.bor()`, or `bit32.bxor()` call ([#2940][2940])
-- Fixed evaluation order bugs with macro operands, binary expressions, and assignments ([#3028][3028])
+- Fixed destructuring using the wrong source or assignment target when iterators or nested defaults change variables ([#3064][3064])
 - Fixed numeric loop optimization changing behavior when bounds or the loop variable change ([#3038][3038])
 - Fixed numeric separators causing compilation errors in array indices and loop bounds ([#3039][3039])
-- Removed unnecessary `or 1` from constant `$range` steps, including negative steps ([#3045][3045])
+- Removed unnecessary `or 1` from numeric literal `$range` steps, including negative steps ([#3045][3045])
 - Fixed `switch` operands and case expressions being evaluated more than once ([#2917][2917])
 	- also addresses [#3020][3020] by [@zhsj0089944](https://github.com/zhsj0089944)
 - Removed unnecessary temporaries and parentheses for enum `switch` cases ([#2917][2917], [#3043][3043])
 	- also addresses [#3022][3022] by [@zhsj0089944](https://github.com/zhsj0089944)
 - Fixed escaping for string-literal import and export names, ordinary strings, and template strings ([#3033][3033])
+- Fixed escaping of quotes and control characters in JSX text ([#3064][3064])
 - Fixed optional chaining and rest destructuring of `LuaTuple` values ([#2929][2929], [#2933][2933])
 - Fixed using `$tuple()` with a type assertion ([#2809][2809])
 - Fixed `for...of` loops dropping variadic elements from `IterableFunction<LuaTuple<T>>` ([#3044][3044])
+- Fixed tuple iterator loops and array spreads continuing after the first return value is `undefined` ([#3064][3064])
+- Fixed callbacks whose generic `this` type resolves to `void` emitting an unnecessary `self` parameter ([#3078][3078])
+- Fixed direct and optional calls shifting arguments when a function expects a `this` receiver ([#3082][3082])
 - Fixed async functions continuing to run after cancellation ([#2957][2957])
+- Fixed false "Invalid module access!" errors when the same `RuntimeLib` ModuleScript is re-executed ([#3061][3061])
 - Fixed modules with dotted filenames, such as `module.require.ts`, missing `return nil` ([#3053][3053])
 	- based on [#2887][2887] by [@camren-m](https://github.com/camren-m)
 - Added recognition of `.plugin.lua` and `.plugin.luau` scripts through the rojo-resolver update ([#3053][3053])
+- Fixed type-only imports and exports emitting runtime code or redirecting local variable access to the exports table ([#3064][3064])
+- Added path alias rewriting for hand-written `.d.ts` files copied to the output directory ([#2813][2813])
+	- local imports and re-exports using `baseUrl` or `paths` now use relative paths, matching generated declarations
+- Fixed output directory layout when `rootDirs` entries share a name prefix, such as `src` and `src-extra` ([#3072][3072])
 - Added a diagnostic for unsupported iteration types instead of crashing during `for...of` loops or array spreads ([#3052][3052])
 	- based on [#2972][2972] by [@evilbocchi](https://github.com/evilbocchi)
 - Improved module import diagnostics for unscoped packages, disallowed scopes, and invalid package entry points ([#2738][2738])
@@ -46,6 +61,10 @@
 - The TypeScript update includes new diagnostics and type-checking changes: [5.6](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-5-6.html), [5.7](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-5-7.html), [5.8](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-5-8.html), and [5.9](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-5-9.html)
 	- custom TypeScript transformer plugins may also need updates for TypeScript 5.9.3
 - Accessing a tuple's `length` property now reports an error. Use `.size()` instead ([#2962][2962])
+- Merging an enum with a namespace that contains runtime code now reports an error ([#3074][3074])
+- Assigning or passing functions with incompatible method and callback conventions now reports an error in more cases ([#3083][3083])
+- Generic `this` types that can change between method and callback conventions now report an error ([#3078][3078])
+	- use `this: void` for callbacks, or constrain the receiver type to exclude `void`
 - Bundled runtime files are now named `RuntimeLib.luau` and `Promise.luau` ([#2810][2810])
 	- update any Rojo mappings or tooling that explicitly reference the old `.lua` filenames
 	- `--luau=false` copies the runtime files with `.lua` extensions to preserve the old behavior
@@ -769,6 +788,7 @@ Changes prior to 1.0.0-beta.0 have been removed from this page since the entire 
 [2802]: https://github.com/roblox-ts/roblox-ts/pull/2802
 [2809]: https://github.com/roblox-ts/roblox-ts/pull/2809
 [2810]: https://github.com/roblox-ts/roblox-ts/pull/2810
+[2813]: https://github.com/roblox-ts/roblox-ts/pull/2813
 [2849]: https://github.com/roblox-ts/roblox-ts/pull/2849
 [2887]: https://github.com/roblox-ts/roblox-ts/pull/2887
 [2916]: https://github.com/roblox-ts/roblox-ts/pull/2916
@@ -796,4 +816,14 @@ Changes prior to 1.0.0-beta.0 have been removed from this page since the entire 
 [3045]: https://github.com/roblox-ts/roblox-ts/pull/3045
 [3052]: https://github.com/roblox-ts/roblox-ts/pull/3052
 [3053]: https://github.com/roblox-ts/roblox-ts/pull/3053
+[3061]: https://github.com/roblox-ts/roblox-ts/pull/3061
+[3064]: https://github.com/roblox-ts/roblox-ts/pull/3064
+[3070]: https://github.com/roblox-ts/roblox-ts/pull/3070
+[3072]: https://github.com/roblox-ts/roblox-ts/pull/3072
+[3074]: https://github.com/roblox-ts/roblox-ts/pull/3074
+[3078]: https://github.com/roblox-ts/roblox-ts/pull/3078
+[3082]: https://github.com/roblox-ts/roblox-ts/pull/3082
+[3083]: https://github.com/roblox-ts/roblox-ts/pull/3083
+[3087]: https://github.com/roblox-ts/roblox-ts/pull/3087
+[3090]: https://github.com/roblox-ts/roblox-ts/pull/3090
 [roblox-ts/luau-ast#483]: https://github.com/roblox-ts/luau-ast/pull/483

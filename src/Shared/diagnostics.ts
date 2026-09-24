@@ -148,7 +148,6 @@ export const errors = {
 		"The `instanceof` operator can only be used on roblox-ts classes!",
 		suggestion('Use `typeIs(myThing, "TypeToCheck") instead'),
 	),
-	noNestedSpreadsInAssignmentPatterns: error("Nesting spreads in assignment patterns is not supported!"),
 	noRestSpreadingOfRobloxTypes: error("Operator `...` is not allowed on Roblox types!"),
 	noNonNumberStringRelationOperator: error("Relation operators can only be used on number or string types!"),
 	noInstanceMethodCollisions: error("Static methods cannot use the same name as instance methods!"),
@@ -166,6 +165,10 @@ export const errors = {
 	),
 	noMixedTypeCall: error(
 		"Attempted to call a function with mixed types! All definitions must either be a method or a callback.",
+	),
+	noUnstableThisType: error(
+		"The generic this type can become void, changing whether a receiver is passed.",
+		suggestion("Use this: void for callbacks, or constrain the receiver type to exclude void."),
 	),
 	noIndexWithoutCall: error(
 		"Cannot index a method without calling it!",
@@ -265,7 +268,6 @@ export const errors = {
 
 export const warnings = {
 	truthyChange: (checksStr: string) => warning(`Value will be checked against ${checksStr}`),
-	stringOffsetChange: (text: string) => warning(`String macros no longer offset inputs: ${text}`),
 	transformerNotFound: (name: string, err: unknown) =>
 		warningText(
 			`Transformer \`${name}\` was not found!`,

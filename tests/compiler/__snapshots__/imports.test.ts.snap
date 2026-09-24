@@ -1,5 +1,23 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
+exports[`elides type-only CommonJS imports (verbatimModuleSyntax: false) 1`] = `
+"local value = {
+	value = 42,
+}
+print(value.value)
+return nil
+"
+`;
+
+exports[`elides type-only CommonJS imports (verbatimModuleSyntax: true) 1`] = `
+"local value = {
+	value = 42,
+}
+print(value.value)
+return nil
+"
+`;
+
 exports[`imports a local module in VirtualProject without project references 1`] = `
 "local TS = _G[script]
 local value = TS.import(script, script.Parent, "value").value
@@ -7,5 +25,52 @@ local result = value
 return {
 	result = result,
 }
+"
+`;
+
+exports[`imports a package described by an ambient module declaration 1`] = `
+"local TS = _G[script]
+local value = TS.import(script, script.Parent, "include", "node_modules", "@rbxts", "example").value
+return {
+	value = value,
+}
+"
+`;
+
+exports[`imports a scoped dependency from a package 1`] = `
+"local TS = _G[script]
+local value = TS.import(script, TS.getModule(script, "@rbxts", "example")).value
+local result = value
+return {
+	result = result,
+}
+"
+`;
+
+exports[`preserves unmarked import-equals side effects with noCheck (verbatimModuleSyntax: false) 1`] = `
+"local value = {
+	value = 42,
+}
+print(value.value)
+return nil
+"
+`;
+
+exports[`preserves unmarked import-equals side effects with noCheck (verbatimModuleSyntax: true) 1`] = `
+"local TS = require(game:GetService("ReplicatedStorage"):WaitForChild("include"):WaitForChild("RuntimeLib"))
+TS.import(script, game:GetService("ReplicatedStorage"), "game", "shape")
+local value = {
+	value = 42,
+}
+print(value.value)
+return nil
+"
+`;
+
+exports[`uses relative imports within an isolated game container 1`] = `
+"local TS = require(game:GetService("ReplicatedStorage"):WaitForChild("include"):WaitForChild("RuntimeLib"))
+local value = TS.import(script, script, "value").value
+print(value)
+return nil
 "
 `;

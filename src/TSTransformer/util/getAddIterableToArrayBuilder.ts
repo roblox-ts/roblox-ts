@@ -198,7 +198,15 @@ const addIterableFunctionLuaTuple: AddIterableToArrayBuilder = (
 					right: luau.array([luau.call(iterFuncId)]),
 				}),
 				luau.create(luau.SyntaxKind.IfStatement, {
-					condition: luau.binary(luau.unary("#", valueId), "==", luau.number(0)),
+					// later return values do not keep an iterator alive after its first return is nil
+					condition: luau.binary(
+						luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+							expression: valueId,
+							index: luau.number(1),
+						}),
+						"==",
+						luau.nil(),
+					),
 					statements: luau.list.make(luau.create(luau.SyntaxKind.BreakStatement, {})),
 					elseBody: luau.list.make(),
 				}),

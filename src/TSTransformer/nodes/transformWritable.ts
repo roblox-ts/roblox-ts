@@ -8,7 +8,14 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { addOneIfArrayType } from "TSTransformer/util/addOneIfArrayType";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
-import { effectsCommute, getEffects, isLateRead, joinEffects, NO_EFFECTS } from "TSTransformer/util/evaluation/effects";
+import {
+	effectsCommute,
+	EvaluationEffects,
+	getEffects,
+	isLateRead,
+	joinEffects,
+	NO_EFFECTS,
+} from "TSTransformer/util/evaluation/effects";
 import { skipDownwards } from "TSTransformer/util/traversal";
 import ts from "typescript";
 
@@ -60,11 +67,27 @@ export function transformWritableAssignment(
 	const prereqEffects = getEffects(valuePrereqs.statements);
 	const valueEffects = getEffects(value);
 	const effects = joinEffects(prereqEffects, valueEffects);
+	writable = captureWritableAssignmentTarget(prereqs, writable, prereqEffects, valueEffects);
+	// the assignment target and its old value may need separate snapshots
+	const readable =
+		readBeforeWrite && !effectsCommute(getEffects(writable), effects)
+			? prereqs.pushToVar(writable, "readable")
+			: writable;
+	prereqs.pushList(valuePrereqs.statements);
+
+	return { writable, readable, value };
+}
+
+export function captureWritableAssignmentTarget(
+	prereqs: Prereqs,
+	writable: luau.WritableExpression,
+	prereqEffects: EvaluationEffects,
+	valueEffects: EvaluationEffects,
+) {
 	// Luau evaluates complex bases and keys before an inline RHS, but can read
-	// locals at the store instruction. Hoisted prerequisites precede both.
+	// locals at the store instruction; hoisted prerequisites precede both
 	const intervening = (expression: luau.Expression) =>
 		joinEffects(prereqEffects, isLateRead(expression) ? valueEffects : NO_EFFECTS);
-	// the assignment target and its old value may need separate snapshots
 	if (!luau.isAnyIdentifier(writable)) {
 		const base = writable.expression;
 		const index = luau.isComputedIndexExpression(writable) ? writable.index : undefined;
@@ -80,11 +103,5 @@ export function transformWritableAssignment(
 			writable = luau.property(stableBase, writable.name);
 		}
 	}
-	const readable =
-		readBeforeWrite && !effectsCommute(getEffects(writable), effects)
-			? prereqs.pushToVar(writable, "readable")
-			: writable;
-	prereqs.pushList(valuePrereqs.statements);
-
-	return { writable, readable, value };
+	return writable;
 }

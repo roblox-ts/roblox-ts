@@ -15,6 +15,7 @@ import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName
 import { TransformServices, TryUses } from "TSTransformer/types";
 import { createGetService } from "TSTransformer/util/createGetService";
 import { propertyAccessExpressionChain } from "TSTransformer/util/expressionChain";
+import { getBlockCommentText } from "TSTransformer/util/getBlockCommentText";
 import { getOriginalSourcePosition } from "TSTransformer/util/getOriginalSourcePosition";
 import { getModuleAncestor, skipUpwards } from "TSTransformer/util/traversal";
 import ts from "typescript";
@@ -105,16 +106,14 @@ export class TransformState {
 	public getLeadingComments(node: ts.Node) {
 		const commentRanges = ts.getLeadingCommentRanges(this.sourceFileText, node.pos) ?? [];
 		return luau.list.make(
-			...commentRanges.map(commentRange =>
-				luau.comment(
-					this.sourceFileText.substring(
-						commentRange.pos + 2,
-						commentRange.kind === ts.SyntaxKind.SingleLineCommentTrivia
-							? commentRange.end
-							: commentRange.end - 2,
-					),
-				),
-			),
+			...commentRanges.map(commentRange => {
+				const source = this.sourceFileText.substring(commentRange.pos, commentRange.end);
+				return luau.comment(
+					commentRange.kind === ts.SyntaxKind.SingleLineCommentTrivia
+						? source.slice(2)
+						: getBlockCommentText(source),
+				);
+			}),
 		);
 	}
 
@@ -221,7 +220,14 @@ export class TransformState {
 
 	public getModuleExports(moduleSymbol: ts.Symbol) {
 		return getOrSetDefault(this.multiTransformState.getModuleExportsCache, moduleSymbol, () =>
-			this.typeChecker.getExportsOfModule(moduleSymbol),
+			this.typeChecker.getExportsOfModule(moduleSymbol).filter(exportSymbol => {
+				const typeOnlyDeclaration = this.typeChecker.getTypeOnlyAliasDeclaration(exportSymbol);
+				// erased aliases must not redirect mutable locals to properties on the exports table
+				return (
+					!typeOnlyDeclaration ||
+					(this.compilerOptions.verbatimModuleSyntax && !ts.isTypeOnlyExportDeclaration(typeOnlyDeclaration))
+				);
+			}),
 		);
 	}
 
@@ -285,7 +291,8 @@ export class TransformState {
 
 	/** attempts to reverse symlink lookup */
 	public guessVirtualPath(fsPath: string) {
-		const reverseSymlinkMap = this.program.getSymlinkCache?.().getSymlinkedDirectoriesByRealpath();
+		assert(this.program.getSymlinkCache);
+		const reverseSymlinkMap = this.program.getSymlinkCache().getSymlinkedDirectoriesByRealpath();
 		if (!reverseSymlinkMap) return;
 
 		const original = fsPath;

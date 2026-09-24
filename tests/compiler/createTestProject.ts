@@ -6,7 +6,7 @@ import { ProjectOptions } from "Shared/types";
 
 // creates an isolated compiler project with the test suite's Roblox type declarations
 export function createTestProject(projectOptions?: Partial<ProjectOptions>) {
-	const project = new VirtualProject(projectOptions);
+	const project = new VirtualProject({ noCompilerHeader: true, ...projectOptions });
 	const root = path.join(PACKAGE_ROOT, "tests/node_modules/@rbxts");
 	function load(directory: string) {
 		for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {

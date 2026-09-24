@@ -62,19 +62,20 @@ const MACRO_ONLY_CLASSES = new Set<string>([
 	SYMBOL_NAMES.String,
 ]);
 
-function getFirstDeclarationOrThrow<T extends ts.Node>(symbol: ts.Symbol, check: (value: ts.Node) => value is T): T {
+function getConstructorInterface(typeChecker: ts.TypeChecker, name: string) {
+	const symbol = getGlobalSymbolByNameOrThrow(typeChecker, name, ts.SymbolFlags.Interface);
 	for (const declaration of symbol.declarations ?? []) {
-		if (check(declaration)) {
+		if (ts.isInterfaceDeclaration(declaration)) {
 			return declaration;
 		}
 	}
-	throw new ProjectError("");
+	throw new ProjectError(`MacroManager could not find interface for ${name}` + TYPES_NOTICE);
 }
 
 function getGlobalSymbolByNameOrThrow(typeChecker: ts.TypeChecker, name: string, meaning: ts.SymbolFlags) {
 	const symbol = typeChecker.resolveName(name, undefined, meaning, false);
 	if (symbol) {
-		return symbol;
+		return ts.skipAlias(symbol, typeChecker);
 	}
 	throw new ProjectError(`MacroManager could not find symbol for ${name}` + TYPES_NOTICE);
 }
@@ -94,12 +95,13 @@ function getConstructorSymbol(node: ts.InterfaceDeclaration) {
  */
 export class MacroManager {
 	private symbols = new Map<string, ts.Symbol>();
+	private macroOnlyClasses = new Set<ts.Symbol>();
 	private identifierMacros = new Map<ts.Symbol, IdentifierMacro>();
 	private callMacros = new Map<ts.Symbol, CallMacro>();
 	private constructorMacros = new Map<ts.Symbol, ConstructorMacro>();
 	private propertyCallMacros = new Map<ts.Symbol, PropertyCallMacro>();
 
-	constructor(typeChecker: ts.TypeChecker) {
+	constructor(private readonly typeChecker: ts.TypeChecker) {
 		for (const [name, macro] of Object.entries(IDENTIFIER_MACROS)) {
 			const symbol = getGlobalSymbolByNameOrThrow(typeChecker, name, ts.SymbolFlags.Variable);
 			this.identifierMacros.set(symbol, macro);
@@ -111,8 +113,7 @@ export class MacroManager {
 		}
 
 		for (const [className, macro] of Object.entries(CONSTRUCTOR_MACROS)) {
-			const symbol = getGlobalSymbolByNameOrThrow(typeChecker, className, ts.SymbolFlags.Interface);
-			const interfaceDec = getFirstDeclarationOrThrow(symbol, ts.isInterfaceDeclaration);
+			const interfaceDec = getConstructorInterface(typeChecker, className);
 			const constructSymbol = getConstructorSymbol(interfaceDec);
 			this.constructorMacros.set(constructSymbol, macro);
 		}
@@ -145,17 +146,16 @@ export class MacroManager {
 		}
 
 		for (const symbolName of Object.values(SYMBOL_NAMES)) {
-			const symbol = typeChecker.resolveName(symbolName, undefined, ts.SymbolFlags.All, false);
-			if (symbol) {
-				this.symbols.set(symbolName, symbol);
-			} else {
-				throw new ProjectError(`MacroManager could not find symbol for ${symbolName}` + TYPES_NOTICE);
+			const symbol = getGlobalSymbolByNameOrThrow(typeChecker, symbolName, ts.SymbolFlags.All);
+			this.symbols.set(symbolName, symbol);
+			if (MACRO_ONLY_CLASSES.has(symbolName)) {
+				this.macroOnlyClasses.add(symbol);
 			}
 		}
 
-		const luaTupleTypeDec = this.symbols
-			.get(SYMBOL_NAMES.LuaTuple)
-			?.declarations?.find(v => ts.isTypeAliasDeclaration(v));
+		const luaTupleTypeDec = this.getSymbolOrThrow(SYMBOL_NAMES.LuaTuple).declarations?.find(v =>
+			ts.isTypeAliasDeclaration(v),
+		);
 		if (luaTupleTypeDec) {
 			const nominalLuaTupleSymbol = typeChecker
 				.getTypeAtLocation(luaTupleTypeDec)
@@ -173,15 +173,15 @@ export class MacroManager {
 	}
 
 	public isMacroOnlyClass(symbol: ts.Symbol) {
-		return this.symbols.get(symbol.name) === symbol && MACRO_ONLY_CLASSES.has(symbol.name);
+		return this.macroOnlyClasses.has(symbol);
 	}
 
 	public getIdentifierMacro(symbol: ts.Symbol) {
-		return this.identifierMacros.get(symbol);
+		return this.identifierMacros.get(ts.skipAlias(symbol, this.typeChecker));
 	}
 
 	public getCallMacro(symbol: ts.Symbol) {
-		return this.callMacros.get(symbol);
+		return this.callMacros.get(ts.skipAlias(symbol, this.typeChecker));
 	}
 
 	public getConstructorMacro(symbol: ts.Symbol) {
@@ -190,13 +190,12 @@ export class MacroManager {
 
 	public getPropertyCallMacro(symbol: ts.Symbol) {
 		const macro = this.propertyCallMacros.get(symbol);
-		if (
-			!macro &&
-			symbol.parent &&
-			this.symbols.get(symbol.parent.name) === symbol.parent &&
-			this.isMacroOnlyClass(symbol.parent)
-		) {
-			assert(false, `Macro ${symbol.parent.name}.${symbol.name}() is not implemented!`);
+		if (!macro && symbol.parent) {
+			// augmented interface members retain their original, unmerged parent symbol
+			const parent = this.typeChecker.getMergedSymbol(symbol.parent);
+			if (this.isMacroOnlyClass(parent)) {
+				assert(false, `Macro ${parent.name}.${symbol.name}() is not implemented!`);
+			}
 		}
 		return macro;
 	}

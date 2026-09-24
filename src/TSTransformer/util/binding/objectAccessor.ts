@@ -7,7 +7,6 @@ import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { addIndexDiagnostics } from "TSTransformer/util/addIndexDiagnostics";
 import { addOneIfArrayType } from "TSTransformer/util/addOneIfArrayType";
-import { assertNever } from "TSTransformer/util/assertNever";
 import { createStringIndexExpression } from "TSTransformer/util/createStringIndexExpression";
 import { isDefinitelyType, isMixedStringType, isStringType } from "TSTransformer/util/types";
 import ts from "typescript";
@@ -15,10 +14,10 @@ import ts from "typescript";
 export const objectAccessor = (
 	state: TransformState,
 	prereqs: Prereqs,
-	parentId: luau.AnyIdentifier,
+	parentId: luau.IndexableExpression,
 	receiverType: ts.Type,
 	name: ts.PropertyName,
-): luau.Expression => {
+) => {
 	const memberType = state.getType(name);
 	addIndexDiagnostics(state, name, memberType, receiverType);
 
@@ -28,36 +27,39 @@ export const objectAccessor = (
 
 	if (isMixedStringType(receiverType)) {
 		DiagnosticService.addDiagnostic(errors.noMixedStringIndex(name));
-		return luau.none();
+		return { key: luau.none(), value: luau.none() };
 	}
 
-	if (isDefinitelyType(receiverType, isStringType) && !ts.isIdentifier(name) && !ts.isPrivateIdentifier(name)) {
-		const key = ts.isComputedPropertyName(name) ? name.expression : name;
-		const indexPrereqs = new Prereqs();
-		const index = transformExpression(state, indexPrereqs, key);
-		return createStringIndexExpression(
-			prereqs,
-			parentId,
-			{ expression: index, prereqs: indexPrereqs.statements },
-			ts.isStringLiteral(key) ? state.typeChecker.getStringLiteralType(key.text) : state.getType(key),
-		);
+	if (ts.isPrivateIdentifier(name)) {
+		DiagnosticService.addDiagnostic(errors.noPrivateIdentifier(name));
+		return { key: luau.none(), value: luau.none() };
 	}
 
 	if (ts.isIdentifier(name)) {
-		return luau.property(parentId, name.text);
-	} else if (ts.isComputedPropertyName(name)) {
-		return luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-			expression: parentId,
-			index: addOneIfArrayType(state, receiverType, transformExpression(state, prereqs, name.expression)),
-		});
-	} else if (ts.isNumericLiteral(name) || ts.isStringLiteral(name) || ts.isBigIntLiteral(name)) {
-		return luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-			expression: parentId,
-			index: transformExpression(state, prereqs, name),
-		});
-	} else if (ts.isPrivateIdentifier(name)) {
-		DiagnosticService.addDiagnostic(errors.noPrivateIdentifier(name));
-		return luau.none();
+		return { key: luau.string(name.text), value: luau.property(parentId, name.text) };
 	}
-	return assertNever(name, "objectAccessor");
+
+	const keyNode = ts.isComputedPropertyName(name) ? name.expression : name;
+	let key = transformExpression(state, prereqs, keyNode);
+	if (ts.isComputedPropertyName(name) && !luau.isSimplePrimitive(key)) {
+		// computed keys are evaluated before assignment targets and reused by object rest
+		key = prereqs.pushToVar(key, "key");
+	}
+
+	if (isDefinitelyType(receiverType, isStringType)) {
+		return {
+			key,
+			value: createStringIndexExpression(
+				prereqs,
+				parentId,
+				{ expression: key, prereqs: luau.list.make() },
+				ts.isStringLiteral(keyNode)
+					? state.typeChecker.getStringLiteralType(keyNode.text)
+					: state.getType(keyNode),
+			),
+		};
+	}
+
+	key = addOneIfArrayType(state, receiverType, key);
+	return { key, value: luau.create(luau.SyntaxKind.ComputedIndexExpression, { expression: parentId, index: key }) };
 };

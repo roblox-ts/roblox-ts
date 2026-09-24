@@ -11,6 +11,6 @@ describe("macro emit", () => {
 	});
 
 	it.each(macroEvaluationCases)("$name", ({ source }) => {
-		expect(project.compileSource(source).replace(/^-- Compiled with.*\n/, "")).toMatchSnapshot();
+		expect(project.compileSource(source)).toMatchSnapshot();
 	});
 });

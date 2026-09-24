@@ -51,52 +51,31 @@ it("refreshes declarations imported only by transformed source", () => {
 	expect(result.diagnostics.map(diagnostic => diagnostic.code)).toContain(2322);
 });
 
-it("normalizes aliases introduced by declaration plugins", () => {
-	fixture.project("game", [], {
-		declaration: true,
-		baseUrl: "./src",
-		paths: { "@local/*": ["./*"] },
-		plugins: [{ transform: "../declarations.cjs", afterDeclarations: true }],
-	});
-	fixture.write("game/src/index.ts", 'export { value } from "./target";');
-	fixture.write("game/src/target.ts", "export const value = 1;");
-	fixture.write("game/src/other.ts", "export const value = 2;");
-	fixture.write(
-		"declarations.cjs",
-		`module.exports = (program, config, { ts }) => context => source => {
+it.each([{ target: "./other" }, { target: "@local/other", baseUrl: "./src", paths: { "@local/*": ["./*"] } }])(
+	"applies declaration plugins to $target without changing Luau",
+	({ target, ...options }) => {
+		fixture.project("game", [], {
+			declaration: true,
+			...options,
+			plugins: [{ transform: "../declarations.cjs", afterDeclarations: true }],
+		});
+		fixture.write("game/src/index.ts", 'export { value } from "./target";');
+		fixture.write("game/src/target.ts", "export const value = 1;");
+		fixture.write("game/src/other.ts", "export const value = 2;");
+		fixture.write(
+			"declarations.cjs",
+			`module.exports = (program, config, { ts }) => context => source => {
 		const visit = node => ts.isStringLiteral(node) && node.text === "./target"
-			? ts.factory.createStringLiteral("@local/other") : ts.visitEachChild(node, visit, context);
+			? ts.factory.createStringLiteral(${JSON.stringify(target)}) : ts.visitEachChild(node, visit, context);
 		return ts.visitNode(source, visit);
 	};`,
-	);
+		);
 
-	expectSuccess(fixture.createBuild().build());
-	expect(fixture.read("out/game/index.d.ts")).toContain('"./other"');
-	expect(fixture.read("out/game/init.luau")).toContain('"target"');
-});
-
-it("keeps declaration plugins out of Luau and applies them to declarations", () => {
-	fixture.project("game", [], {
-		declaration: true,
-		plugins: [{ transform: "../declarations.cjs", afterDeclarations: true }],
-	});
-	fixture.write("game/src/index.ts", 'export { value } from "./target";');
-	fixture.write("game/src/target.ts", "export const value = 1;");
-	fixture.write("game/src/other.ts", "export const value = 2;");
-	fixture.write(
-		"declarations.cjs",
-		`module.exports = (program, config, { ts }) => context => source => {
-		const visit = node => ts.isStringLiteral(node) && node.text === "./target"
-			? ts.factory.createStringLiteral("./other") : ts.visitEachChild(node, visit, context);
-		return ts.visitNode(source, visit);
-	};`,
-	);
-
-	expectSuccess(fixture.createBuild().build());
-
-	expect(fixture.read("out/game/init.luau")).toContain('"target"');
-	expect(fixture.read("out/game/index.d.ts")).toContain('"./other"');
-});
+		expectSuccess(fixture.createBuild().build());
+		expect(fixture.read("out/game/index.d.ts")).toContain('"./other"');
+		expect(fixture.read("out/game/init.luau")).toContain('"target"');
+	},
+);
 
 it("resolves transitive types through a pnpm-style symlink with a plugin", () => {
 	fixture.project("game");

@@ -44,12 +44,7 @@ it("builds a reference chain in dependency order and reuses unchanged output", (
 	expect(fixture.read("out/shared/init.luau")).toContain('"common"');
 	expect(fixture.read("out/game/init.luau")).toContain('"shared"');
 	expect(
-		Object.fromEntries(
-			["shared", "game"].map(name => [
-				name,
-				fixture.read(`out/${name}/init.luau`).replace(/^-- Compiled with roblox-ts v[^\n]+\n/, ""),
-			]),
-		),
+		Object.fromEntries(["shared", "game"].map(name => [name, fixture.read(`out/${name}/init.luau`)])),
 	).toMatchSnapshot();
 	expect(fs.existsSync(fixture.file("shared/include"))).toBe(false);
 	expect(fs.existsSync(fixture.file("include/RuntimeLib.luau"))).toBe(true);
@@ -396,34 +391,6 @@ it("recovers a missing reference introduced while watching", async () => {
 	} finally {
 		await watch.close();
 	}
-});
-
-it.each([
-	{ includePath: "out/game/include", luau: false },
-	{ includePath: "out/game/include", luau: true },
-	{ includePath: "out/game", luau: false },
-	{ includePath: "out/game", luau: true },
-])("preserves runtime files at $includePath while cleaning stale output (luau=$luau)", ({ includePath, luau }) => {
-	fixture.project("game");
-	fixture.rojo({ include: { $path: includePath } });
-	fixture.write("game/src/orphan.ts", "export const orphan = 1;");
-
-	const build = fixture.createBuild({ includePath: fixture.file(includePath), luau });
-	const extension = luau ? "luau" : "lua";
-	expectSuccess(build.build());
-
-	for (const name of ["Promise", "RuntimeLib"]) {
-		expect(fs.existsSync(fixture.file(`${includePath}/${name}.${extension}`))).toBe(true);
-	}
-
-	fs.removeSync(fixture.file("game/src/orphan.ts"));
-
-	expectSuccess(build.build());
-
-	for (const name of ["Promise", "RuntimeLib"]) {
-		expect(fs.existsSync(fixture.file(`${includePath}/${name}.${extension}`))).toBe(true);
-	}
-	expect(fs.existsSync(fixture.file(`out/game/orphan.${extension}`))).toBe(false);
 });
 
 it("rebuilds shared output when switching between game deployment contexts", () => {

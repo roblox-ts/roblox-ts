@@ -10,7 +10,7 @@ import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexa
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isStableBuiltinMember, tryMarkBuiltinMember } from "TSTransformer/util/evaluation/builtins";
 import { effectsCommute, getEffects, isLateRead, joinEffects, NO_EFFECTS } from "TSTransformer/util/evaluation/effects";
-import { isMethod } from "TSTransformer/util/isMethod";
+import { isMethod, isMethodFromType } from "TSTransformer/util/isMethod";
 import { getFirstDefinedSymbol, isPossiblyType, isRobloxType, isUndefinedType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import { wrapReturnIfLuaTuple } from "TSTransformer/util/wrapReturnIfLuaTuple";
@@ -84,6 +84,11 @@ export function transformCallExpressionInner(
 		expression = prereqs.pushToVar(expression, "fn");
 	}
 	prereqs.pushList(argsPrereqs.statements);
+
+	if (isMethodFromType(state, node.expression, expType)) {
+		// direct calls have no receiver, but the implementation still expects its slot
+		args.unshift(luau.nil());
+	}
 
 	const exp = luau.call(convertToIndexableExpression(expression), args);
 
@@ -164,10 +169,9 @@ export function transformPropertyCallExpressionInner(
 	validateNotAnyType(state, node.expression);
 
 	if (ts.isSuperProperty(expression)) {
-		return luau.call(luau.property(convertToIndexableExpression(baseExpression), expression.name.text), [
-			luau.globals.self,
-			...ensureTransformOrder(state, prereqs, node.arguments),
-		]);
+		const callee = luau.property(convertToIndexableExpression(baseExpression), expression.name.text);
+		const args = ensureTransformOrder(state, prereqs, node.arguments);
+		return luau.call(callee, isMethod(state, expression) ? [luau.globals.self, ...args] : args);
 	}
 
 	const expType = state.typeChecker.getNonOptionalType(state.getType(node.expression));
@@ -213,13 +217,12 @@ export function transformElementCallExpressionInner(
 	validateNotAnyType(state, node.expression);
 
 	if (ts.isSuperProperty(expression)) {
-		return luau.call(
-			luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-				expression: convertToIndexableExpression(baseExpression),
-				index: transformExpression(state, prereqs, expression.argumentExpression),
-			}),
-			[luau.globals.self, ...ensureTransformOrder(state, prereqs, node.arguments)],
-		);
+		const callee = luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+			expression: convertToIndexableExpression(baseExpression),
+			index: transformExpression(state, prereqs, expression.argumentExpression),
+		});
+		const args = ensureTransformOrder(state, prereqs, node.arguments);
+		return luau.call(callee, isMethod(state, expression) ? [luau.globals.self, ...args] : args);
 	}
 
 	const expType = state.typeChecker.getNonOptionalType(state.getType(node.expression));

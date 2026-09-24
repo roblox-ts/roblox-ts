@@ -11,6 +11,7 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { transformWritableExpression } from "TSTransformer/nodes/transformWritable";
+import { arrayLikeExpressionContainsSpread } from "TSTransformer/util/arrayLikeExpressionContainsSpread";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { getLiteralNumberValue } from "TSTransformer/util/getLiteralNumberValue";
@@ -214,11 +215,11 @@ const buildMapLoop: LoopBuilder = makeForLoopBuilder((state, prereqs, initialize
 	// TEST
 	if (ts.isVariableDeclarationList(initializer)) {
 		const name = initializer.declarations[0].name;
-		if (ts.isArrayBindingPattern(name)) {
+		if (ts.isArrayBindingPattern(name) && !arrayLikeExpressionContainsSpread(name)) {
 			transformInLineArrayBindingPattern(state, name, ids, initializers);
 			return exp;
 		}
-	} else if (ts.isArrayLiteralExpression(initializer)) {
+	} else if (ts.isArrayLiteralExpression(initializer) && !arrayLikeExpressionContainsSpread(initializer)) {
 		transformInLineArrayAssignmentPattern(state, initializer, ids, initializers);
 		return exp;
 	}
@@ -285,10 +286,10 @@ const buildIterableFunctionLuaTupleLoop: (type: ts.Type) => LoopBuilder =
 		if (ts.isVariableDeclarationList(initializer)) {
 			// for (const [a, b] of iter())
 			const name = initializer.declarations[0].name;
-			if (ts.isArrayBindingPattern(name)) {
+			if (ts.isArrayBindingPattern(name) && !arrayLikeExpressionContainsSpread(name)) {
 				return makeIterableFunctionLuaTupleShorthand(state, name, statements, exp);
 			}
-		} else if (ts.isArrayLiteralExpression(initializer)) {
+		} else if (ts.isArrayLiteralExpression(initializer) && !arrayLikeExpressionContainsSpread(initializer)) {
 			// for ([a, b] of iter())
 			return makeIterableFunctionLuaTupleShorthand(state, initializer, statements, exp);
 		}
@@ -312,13 +313,12 @@ const buildIterableFunctionLuaTupleLoop: (type: ts.Type) => LoopBuilder =
 			!((tupleArgType as ts.TupleTypeReference).target.combinedFlags & ts.ElementFlags.Variable)
 		) {
 			const tupleType = (tupleArgType as ts.TupleTypeReference).target;
+			assert(tupleType.labeledElementDeclarations);
 			for (let i = 0; i < tupleType.elementFlags.length; i++) {
 				let name = "element";
-				if (tupleType.labeledElementDeclarations) {
-					const label = tupleType.labeledElementDeclarations[i];
-					if (label && ts.isIdentifier(label.name) && luau.isValidIdentifier(label.name.text)) {
-						name = label.name.text;
-					}
+				const label = tupleType.labeledElementDeclarations[i];
+				if (label && ts.isIdentifier(label.name) && luau.isValidIdentifier(label.name.text)) {
+					name = label.name.text;
 				}
 				iteratorReturnIds.push(luau.tempId(name));
 			}
@@ -340,7 +340,15 @@ const buildIterableFunctionLuaTupleLoop: (type: ts.Type) => LoopBuilder =
 			luau.list.push(
 				loopStatements,
 				luau.create(luau.SyntaxKind.IfStatement, {
-					condition: luau.binary(luau.unary("#", valueId), "==", luau.number(0)),
+					// Luau stops an iterator when its first return is nil, regardless of later returns
+					condition: luau.binary(
+						luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+							expression: valueId,
+							index: luau.number(1),
+						}),
+						"==",
+						luau.nil(),
+					),
 					statements: luau.list.make(luau.create(luau.SyntaxKind.BreakStatement, {})),
 					elseBody: luau.list.make(),
 				}),
@@ -469,6 +477,10 @@ export function transformForOfRangeMacro(
 
 	luau.list.pushList(statements, transformStatementList(state, node.statement, getStatements(node.statement)));
 
+	const stepNode = macroCall.arguments[2] && skipDownwards(macroCall.arguments[2]);
+	const stepIsNegation =
+		stepNode && ts.isPrefixUnaryExpression(stepNode) && stepNode.operator === ts.SyntaxKind.MinusToken;
+
 	luau.list.push(
 		result,
 		luau.create(luau.SyntaxKind.NumericForStatement, {
@@ -476,9 +488,9 @@ export function transformForOfRangeMacro(
 			start,
 			end,
 			// a numeric for loop throws on a nil step, so dynamic steps fall back to 1
-			// literal steps, including unary-minus literals like `-1`, can never be nil
+			// literals and numeric negations cannot produce nil
 			step:
-				step === undefined || getLiteralNumberValue(step) !== undefined
+				step === undefined || getLiteralNumberValue(step) !== undefined || stepIsNegation
 					? step
 					: luau.binary(step, "or", luau.number(1)),
 			statements,

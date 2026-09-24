@@ -87,13 +87,10 @@ local function read(_param)
 		-- ▲ Array.pop ▲
 		value = _result
 	end
-	local _extracted = {
-		["value"] = true,
-	}
 	local _rest = {}
-	for _k, _v in _param do
-		if not _extracted[_k] then
-			_rest[_k] = _v
+	for _key, _value in _param do
+		if _key ~= "value" then
+			_rest[_key] = _value
 		end
 	end
 	local rest = _rest

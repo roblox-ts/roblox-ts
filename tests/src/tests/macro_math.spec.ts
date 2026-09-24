@@ -7,6 +7,8 @@ export = () => {
 		expect(value.idiv(2)).to.equal(5);
 		expect(value.idiv(3)).to.equal(3);
 		expect(value.idiv(4)).to.equal(2);
+		const divisor = 2;
+		expect(value.idiv(divisor + 1)).to.equal(3);
 	});
 
 	it("should support CFrame * CFrame = CFrame", () => {

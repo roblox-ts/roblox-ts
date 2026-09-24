@@ -1,0 +1,23 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`captures the delegated next function once and forwards resume inputs 1`] = `
+"local TS = _G[script]
+local function delegate()
+	return TS.generator(function()
+		local _next = getIterator().next
+		local _currentInput
+		local _returnValue
+		while true do
+			local _result = _next(_currentInput)
+			if _result.done then
+				_returnValue = _result.value
+				break
+			end
+			_currentInput = coroutine.yield(_result.value)
+		end
+		return _returnValue
+	end)
+end
+return nil
+"
+`;
