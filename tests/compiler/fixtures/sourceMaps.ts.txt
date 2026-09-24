@@ -1,0 +1,131 @@
+export function named(flag: boolean) {
+    print("probe:named");
+    if (flag) {
+        print("probe:if");
+    } else if (!flag) {
+        print("probe:elseif");
+    } else {
+        print("probe:else");
+    }
+    for (const item of [1, 2]) {
+        print("probe:for", item);
+    }
+    while (flag) {
+        print("probe:while");
+        break;
+    }
+    do {
+        print("probe:repeat");
+    } while (flag);
+}
+export const arrow = () => {
+    print("probe:arrow");
+};
+export function factory() {
+    return () => {
+        print("probe:returned");
+    };
+}
+export class Example {
+    method() {
+        print("probe:method");
+    }
+}
+export const callbacks = [() => {
+    print("probe:array");
+}];
+export const obj = { callback: () => {
+    print("probe:object");
+} };
+declare function consume(a: () => void): void;
+consume(() => {
+    // a callback at top level
+    print("probe:callback");
+});
+export function nested() {
+    consume(() => {
+        print("probe:nested-callback");
+    });
+}
+if ((() => {
+    print("probe:condition");
+    return true;
+})()) {
+    print("probe:then");
+}
+export const text = `line one
+line two`;
+print("probe:after-multiline-string", text);
+print("probe:unicode", "日本語😀");
+declare function consumePair(first: () => void, second: () => void): void;
+consumePair(
+    () => {
+        print("probe:same-body");
+    },
+    () => {
+        print("probe:same-body");
+    },
+);
+export const emptyArrow = () => {};
+export const computedAccess = { value: 1 }[
+    (() => {
+        print("probe:computed-access");
+        return "value" as const;
+    })()
+];
+export const propertyReceiver = (() => {
+    print("probe:property-receiver");
+    return { value: 1 };
+})().value;
+export const binary = true && (() => {
+    print("probe:binary");
+    return true;
+})();
+export const unary = !(() => {
+    print("probe:unary");
+    return false;
+})();
+export const conditional = true
+    ? (() => {
+        print("probe:conditional-true");
+        return 1;
+    })()
+    : (() => {
+        print("probe:conditional-false");
+        return 2;
+    })();
+export const interpolation = `value ${(() => {
+    print("probe:interpolation");
+    return 1;
+})()}`;
+export const callbackSet = new Set([() => {
+    print("probe:set");
+}]);
+let left = 1;
+let right = 2;
+[left, right] = [right, left];
+for (const value of $range(
+    (() => {
+        print("probe:range-start");
+        return 1;
+    })(),
+    (() => {
+        print("probe:range-end");
+        return 2;
+    })(),
+    (() => {
+        print("probe:range-step");
+        return 1;
+    })(),
+)) {
+    print("probe:range-body", value);
+}
+for (const value of $range(1, 2)) {
+    print("probe:range-no-step", value);
+}
+export class StaticExample {
+    static method() {
+        print("probe:static-method");
+    }
+}
+throw "probe:final";

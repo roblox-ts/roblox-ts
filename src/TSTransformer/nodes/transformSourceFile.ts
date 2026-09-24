@@ -79,6 +79,15 @@ function getIgnoredExportSymbols(state: TransformState, sourceFile: ts.SourceFil
 	return ignoredSymbols;
 }
 
+function getExportSyntaxAnchor(exportSymbol: ts.Symbol): ts.Node {
+	const declaration = getExportDeclarations(exportSymbol)[0];
+	if (ts.isExportSpecifier(declaration) || ts.isExportAssignment(declaration)) {
+		return declaration;
+	}
+
+	return getAncestor(declaration, ts.isStatement) ?? declaration;
+}
+
 /**
  * used to ignore exports in the form of `export declare const x: T;`
  * however, this should still allow exports which are declare + export separately, i.e.
@@ -111,7 +120,7 @@ function handleExports(
 	const ignoredExportSymbols = getIgnoredExportSymbols(state, sourceFile);
 
 	let mustPushExports = state.hasExportFrom;
-	const exportPairs = new Array<[luau.Expression, luau.AnyIdentifier]>();
+	const exportPairs = new Array<[luau.Expression, luau.AnyIdentifier, ts.Symbol]>();
 	// even an erased export = replaces the module's named exports
 	const hasExportEquals = sourceFile.statements.some(
 		statement => ts.isExportAssignment(statement) && statement.isExportEquals,
@@ -137,7 +146,7 @@ function handleExports(
 			// ignore exports in the form of `export declare const x: T;`
 			if (isExportSymbolOnlyFromDeclare(exportSymbol)) continue;
 
-			exportPairs.push(getExportPair(state, exportSymbol));
+			exportPairs.push([...getExportPair(state, exportSymbol), exportSymbol]);
 		}
 	}
 
@@ -161,18 +170,19 @@ function handleExports(
 				right: luau.map(),
 			}),
 		);
-		for (const [exportKey, exportId] of exportPairs) {
-			luau.list.push(
-				statements,
-				luau.create(luau.SyntaxKind.Assignment, {
-					left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-						expression: luau.globals.exports,
-						index: exportKey,
-					}),
-					operator: "=",
-					right: exportId,
+		for (const [exportKey, exportId, exportSymbol] of exportPairs) {
+			const assignment = luau.create(luau.SyntaxKind.Assignment, {
+				left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+					expression: luau.globals.exports,
+					index: exportKey,
 				}),
-			);
+				operator: "=",
+				right: exportId,
+			});
+			if (state.compilerOptions.sourceMap) {
+				state.setSourceOrigin(assignment, getExportSyntaxAnchor(exportSymbol));
+			}
+			luau.list.push(statements, assignment);
 		}
 		luau.list.push(
 			statements,

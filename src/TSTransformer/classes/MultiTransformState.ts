@@ -1,3 +1,4 @@
+import type { TraceMap } from "@jridgewell/trace-mapping";
 import luau from "@roblox-ts/luau-ast";
 import type { BindingUsage } from "TSTransformer/util/evaluation/bindings";
 import type { EvaluationEffects } from "TSTransformer/util/evaluation/effects";
@@ -8,6 +9,7 @@ import ts from "typescript";
  * MultiTransformState is state that lives only for a single compilation step.
  */
 export class MultiTransformState {
+	public readonly reprintTraceMaps = new Map<string, TraceMap>();
 	// type classifications stay valid for this compilation; emitted AST facts can still change
 	public readonly isPrimitiveTypeCache = new Map<ts.Type, boolean>();
 	public readonly isRobloxTypeCache = new Map<ts.Type, boolean>();
