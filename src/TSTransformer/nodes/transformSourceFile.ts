@@ -79,12 +79,8 @@ function getIgnoredExportSymbols(state: TransformState, sourceFile: ts.SourceFil
 	return ignoredSymbols;
 }
 
-function getExportSyntaxAnchor(exportSymbol: ts.Symbol): ts.Node | undefined {
-	const declaration = exportSymbol.getDeclarations()?.[0];
-	if (!declaration) {
-		return undefined;
-	}
-
+function getExportSyntaxAnchor(exportSymbol: ts.Symbol): ts.Node {
+	const declaration = getExportDeclarations(exportSymbol)[0];
 	if (ts.isExportSpecifier(declaration) || ts.isExportAssignment(declaration)) {
 		return declaration;
 	}
@@ -184,10 +180,7 @@ function handleExports(
 				right: exportId,
 			});
 			if (state.compilerOptions.sourceMap) {
-				const anchor = getExportSyntaxAnchor(exportSymbol);
-				if (anchor) {
-					state.setSourceOrigin(assignment, anchor);
-				}
+				state.setSourceOrigin(assignment, getExportSyntaxAnchor(exportSymbol));
 			}
 			luau.list.push(statements, assignment);
 		}
