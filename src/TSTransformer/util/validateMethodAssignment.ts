@@ -22,7 +22,7 @@ function validateTypes(state: TransformState, node: ts.Node, baseType: ts.Type, 
 			if (assignmentIsMethod) {
 				const expression = ts.isPropertyAssignment(node) ? skipDownwards(node.initializer) : node;
 
-				// zero-parameter arrows discard the receiver and preserve lexical this
+				// zero-parameter arrows ignore the extra receiver argument
 				if (ts.isArrowFunction(expression) && expression.parameters.length === 0) {
 					return;
 				}
