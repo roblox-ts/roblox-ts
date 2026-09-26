@@ -151,6 +151,17 @@ it.each([
 			assert(callback(123) === 123);
 		`,
 	},
+	{
+		name: "zero-parameter arrow literals ignore method receivers without adding parameters",
+		source: `
+			declare const mock: { mockImplementation(callback: (this: defined) => never): void };
+			mock.mockImplementation(() => { throw "rate-limited"; });
+			const object: { method(value: number): number } = { method: (() => 42) };
+			object.method(100);
+			const callback: (this: defined | void, value: number) => number = (() => 43);
+			callback(100);
+		`,
+	},
 ])("$name", ({ source, declarations }) => {
 	const project = createTestProject();
 	if (declarations) {

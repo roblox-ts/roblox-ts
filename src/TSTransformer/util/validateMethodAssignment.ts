@@ -20,6 +20,13 @@ function validateTypes(state: TransformState, node: ts.Node, baseType: ts.Type, 
 		const assignmentIsMethod = isMethodFromType(state, node, assignmentType);
 		if (isMethodFromType(state, node, baseType) !== assignmentIsMethod) {
 			if (assignmentIsMethod) {
+				const expression = ts.isPropertyAssignment(node) ? skipDownwards(node.initializer) : node;
+
+				// zero-parameter arrows discard the receiver and preserve lexical this
+				if (ts.isArrowFunction(expression) && expression.parameters.length === 0) {
+					return;
+				}
+
 				DiagnosticService.addDiagnostic(errors.expectedMethodGotFunction(node));
 			} else {
 				DiagnosticService.addDiagnostic(errors.expectedFunctionGotMethod(node));
@@ -47,7 +54,7 @@ export function validateMethodExpression(state: TransformState, node: ts.Express
 			return;
 		}
 
-		validateTypes(state, node, type, contextualType);
+		validateTypes(state, expression, type, contextualType);
 	}
 }
 

@@ -199,3 +199,21 @@ assert(callback(123) == 123)
 return nil
 "
 `;
+
+exports[`zero-parameter arrow literals ignore method receivers without adding parameters 1`] = `
+"mock:mockImplementation(function()
+	error("rate-limited")
+end)
+local object = {
+	method = (function()
+		return 42
+	end),
+}
+object:method(100)
+local callback = (function()
+	return 43
+end)
+callback(nil, 100)
+return nil
+"
+`;

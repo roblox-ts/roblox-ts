@@ -3,5 +3,5 @@ interface HasMethod {
 }
 
 const obj: HasMethod = {
-	method: () => {},
+	method: (value?: number) => {},
 };
