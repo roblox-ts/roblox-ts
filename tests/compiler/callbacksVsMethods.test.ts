@@ -1,3 +1,6 @@
+import { errors, getDiagnosticId } from "Shared/diagnostics";
+import { DiagnosticError } from "Shared/errors/DiagnosticError";
+
 import { createTestProject } from "./createTestProject";
 
 // keep tests alphabetized by name to match Jest's snapshot ordering
@@ -151,6 +154,37 @@ it.each([
 			assert(callback(123) === 123);
 		`,
 	},
+	{
+		name: "zero-parameter arrow literals ignore method receivers without adding parameters",
+		source: `
+			declare const mock: { mockImplementation(callback: (this: defined) => never): void };
+			mock.mockImplementation(() => { throw "rate-limited"; });
+			const object: { method(value: number): number } = { method: (() => 42) };
+			object.method(100);
+			const callback: (this: defined | void, value: number) => number = (() => 43);
+			callback(100);
+		`,
+	},
+	{
+		name: "zero-parameter function references ignore method receivers without wrappers",
+		source: `
+			declare function accept(callback: (this: defined, value: number) => number): void;
+			function declared() { return 40; }
+			const arrow = () => 41;
+			const expression = function() { return 42; };
+			accept(declared);
+			accept(arrow);
+			accept(expression);
+			accept(function() { return 43; } satisfies () => number);
+			accept(function(this: void) { return 44; });
+			const object: { declared(): number; arrow(): number; expression(): number } = {
+				declared, arrow, expression,
+			};
+			object.declared();
+			object.arrow();
+			object.expression();
+		`,
+	},
 ])("$name", ({ source, declarations }) => {
 	const project = createTestProject();
 	if (declarations) {
@@ -158,4 +192,25 @@ it.each([
 	}
 	const output = project.compileSource(source);
 	expect(output).toMatchSnapshot();
+});
+
+it("rejects callable assertions on implicit arguments without an implementation", () => {
+	expect.assertions(2);
+
+	try {
+		createTestProject().compileSource(`
+			declare function accept(callback: (this: defined) => number): void;
+			function forward() {
+				accept(arguments as unknown as () => number);
+			}
+		`);
+	} catch (error) {
+		expect(error).toBeInstanceOf(DiagnosticError);
+		if (error instanceof DiagnosticError) {
+			expect(error.diagnostics.map(getDiagnosticId)).toEqual([
+				errors.noArguments.id,
+				errors.expectedMethodGotFunction.id,
+			]);
+		}
+	}
 });

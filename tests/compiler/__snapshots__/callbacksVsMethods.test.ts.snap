@@ -199,3 +199,52 @@ assert(callback(123) == 123)
 return nil
 "
 `;
+
+exports[`zero-parameter arrow literals ignore method receivers without adding parameters 1`] = `
+"mock:mockImplementation(function()
+	error("rate-limited")
+end)
+local object = {
+	method = (function()
+		return 42
+	end),
+}
+object:method(100)
+local callback = (function()
+	return 43
+end)
+callback(nil, 100)
+return nil
+"
+`;
+
+exports[`zero-parameter function references ignore method receivers without wrappers 1`] = `
+"local function declared()
+	return 40
+end
+local arrow = function()
+	return 41
+end
+local expression = function()
+	return 42
+end
+accept(declared)
+accept(arrow)
+accept(expression)
+accept(function()
+	return 43
+end)
+accept(function()
+	return 44
+end)
+local object = {
+	declared = declared,
+	arrow = arrow,
+	expression = expression,
+}
+object:declared()
+object:arrow()
+object:expression()
+return nil
+"
+`;

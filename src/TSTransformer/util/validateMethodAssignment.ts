@@ -1,7 +1,8 @@
 import { errors } from "Shared/diagnostics";
+import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
-import { isMethodFromType } from "TSTransformer/util/isMethod";
+import { isMethod, isMethodFromType } from "TSTransformer/util/isMethod";
 import { isValidMethodIndexWithoutCall } from "TSTransformer/util/isValidMethodIndexWithoutCall";
 import { skipDownwards, skipUpwards } from "TSTransformer/util/traversal";
 import { walkTypes } from "TSTransformer/util/types";
@@ -15,11 +16,54 @@ function hasCallSignatures(type: ts.Type) {
 	return hasCallSignatures;
 }
 
+function isZeroParameterFunction(state: TransformState, node: ts.Node) {
+	if (ts.isPropertyAssignment(node)) {
+		node = skipDownwards(node.initializer);
+	}
+
+	if (ts.isIdentifier(node) || ts.isShorthandPropertyAssignment(node)) {
+		const symbol = ts.isShorthandPropertyAssignment(node)
+			? state.typeChecker.getShorthandAssignmentValueSymbol(node)
+			: state.typeChecker.getSymbolAtLocation(node);
+		assert(symbol);
+		const declaration = symbol.valueDeclaration;
+
+		if (declaration && ts.isVariableDeclaration(declaration)) {
+			if (!(declaration.parent.flags & ts.NodeFlags.Const) || !declaration.initializer) {
+				return false;
+			}
+
+			node = skipDownwards(declaration.initializer);
+		} else {
+			// overload signatures can hide optional or rest parameters in the implementation
+			const implementation = symbol.declarations?.find(
+				declaration => ts.isFunctionDeclaration(declaration) && declaration.body !== undefined,
+			);
+			if (!implementation) {
+				return false;
+			}
+
+			node = implementation;
+		}
+	}
+
+	return (
+		(ts.isArrowFunction(node) || ts.isFunctionExpression(node) || ts.isFunctionDeclaration(node)) &&
+		node.parameters.every(parameter => ts.isThisIdentifier(parameter.name)) &&
+		!isMethod(state, node)
+	);
+}
+
 function validateTypes(state: TransformState, node: ts.Node, baseType: ts.Type, assignmentType: ts.Type) {
 	if (hasCallSignatures(baseType) && hasCallSignatures(assignmentType)) {
 		const assignmentIsMethod = isMethodFromType(state, node, assignmentType);
 		if (isMethodFromType(state, node, baseType) !== assignmentIsMethod) {
 			if (assignmentIsMethod) {
+				// zero-parameter functions without a receiver ignore the extra receiver argument
+				if (isZeroParameterFunction(state, node)) {
+					return;
+				}
+
 				DiagnosticService.addDiagnostic(errors.expectedMethodGotFunction(node));
 			} else {
 				DiagnosticService.addDiagnostic(errors.expectedFunctionGotMethod(node));
@@ -47,7 +91,7 @@ export function validateMethodExpression(state: TransformState, node: ts.Express
 			return;
 		}
 
-		validateTypes(state, node, type, contextualType);
+		validateTypes(state, expression, type, contextualType);
 	}
 }
 
