@@ -166,7 +166,11 @@ export class ProjectBuild {
 
 	public isOutputPath(filePath: string) {
 		const key = projectPathKey(filePath);
-		if (isPathDescendantOf(key, projectPathKey(this.graph.root.data.projectOptions.includePath))) {
+		if (
+			this.graph.runtimeProjects.some(project =>
+				isPathDescendantOf(key, projectPathKey(project.data.projectOptions.includePath)),
+			)
+		) {
 			return true;
 		}
 
@@ -226,7 +230,9 @@ export class ProjectBuild {
 		}
 
 		const emittedFiles = new Array<string>();
-		copyInclude(this.graph.root.data);
+		for (const project of this.graph.runtimeProjects) {
+			copyInclude(project.data);
+		}
 
 		for (const state of this.states.values()) {
 			if (referencesOnly && state.project === this.graph.root) {
