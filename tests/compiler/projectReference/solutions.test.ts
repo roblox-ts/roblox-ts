@@ -236,6 +236,55 @@ it.each(["separate", "shared", "discovered"])("rejects different runtimes for re
 	expect(output).toContain("shared runtime passed");
 });
 
+it("rejects different runtimes through package references", () => {
+	addPackage("first");
+	addPackage("second");
+	fs.removeSync(fixture.file("first/test/main.server.ts"));
+	fixture.write("first/test/helper.ts", 'import { answer } from "../src"; export const result = answer;');
+	fixture.json("bridge/package.json", { name: "@rbxts/bridge", version: "1.0.0" });
+	fixture.json("bridge/tsconfig.json", {
+		extends: "../base.json",
+		compilerOptions: { composite: true, rootDir: "src", outDir: "out" },
+		rbxts: { type: "package", rojo: "../first/test.project.json" },
+		include: ["src"],
+		references: [{ path: "../first/tsconfig.spec.json" }],
+	});
+	fixture.write(
+		"bridge/src/index.ts",
+		'import { result } from "../../first/test/helper"; export const answer = result;',
+	);
+	const second = fs.readJsonSync(fixture.file("second/tsconfig.spec.json"));
+	second.rbxts.rojo = "../first/test.project.json";
+	second.references.push({ path: "../bridge" });
+	fixture.json("second/tsconfig.spec.json", second);
+	const rojo = fs.readJsonSync(fixture.file("first/test.project.json"));
+	rojo.tree.ReplicatedStorage.bridge = { $path: "../bridge/out" };
+	rojo.tree.ReplicatedStorage.localRuntime = { $path: "../second/include" };
+	delete rojo.tree.ServerScriptService.$path;
+	rojo.tree.ServerScriptService.helper = { $path: "out-test/helper.luau" };
+	rojo.tree.ServerScriptService.main = { $path: "../second/out-test/main.server.luau" };
+	fixture.json("first/test.project.json", rojo);
+	fixture.write(
+		"second/test/main.server.ts",
+		'import { answer } from "../../bridge/src"; import { answer as direct } from "../../first/src"; assert(answer === direct); print("transitive runtime passed");',
+	);
+	fixture.json("game/tsconfig.json", { files: [], references: [{ path: "../second" }] });
+
+	expect(() => createSolution()).toThrow("same runtime folder");
+
+	second.rbxts.includePath = "../first/include";
+	fixture.json("second/tsconfig.spec.json", second);
+	delete rojo.tree.ReplicatedStorage.localRuntime;
+	fixture.json("first/test.project.json", rojo);
+	expectSuccess(createSolution().build());
+	const place = fixture.file("first/test.rbxl");
+	execFileSync("rojo", ["build", fixture.file("first/test.project.json"), "-o", place]);
+	const output = execFileSync("lune", ["run", path.join(PACKAGE_ROOT, "tests/runTestsWithLune.luau"), place], {
+		encoding: "utf8",
+	});
+	expect(output).toContain("transitive runtime passed");
+});
+
 it("rejects incompatible game mounts reached through an empty solution", () => {
 	addPackage("first");
 	addPackage("second");

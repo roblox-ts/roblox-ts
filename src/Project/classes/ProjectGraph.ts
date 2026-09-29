@@ -27,6 +27,12 @@ export interface ProjectNode {
 	tsBuildInfoPath: string | undefined;
 }
 
+function isPackageProject({ data }: ProjectNode) {
+	return (
+		data.projectOptions.type === ProjectType.Package || (data.projectOptions.type === undefined && data.isPackage)
+	);
+}
+
 export class ProjectGraph {
 	public readonly projects = new Map<string, ProjectNode>();
 	public readonly configPaths: Set<string>;
@@ -202,10 +208,11 @@ export class ProjectGraph {
 				assert(reference);
 				if (reference.pathTranslator) {
 					references.add(key);
-				} else {
-					for (const dependency of reference.dependencies) {
-						visit(dependency);
-					}
+				}
+
+				// packages inherit their consumer's runtime, so their dependencies must be checked too
+				for (const dependency of reference.dependencies) {
+					visit(dependency);
 				}
 			};
 			for (const key of project.dependencies) {
@@ -218,9 +225,7 @@ export class ProjectGraph {
 				assert(reference.pathTranslator);
 				const owner = reference.data.rojoResolver;
 				const consumer = project.data.rojoResolver;
-				const referenceIsPackage =
-					reference.data.projectOptions.type === ProjectType.Package ||
-					(reference.data.projectOptions.type === undefined && reference.data.isPackage);
+				const referenceIsPackage = isPackageProject(reference);
 				if (!owner || (!reference.config.raw.rbxts.rojo && referenceIsPackage)) {
 					continue;
 				}
@@ -269,7 +274,7 @@ export class ProjectGraph {
 					}
 				}
 
-				if (!referenceIsPackage && !sameRuntime) {
+				if (!referenceIsPackage && !sameRuntime && !isPackageProject(project)) {
 					throw new DiagnosticError([
 						createTextDiagnostic(
 							`Project "${project.data.tsConfigPath}" and referenced project "${reference.data.tsConfigPath}" must use the same runtime folder. Compile reusable libraries as packages to share them between independent deployments.`,
