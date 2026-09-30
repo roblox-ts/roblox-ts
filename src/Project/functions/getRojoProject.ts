@@ -4,7 +4,7 @@ import path from "path";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { createTextDiagnostic } from "Shared/util/createTextDiagnostic";
 
-export function getRojoProject(configPath: string) {
+export function getRojoProject(configPath: string, configPaths: Set<string>) {
 	const files = new Map<string, string | undefined>();
 	const directories = new Set<string>();
 	const visited = new Set<string>();
@@ -55,6 +55,7 @@ export function getRojoProject(configPath: string) {
 						} else {
 							// retain missing dependencies so watch mode can detect their creation
 							files.set(resolved, undefined);
+							configPaths.add(resolved);
 						}
 					} else if (!/\.(?:lua|luau|json|toml)$/.test(resolved)) {
 						// explicit module files are leaves, including JSON files
@@ -68,6 +69,8 @@ export function getRojoProject(configPath: string) {
 	};
 
 	const visitConfig = (filePath: string) => {
+		// retain dependencies even if reading or parsing one prevents the graph from being replaced
+		configPaths.add(filePath);
 		if (files.has(filePath)) {
 			return;
 		}

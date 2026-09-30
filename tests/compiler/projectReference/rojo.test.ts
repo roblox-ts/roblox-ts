@@ -312,3 +312,25 @@ it("keeps an explicitly mounted .project.json file as an ordinary JSON module", 
 	expectSuccess(build.build());
 	expect(build.isConfigPath(fixture.file("assets/.project.json"))).toBe(false);
 });
+
+it.each([false, true])("recovers after repairing a newly referenced nested project (polling=%s)", async usePolling => {
+	const watch = await startWatch(fixture, usePolling);
+	try {
+		await watch.edit(() => {
+			fixture.write("configs/new/library.project.json", "{");
+			fixture.rojo({ shared: { $path: "configs/new/library.project.json" } });
+		});
+		expect(watch.log.slice(watch.log.lastIndexOf("Found "))).toContain("Found 1 error");
+
+		await watch.edit(() => {
+			fixture.json("configs/new/library.project.json", {
+				name: "unused",
+				tree: { repaired: { $path: "../../out/shared" } },
+			});
+		});
+		expect(watch.log.slice(watch.log.lastIndexOf("Found "))).toContain("Found 0 errors");
+		expect(fixture.read("out/game/init.luau")).toContain('"shared", "repaired"');
+	} finally {
+		await watch.close();
+	}
+});

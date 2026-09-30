@@ -186,7 +186,7 @@ export class ProjectGraph {
 			const key = projectPathKey(data.rojoConfigPath);
 			let rojo = rojoProjects.get(key);
 			if (!rojo) {
-				rojo = getRojoProject(data.rojoConfigPath);
+				rojo = getRojoProject(data.rojoConfigPath, this.configPaths);
 				rojoProjects.set(key, rojo);
 			}
 			Object.assign(data, rojo);
