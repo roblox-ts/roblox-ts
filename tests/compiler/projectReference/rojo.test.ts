@@ -1,4 +1,5 @@
 import fs from "fs-extra";
+import path from "path";
 import { projectPathKey } from "Project/classes/ProjectGraph";
 import { LogService } from "Shared/classes/LogService";
 
@@ -256,7 +257,7 @@ it("validates imported source files that are not root inputs on every build", ()
 		const result = build.build();
 		expect(result.emitSkipped).toBe(true);
 		expect(result.diagnostics.map(diagnostic => diagnostic.messageText).join("\n")).toContain(
-			'$path from "game/src/helpers" to "out/game/helpers"',
+			`$path from "${path.join("game", "src", "helpers")}" to "${path.join("out", "game", "helpers")}"`,
 		);
 	}
 });
