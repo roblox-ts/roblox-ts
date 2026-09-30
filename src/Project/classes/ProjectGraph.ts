@@ -27,7 +27,7 @@ export interface ProjectNode {
 	tsBuildInfoPath: string | undefined;
 }
 
-function isPackageProject({ data }: ProjectNode) {
+function isPackageProject({ data }: Pick<ProjectNode, "data">) {
 	return (
 		data.projectOptions.type === ProjectType.Package || (data.projectOptions.type === undefined && data.isPackage)
 	);
@@ -119,9 +119,13 @@ export class ProjectGraph {
 				if (this.sharedDeployment) {
 					options.noInclude = true;
 					options.includePath = rootData.projectOptions.includePath;
-					options.rojo = config.raw.rbxts.rojo ?? rootData.rojoConfigPath;
+					options.rojo = config.raw.rbxts.rojo;
 				}
 				data = createProjectData(configPath, options);
+				// packages resolve the runtime through their consumer, so only games and models join the root's Rojo tree
+				if (this.sharedDeployment && !config.raw.rbxts.rojo && !isPackageProject({ data })) {
+					data.rojoConfigPath = rootData.rojoConfigPath;
+				}
 			}
 
 			let pathTranslator: PathTranslator | undefined;
@@ -266,6 +270,13 @@ export class ProjectGraph {
 					const ownerPath = owner.getRbxPathFromFilePath(filePath);
 					const consumerPath = consumer?.getRbxPathFromFilePath(filePath);
 					if (JSON.stringify(ownerPath) !== JSON.stringify(consumerPath)) {
+						if (isPackageProject(project) && !project.config.raw.rbxts.rojo && !referenceIsPackage) {
+							throw new DiagnosticError([
+								createTextDiagnostic(
+									`Package project "${project.data.tsConfigPath}" references non-package project "${reference.data.tsConfigPath}". Set rbxts.rojo on the package or compile the reference as a package.`,
+								),
+							]);
+						}
 						throw new DiagnosticError([
 							createTextDiagnostic(
 								`Project "${project.data.tsConfigPath}" must mount "${filePath}" at the same Roblox path as "${reference.data.rojoConfigPath}" (${ownerPath?.join(".") ?? "unmapped"}). Referenced projects with their own rbxts.rojo require consistent module and runtime mounts.`,

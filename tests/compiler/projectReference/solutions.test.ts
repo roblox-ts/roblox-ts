@@ -384,3 +384,44 @@ it("watches independent games and preserves their runtimes during output cleanup
 		await watch.close();
 	}
 });
+
+it("keeps package-local imports when a standalone library builds another library", () => {
+	addPackage("first");
+	addPackage("second");
+	const config = fs.readJsonSync(fixture.file("second/tsconfig.lib.json"));
+	config.references = [{ path: "../first/tsconfig.lib.json" }];
+	fixture.json("second/tsconfig.json", config);
+	fixture.write("second/src/types.ts", 'export type Upstream = typeof import("../../first/src");');
+
+	expectSuccess(fixture.createBuild({}, "second").build());
+	expect(fixture.read("first/out/init.luau")).toContain('TS.import(script, script, "value")');
+	expect(fixture.read("second/out/init.luau")).toContain('TS.import(script, script, "value")');
+});
+
+it("accepts output and runtime mounts inside a composite project's default rootDir", () => {
+	addPackage("first");
+	const config = fs.readJsonSync(fixture.file("first/tsconfig.spec.json"));
+	delete config.compilerOptions.rootDir;
+	config.compilerOptions.rootDirs = ["src", "test"];
+	fixture.json("first/tsconfig.json", config);
+	const build = fixture.createBuild({}, "first");
+
+	expectSuccess(build.build());
+	expect(fixture.read("first/out-test/test/main.server.luau")).toContain('"first"');
+	expect(fs.existsSync(fixture.file("first/out-test/default.project.json"))).toBe(false);
+
+	fixture.write("first/test/main.server.ts", 'import { answer } from "../src"; assert(answer === 42);');
+	expectSuccess(build.build([fixture.file("first/test/main.server.ts")]));
+});
+
+it("explains incompatible game mounts referenced by a standalone package", () => {
+	addPackage("first");
+	addPackage("second");
+	const config = fs.readJsonSync(fixture.file("first/tsconfig.lib.json"));
+	config.references = [{ path: "../second/tsconfig.spec.json" }];
+	fixture.json("first/tsconfig.json", config);
+
+	expect(() => fixture.createBuild({}, "first")).toThrow(
+		"Set rbxts.rojo on the package or compile the reference as a package",
+	);
+});

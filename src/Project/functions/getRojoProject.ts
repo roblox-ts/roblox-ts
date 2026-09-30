@@ -5,7 +5,7 @@ import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { createTextDiagnostic } from "Shared/util/createTextDiagnostic";
 
 export function getRojoProject(configPath: string) {
-	const files = new Map<string, string>();
+	const files = new Map<string, string | undefined>();
 	const directories = new Set<string>();
 	const visited = new Set<string>();
 
@@ -48,8 +48,16 @@ export function getRojoProject(configPath: string) {
 				const directory = typeof value === "string" ? value : value?.optional;
 				if (typeof directory === "string") {
 					const resolved = path.resolve(basePath, directory);
-					// explicit module files are leaves, including JSON files
-					if (!/\.(?:lua|luau|json|toml)$/.test(resolved)) {
+					if (/^.+\.project\.json$/.test(path.basename(resolved))) {
+						// Rojo nests a referenced project file
+						if (fs.existsSync(resolved)) {
+							visitConfig(resolved);
+						} else {
+							// retain missing dependencies so watch mode can detect their creation
+							files.set(resolved, undefined);
+						}
+					} else if (!/\.(?:lua|luau|json|toml)$/.test(resolved)) {
+						// explicit module files are leaves, including JSON files
 						visitDirectory(resolved);
 					}
 				}

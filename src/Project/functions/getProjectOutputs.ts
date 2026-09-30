@@ -139,7 +139,10 @@ export function getProjectOutputs(project: ProjectNode, graph: ProjectGraph): Pr
 				walk(path.join(input, name));
 			}
 		} else {
-			if (graph.configPaths.has(input) || buildInfoPaths.has(projectPathKey(input))) {
+			// a composite root can include deployment configs beside tsconfig, not just source assets
+			const isDeploymentConfig =
+				path.dirname(input) === project.data.projectPath && /^.+\.project\.json$/.test(path.basename(input));
+			if (graph.configPaths.has(input) || buildInfoPaths.has(projectPathKey(input)) || isDeploymentConfig) {
 				return;
 			}
 			if (input.endsWith(".ts") || input.endsWith(".tsx")) {

@@ -6,6 +6,7 @@ import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { getCanonicalFileName } from "Shared/util/getCanonicalFileName";
 import { isPathDescendantOf } from "Shared/util/isPathDescendantOf";
+import { realPathExistsSync } from "Shared/util/realPathExistsSync";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { createGetService } from "TSTransformer/util/createGetService";
@@ -122,7 +123,17 @@ function getNodeModulesImportParts(
 			),
 		];
 	} else {
-		const moduleRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
+		let moduleRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
+		if (!moduleRbxPath) {
+			// Rojo follows symlinks, so a config may mount a package by its real location (e.g. the pnpm store)
+			// resolve the directory, since the output extension (.luau) may differ from the shipped file (init.lua)
+			const realModuleDir = realPathExistsSync(path.dirname(moduleOutPath));
+			if (realModuleDir !== undefined) {
+				moduleRbxPath = state.rojoResolver.getRbxPathFromFilePath(
+					path.join(realModuleDir, path.basename(moduleOutPath)),
+				);
+			}
+		}
 		if (!moduleRbxPath) {
 			DiagnosticService.addDiagnostic(
 				errors.noRojoData(moduleSpecifier, path.relative(state.data.projectPath, moduleOutPath), true),

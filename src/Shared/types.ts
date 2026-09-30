@@ -26,7 +26,7 @@ export interface ProjectData {
 	projectPath: string;
 	rojoConfigPath: string | undefined;
 	rojoResolver?: RojoResolver;
-	rojoConfigFiles?: ReadonlyMap<string, string>;
+	rojoConfigFiles?: ReadonlyMap<string, string | undefined>;
 	rojoConfigDirectories?: ReadonlyArray<string>;
 	tsConfigPath: string;
 	projectReferencePaths?: ReadonlyMap<string, string>;

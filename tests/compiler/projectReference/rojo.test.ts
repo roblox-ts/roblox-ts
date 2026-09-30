@@ -242,3 +242,72 @@ it("refreshes consumer mounts after a package without Rojo copies a nested proje
 	expectSuccess(build.build());
 	expect(fixture.read("out/game/init.luau")).toContain('"shared", "current"');
 });
+
+it("validates imported source files that are not root inputs on every build", () => {
+	const config = fs.readJsonSync(fixture.file("game/tsconfig.json"));
+	config.include = ["src/index.ts"];
+	fixture.json("game/tsconfig.json", config);
+	fixture.write("game/src/index.ts", 'import { value } from "./helpers/value"; export const result = value;');
+	fixture.write("game/src/helpers/value.ts", "export const value = 42;");
+	fixture.rojo({ invalid: { $path: "game/src/helpers" } });
+	const build = fixture.createBuild();
+
+	for (let i = 0; i < 2; i++) {
+		const result = build.build();
+		expect(result.emitSkipped).toBe(true);
+		expect(result.diagnostics.map(diagnostic => diagnostic.messageText).join("\n")).toContain(
+			'$path from "game/src/helpers" to "out/game/helpers"',
+		);
+	}
+});
+
+it("tracks directly mounted project files and invalidates cached imports", () => {
+	fixture.json("rojo/library.project.json", { name: "unused", tree: { before: { $path: "../out/shared" } } });
+	fixture.rojo({ shared: { $path: "rojo/library.project.json" } });
+	const build = fixture.createBuild();
+
+	expectSuccess(build.build());
+	expect(fixture.read("out/game/init.luau")).toContain('"shared", "before"');
+	expect(build.isConfigPath(fixture.file("rojo/library.project.json"))).toBe(true);
+
+	fixture.json("rojo/library.project.json", { name: "unused", tree: { after: { $path: "../out/shared" } } });
+	expectSuccess(fixture.createBuild().build());
+	expect(fixture.read("out/game/init.luau")).toContain('"shared", "after"');
+});
+
+it.each([false, true])(
+	"watches creation, deletion, and recreation of optional project files (polling=%s)",
+	async usePolling => {
+		const nested = "generated/deep/library.project.json";
+		fixture.rojo({ extra: { $path: { optional: nested } } });
+		const build = fixture.createBuild();
+		expect(build.isConfigPath(fixture.file(nested))).toBe(true);
+		expect(build.getWatchPaths()).toContain(fixture.file(nested));
+		build.close();
+
+		const watch = await startWatch(fixture, usePolling);
+		try {
+			const create = (name: string) =>
+				fixture.json(nested, { name: "unused", tree: { [name]: { $path: "../../out/shared" } } });
+			await watch.edit(() => create("first"));
+			expect(fixture.read("out/game/init.luau")).toContain('"extra", "first"');
+
+			await watch.edit(() => fs.removeSync(fixture.file(nested)));
+			expect(fixture.read("out/game/init.luau")).not.toContain('"extra"');
+
+			await watch.edit(() => create("second"));
+			expect(fixture.read("out/game/init.luau")).toContain('"extra", "second"');
+		} finally {
+			await watch.close();
+		}
+	},
+);
+
+it("keeps an explicitly mounted .project.json file as an ordinary JSON module", () => {
+	fixture.json("assets/.project.json", { value: 1 });
+	fixture.rojo({ data: { $path: "assets/.project.json" } });
+	const build = fixture.createBuild();
+
+	expectSuccess(build.build());
+	expect(build.isConfigPath(fixture.file("assets/.project.json"))).toBe(false);
+});
