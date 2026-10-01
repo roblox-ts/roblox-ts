@@ -1,4 +1,5 @@
 import chokidar from "chokidar";
+import fs from "fs-extra";
 import { setupProjectWatchProgram } from "Project/functions/setupProjectWatchProgram";
 import ts from "typescript";
 
@@ -26,6 +27,37 @@ function createWatch() {
 
 	return { events, watch };
 }
+
+it("retains a missing Rojo file subscription across source rebuilds and releases it on close", async () => {
+	fixture.project("game");
+	const missing = fixture.file("generated/deep/library.project.json");
+	fixture.rojo({ extra: { $path: { optional: "generated/deep/library.project.json" } } });
+	const watchFile = jest.spyOn(fs, "watchFile");
+	const unwatchFile = jest.spyOn(fs, "unwatchFile");
+	const { events, watch } = createWatch();
+
+	try {
+		events.emit("ready");
+		expect(fixture.read("out/game/init.luau")).toContain("value = 1");
+		expect(watchFile).toHaveBeenCalledTimes(1);
+		expect(watchFile).toHaveBeenCalledWith(missing, { interval: 250 }, expect.any(Function));
+
+		fixture.write("game/src/index.ts", "export const value = 2;");
+		events.emit("change", fixture.file("game/src/index.ts"));
+		jest.advanceTimersByTime(100);
+
+		expect(fixture.read("out/game/init.luau")).toContain("value = 2");
+		expect(watchFile).toHaveBeenCalledTimes(1);
+		expect(unwatchFile).not.toHaveBeenCalled();
+		expect(fs.existsSync(missing)).toBe(false);
+	} finally {
+		await watch.close();
+	}
+
+	expect(unwatchFile).toHaveBeenCalledTimes(1);
+	const [filePath, listener] = unwatchFile.mock.calls[0];
+	expect(watchFile).toHaveBeenCalledWith(filePath, { interval: 250 }, listener);
+});
 
 it("cancels a pending rebuild when the watcher is closed", async () => {
 	fixture.project("game");

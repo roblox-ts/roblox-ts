@@ -66,6 +66,15 @@ it.each(["number", "LuaTuple<[number, string]>"])("guards iterator assignment ta
 	expect(output).toMatchSnapshot();
 });
 
+it("initializes fixed tuple rest bindings before the loop body", () => {
+	const output = createTestProject().compileSource(`
+		declare const iterator: IterableFunction<LuaTuple<[number, number, number]>>;
+		for (const [first, ...rest] of iterator) { print(first, rest); }
+	`);
+
+	expect(output).toMatchSnapshot();
+});
+
 it("keeps nested rest within a LuaTuple value", () => {
 	const output = createTestProject().compileSource(`
 		declare function values(): LuaTuple<[Array<number>, number]>;

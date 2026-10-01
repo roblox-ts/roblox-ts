@@ -22,6 +22,7 @@ import { createBitwiseFromOperator, isBitwiseOperator } from "TSTransformer/util
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOperator";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
+import { effectsCommute, getEffects, joinEffects, NO_EFFECTS } from "TSTransformer/util/evaluation/effects";
 import { getAssignableValue } from "TSTransformer/util/getAssignableValue";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { skipDownwards } from "TSTransformer/util/traversal";
@@ -98,6 +99,59 @@ function transformOptimizedArrayAssignmentPattern(
 			}),
 		);
 	}
+
+	let targetEffects = getEffects(writesPrereqs);
+	luau.list.forEach(writes, target => {
+		if (!luau.isAnyIdentifier(target)) {
+			targetEffects = joinEffects(
+				targetEffects,
+				getEffects(target.expression),
+				luau.isComputedIndexExpression(target) ? getEffects(target.index) : NO_EFFECTS,
+			);
+		}
+	});
+
+	// the complete RHS precedes destination evaluation, including newly hoisted captures
+	if (luau.list.isList(rhs)) {
+		const expressions = luau.list.toArray(rhs);
+		const captures = new Array<boolean>(expressions.length);
+		for (let i = expressions.length - 1; i >= 0; i--) {
+			const effects = getEffects(expressions[i]);
+			captures[i] = !effectsCommute(effects, targetEffects);
+			if (captures[i]) {
+				targetEffects = joinEffects(effects, targetEffects);
+			}
+		}
+		rhs = luau.list.make(
+			...expressions.flatMap((expression, index) => {
+				if (!captures[index]) {
+					return [expression];
+				}
+
+				// a final array member can supply multiple return values to the remaining destinations
+				if (index === expressions.length - 1 && luau.isCall(expression)) {
+					const count = luau.list.size(writes) - index;
+					if (count > 1) {
+						const ids = Array.from({ length: count }, () => luau.tempId("binding"));
+						prereqs.push(
+							luau.create(luau.SyntaxKind.VariableDeclaration, {
+								left: luau.list.make(...ids),
+								right: expression,
+							}),
+						);
+						return ids;
+					}
+				}
+
+				return [prereqs.pushToVar(expression, "binding")];
+			}),
+		);
+	} else if (!effectsCommute(getEffects(rhs), targetEffects)) {
+		const captures = luau.list.make(...luau.list.toArray(writes).map(() => luau.tempId("binding")));
+		prereqs.push(luau.create(luau.SyntaxKind.VariableDeclaration, { left: captures, right: rhs }));
+		rhs = captures;
+	}
+
 	prereqs.pushList(writesPrereqs);
 	assert(!luau.list.isEmpty(writes));
 	prereqs.push(

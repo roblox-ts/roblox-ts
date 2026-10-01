@@ -100,6 +100,30 @@ network/isolation rules. Trace [createImportExpression.ts](../src/TSTransformer/
 the import/export transforms, [transformSourceFile.ts](../src/TSTransformer/nodes/transformSourceFile.ts), and
 TransformState's module mappings together.
 
+Project references use a shared deployment when the build root contains source files, explicitly selects
+`rbxts.rojo` / `--rojo`, or is an unscoped solution with an automatically discovered Rojo file. The root supplies the
+runtime folder. Referenced packages retain their own Rojo discovery for package-local imports; games and models
+without an explicit Rojo config use the root's tree. References with an explicit Rojo file must have compatible mounts.
+Empty intermediate configs group their references; mount checks apply to the consuming deployment, including projects
+reached through those groups.
+
+A solution root without a shared deployment builds its projects independently. A scoped package's editor-only
+solution ignores its automatically discovered library Rojo file. Each concrete project uses its own `rbxts.type`,
+Rojo file, and runtime folder. This supports an editor-only `tsconfig.json` grouping `tsconfig.lib.json` and
+`tsconfig.spec.json`, with the library emitted as a package and the spec emitted as a test game.
+Deployment options on the grouping root do not override those projects; other build options such as
+`--luau` still apply across the solution. Select `--rojo` explicitly to give a solution one shared deployment.
+
+Rojo source-path validation checks compilation inputs, including imported files, rather than treating everything
+under a composite project's default `rootDir` as source. Output and runtime folders can be mounted inside that directory.
+Deployment configs beside the tsconfig are excluded from asset copying so they cannot change the output's Rojo tree.
+Direct `$path` references to nested project files participate in cache invalidation and watching, including optional
+files that have not been created yet. Package imports prefer explicit virtual mounts before trying a symlink's real directory.
+
+Libraries shared by independent games should use package output, with a Rojo layout that supports their imports.
+Code compiled as a game contains paths specific to its deployment and cannot be mounted arbitrarily in another game.
+Referencing game or model output also requires a shared runtime folder so imports use the same runtime instance.
+
 When adding a compiler option, check [src/Shared/types.ts](../src/Shared/types.ts), `DEFAULT_PROJECT_OPTIONS` in
 [src/Shared/constants.ts](../src/Shared/constants.ts), CLI flags, and VirtualProject together. Plugin changes also need
 the reprint/rebind path in [compileFiles.ts](../src/Project/functions/compileFiles.ts): transformed TypeScript nodes

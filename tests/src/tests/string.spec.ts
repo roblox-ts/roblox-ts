@@ -313,6 +313,56 @@ export = () => {
 		expect(read("NaN")).to.equal(undefined);
 	});
 
+	it("should reject noncanonical numeric string index keys", () => {
+		function read(index: `${number}`) {
+			return "abcdefghijk"[index];
+		}
+
+		expect(read("0")).to.equal("a");
+		expect(read("1")).to.equal("b");
+		expect(read("10")).to.equal("k");
+		expect(read("11")).to.equal(undefined);
+
+		for (const index of ["01", "1.0", "+1", "0x1", "1e0", " 1", "1 ", "-0", "00"] as const) {
+			expect(read(index)).to.equal(undefined);
+		}
+	});
+
+	it("should distinguish numeric indices from numeric string keys", () => {
+		function read(index: number | `${number}`) {
+			return "abc"[index];
+		}
+
+		expect(read(0)).to.equal("a");
+		expect(read(-0)).to.equal("a");
+		expect(read(1)).to.equal("b");
+		expect(read(0.5)).to.equal(undefined);
+		expect(read("0")).to.equal("a");
+		expect(read("1")).to.equal("b");
+		expect(read("-0")).to.equal(undefined);
+		expect(read("01")).to.equal(undefined);
+	});
+
+	it("should evaluate noncanonical string keys once in optional access and bindings", () => {
+		let calls = 0;
+		function getIndex(): `${number}` {
+			calls++;
+			return "01";
+		}
+		function read(value: string | undefined) {
+			return value?.[getIndex()];
+		}
+
+		expect(read(undefined)).to.equal(undefined);
+		expect(calls).to.equal(0);
+		expect(read("abc")).to.equal(undefined);
+		expect(calls).to.equal(1);
+
+		const { [getIndex()]: value = "missing" } = "abc";
+		expect(value).to.equal("missing");
+		expect(calls).to.equal(2);
+	});
+
 	it("should use byte indexing for numeric object binding keys", () => {
 		const { 0: first, "1": second, 2: third, 3: missing = "fallback" } = "苺";
 

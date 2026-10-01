@@ -116,7 +116,7 @@ export function getProjectOutputs(project: ProjectNode, graph: ProjectGraph): Pr
 	}
 
 	const excluded = [...graph.projects.values()].flatMap(getOutputRoots);
-	excluded.push(graph.root.data.projectOptions.includePath);
+	excluded.push(...graph.runtimeProjects.map(project => project.data.projectOptions.includePath));
 
 	const buildInfoPaths = new Set(
 		[...graph.projects.values()]
@@ -139,7 +139,10 @@ export function getProjectOutputs(project: ProjectNode, graph: ProjectGraph): Pr
 				walk(path.join(input, name));
 			}
 		} else {
-			if (graph.configPaths.has(input) || buildInfoPaths.has(projectPathKey(input))) {
+			// a composite root can include deployment configs beside tsconfig, not just source assets
+			const isDeploymentConfig =
+				path.dirname(input) === project.data.projectPath && /^.+\.project\.json$/.test(path.basename(input));
+			if (graph.configPaths.has(input) || buildInfoPaths.has(projectPathKey(input)) || isDeploymentConfig) {
 				return;
 			}
 			if (input.endsWith(".ts") || input.endsWith(".tsx")) {
@@ -160,9 +163,11 @@ export function getProjectOutputs(project: ProjectNode, graph: ProjectGraph): Pr
 		walk(root);
 	}
 
-	// the shared runtime can be placed inside an output directory, including at its root
-	for (const { input, output } of getIncludeFiles(graph.root.data.projectOptions)) {
-		addOutput(output, input);
+	// runtimes can be placed inside an output directory, including at its root
+	for (const project of graph.runtimeProjects) {
+		for (const { input, output } of getIncludeFiles(project.data.projectOptions)) {
+			addOutput(output, input);
+		}
 	}
 
 	if (translator.buildInfoOutputPath) {

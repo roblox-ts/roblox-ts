@@ -4,7 +4,7 @@ import { createProjectData } from "Project/functions/createProjectData";
 import { getParsedCommandLine } from "Project/functions/getParsedCommandLine";
 import { getRojoProject } from "Project/functions/getRojoProject";
 import { parseProjectConfig } from "Project/functions/parseProjectConfig";
-import { DEFAULT_PROJECT_OPTIONS } from "Shared/constants";
+import { DEFAULT_PROJECT_OPTIONS, ProjectType } from "Shared/constants";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { ProjectData, ProjectOptions } from "Shared/types";
 import { assert } from "Shared/util/assert";
@@ -27,10 +27,19 @@ export interface ProjectNode {
 	tsBuildInfoPath: string | undefined;
 }
 
+function isPackageProject({ data }: Pick<ProjectNode, "data">) {
+	return (
+		data.projectOptions.type === ProjectType.Package || (data.projectOptions.type === undefined && data.isPackage)
+	);
+}
+
 export class ProjectGraph {
 	public readonly projects = new Map<string, ProjectNode>();
 	public readonly configPaths: Set<string>;
 	public readonly root: ProjectNode;
+	public readonly runtimeProjects: ReadonlyArray<ProjectNode>;
+
+	private readonly sharedDeployment: boolean;
 
 	constructor(tsConfigPath: string, overrides: Partial<ProjectOptions>, configPaths = new Set<string>()) {
 		this.configPaths = configPaths;
@@ -80,25 +89,44 @@ export class ProjectGraph {
 
 		const rootOptions = { ...DEFAULT_PROJECT_OPTIONS, ...rootConfig.raw.rbxts, ...explicitOptions };
 		const rootData = createProjectData(tsConfigPath, rootOptions);
+		this.sharedDeployment =
+			!ts.isSolutionConfig(rootConfig) ||
+			Boolean(rootOptions.rojo || (!rootData.isPackage && rootData.rojoConfigPath));
+
+		const inheritedOptions: Partial<ProjectOptions> = { ...rootConfig.raw.rbxts };
+		const referenceOverrides = { ...explicitOptions };
+		if (!this.sharedDeployment) {
+			// a grouping config has no deployment of its own to impose on independent games and packages
+			for (const key of ["type", "rojo", "includePath"] as const) {
+				delete inheritedOptions[key];
+				delete referenceOverrides[key];
+			}
+		}
 
 		for (const configPath of order) {
 			const key = projectPathKey(configPath);
 			const config = configs.get(key);
 			assert(config);
 
-			const data =
-				key === projectPathKey(tsConfigPath)
-					? rootData
-					: createProjectData(configPath, {
-							...DEFAULT_PROJECT_OPTIONS,
-							...rootConfig.raw.rbxts,
-							...config.raw.rbxts,
-							...explicitOptions,
-
-							noInclude: true,
-							includePath: rootData.projectOptions.includePath,
-							rojo: config.raw.rbxts.rojo ?? rootData.rojoConfigPath,
-						});
+			let data = rootData;
+			if (key !== projectPathKey(tsConfigPath)) {
+				const options = {
+					...DEFAULT_PROJECT_OPTIONS,
+					...inheritedOptions,
+					...config.raw.rbxts,
+					...referenceOverrides,
+				};
+				if (this.sharedDeployment) {
+					options.noInclude = true;
+					options.includePath = rootData.projectOptions.includePath;
+					options.rojo = config.raw.rbxts.rojo;
+				}
+				data = createProjectData(configPath, options);
+				// packages resolve the runtime through their consumer, so only games and models join the root's Rojo tree
+				if (this.sharedDeployment && !config.raw.rbxts.rojo && !isPackageProject({ data })) {
+					data.rojoConfigPath = rootData.rojoConfigPath;
+				}
+			}
 
 			let pathTranslator: PathTranslator | undefined;
 			if (!ts.isSolutionConfig(config)) {
@@ -119,6 +147,9 @@ export class ProjectGraph {
 					ts.getEmitDeclarations(config.options),
 					data.projectOptions.luau,
 				);
+			} else if (key !== projectPathKey(tsConfigPath) || !this.sharedDeployment) {
+				// editor solutions may sit beside a package Rojo file unrelated to their test games
+				data.rojoConfigPath = undefined;
 			}
 
 			this.projects.set(key, {
@@ -135,6 +166,9 @@ export class ProjectGraph {
 		const root = this.projects.get(projectPathKey(tsConfigPath));
 		assert(root);
 		this.root = root;
+		this.runtimeProjects = this.sharedDeployment
+			? [root]
+			: [...this.projects.values()].filter(project => project.pathTranslator !== undefined);
 
 		this.validateReferences();
 		this.mapReferencePaths();
@@ -152,7 +186,7 @@ export class ProjectGraph {
 			const key = projectPathKey(data.rojoConfigPath);
 			let rojo = rojoProjects.get(key);
 			if (!rojo) {
-				rojo = getRojoProject(data.rojoConfigPath);
+				rojo = getRojoProject(data.rojoConfigPath, this.configPaths);
 				rojoProjects.set(key, rojo);
 			}
 			Object.assign(data, rojo);
@@ -162,17 +196,53 @@ export class ProjectGraph {
 
 	private validateReferenceRojoPaths() {
 		for (const project of this.projects.values()) {
-			for (const key of project.dependencies) {
+			if (!project.pathTranslator && !(this.sharedDeployment && project === this.root)) {
+				continue;
+			}
+
+			const references = new Set<string>();
+			const visited = new Set<string>();
+			const visit = (key: string) => {
+				if (visited.has(key)) {
+					return;
+				}
+				visited.add(key);
+
 				const reference = this.projects.get(key);
 				assert(reference);
+				if (reference.pathTranslator) {
+					references.add(key);
+				}
+
+				// packages inherit their consumer's runtime, so their dependencies must be checked too
+				for (const dependency of reference.dependencies) {
+					visit(dependency);
+				}
+			};
+			for (const key of project.dependencies) {
+				visit(key);
+			}
+
+			for (const key of references) {
+				const reference = this.projects.get(key);
+				assert(reference);
+				assert(reference.pathTranslator);
 				const owner = reference.data.rojoResolver;
 				const consumer = project.data.rojoResolver;
-				if (!reference.pathTranslator || !owner || owner === consumer || !reference.config.raw.rbxts.rojo) {
+				const referenceIsPackage = isPackageProject(reference);
+				if (!owner || (!reference.config.raw.rbxts.rojo && referenceIsPackage)) {
+					continue;
+				}
+
+				const sameRuntime =
+					projectPathKey(reference.data.projectOptions.includePath) ===
+					projectPathKey(project.data.projectOptions.includePath);
+				if (owner === consumer && (referenceIsPackage || sameRuntime)) {
 					continue;
 				}
 
 				assert(reference.data.projectReferencePaths);
-				const paths = new Set(reference.data.projectReferencePaths.values());
+				const paths = new Set<string>();
 				for (const fileName of reference.config.fileNames) {
 					if (
 						ts.isDeclarationFileName(fileName) &&
@@ -182,18 +252,45 @@ export class ProjectGraph {
 					}
 					paths.add(reference.pathTranslator.getImportPath(fileName));
 				}
+
+				// a solution can group unrelated test games that this consumer does not deploy
+				if (
+					!project.dependencies.includes(key) &&
+					![...paths].some(filePath => consumer?.getRbxPathFromFilePath(filePath))
+				) {
+					continue;
+				}
+
+				for (const filePath of reference.data.projectReferencePaths.values()) {
+					paths.add(filePath);
+				}
 				paths.add(path.join(reference.data.projectOptions.includePath, "RuntimeLib.lua"));
 
 				for (const filePath of paths) {
 					const ownerPath = owner.getRbxPathFromFilePath(filePath);
 					const consumerPath = consumer?.getRbxPathFromFilePath(filePath);
 					if (JSON.stringify(ownerPath) !== JSON.stringify(consumerPath)) {
+						if (isPackageProject(project) && !project.config.raw.rbxts.rojo && !referenceIsPackage) {
+							throw new DiagnosticError([
+								createTextDiagnostic(
+									`Package project "${project.data.tsConfigPath}" references non-package project "${reference.data.tsConfigPath}". Set rbxts.rojo on the package or compile the reference as a package.`,
+								),
+							]);
+						}
 						throw new DiagnosticError([
 							createTextDiagnostic(
 								`Project "${project.data.tsConfigPath}" must mount "${filePath}" at the same Roblox path as "${reference.data.rojoConfigPath}" (${ownerPath?.join(".") ?? "unmapped"}). Referenced projects with their own rbxts.rojo require consistent module and runtime mounts.`,
 							),
 						]);
 					}
+				}
+
+				if (!referenceIsPackage && !sameRuntime && !isPackageProject(project)) {
+					throw new DiagnosticError([
+						createTextDiagnostic(
+							`Project "${project.data.tsConfigPath}" and referenced project "${reference.data.tsConfigPath}" must use the same runtime folder. Compile reusable libraries as packages to share them between independent deployments.`,
+						),
+					]);
 				}
 			}
 		}

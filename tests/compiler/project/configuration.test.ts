@@ -75,6 +75,25 @@ it("treats unnamed package metadata as a non-package project", () => {
 	expect(data.isPackage).toBe(false);
 });
 
+it.each(["@rbxts/services", "@example_/package", "@my.org/package", "@a~b/package", "@-scope/package"])(
+	"treats scoped package %s as a package",
+	name => {
+		fixture.json("package.json", { name });
+
+		const data = createProjectData(fixture.file("tsconfig.json"), { ...DEFAULT_PROJECT_OPTIONS });
+
+		expect(data.isPackage).toBe(true);
+	},
+);
+
+it.each(["package", "@/package", "@scope"])("treats %s as a non-package project", name => {
+	fixture.json("package.json", { name });
+
+	const data = createProjectData(fixture.file("tsconfig.json"), { ...DEFAULT_PROJECT_OPTIONS });
+
+	expect(data.isPackage).toBe(false);
+});
+
 it("warns when more than one Rojo project is available", () => {
 	fixture.project("game");
 	fixture.json("game/first.project.json", { name: "first", tree: {} });
