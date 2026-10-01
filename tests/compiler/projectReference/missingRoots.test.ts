@@ -165,3 +165,61 @@ it.each([false, true])("reports and recovers a missing configured root while wat
 		await watch.close();
 	}
 });
+
+function createMissingRootWithInvalidDeclaration() {
+	fs.removeSync(fixture.file("game/src/index.ts"));
+	fixture.write("game/src/init.d.ts", "export declare const x: number;");
+}
+
+function repairMissingRoot() {
+	fs.removeSync(fixture.file("game/src/init.d.ts"));
+	fixture.write("game/src/index.ts", "export const value = 2;");
+}
+
+it("returns pending filename diagnostics and emits on the first repaired build", () => {
+	createMissingRootWithInvalidDeclaration();
+	const build = fixture.createBuild();
+	const result = build.build();
+
+	// repair before checking the first result so a leaked diagnostic also fails recovery
+	repairMissingRoot();
+	expectSuccess(build.build([fixture.file("game/src/init.d.ts"), fixture.file("game/src/index.ts")]));
+	expect(result.emitSkipped).toBe(true);
+	expect(result.diagnostics.map(diagnostic => diagnostic.code)).toContain(6053);
+	expect(result.diagnostics.some(diagnostic => String(diagnostic.messageText).includes("init.d.ts"))).toBe(true);
+	expect(fixture.read(indexOutputs[0])).toContain("value = 2");
+	expect(fixture.read(indexOutputs[1])).toContain("value = 2");
+});
+
+it("does not leak missing-root diagnostics into a separate healthy project", () => {
+	fixture.project("healthy", [], { composite: false });
+	createMissingRootWithInvalidDeclaration();
+	const result = fixture.createBuild().build();
+
+	expectSuccess(fixture.createBuild({}, "healthy").build());
+	expect(result.emitSkipped).toBe(true);
+	expect(result.diagnostics.map(diagnostic => diagnostic.code)).toContain(6053);
+	expect(result.diagnostics.some(diagnostic => String(diagnostic.messageText).includes("init.d.ts"))).toBe(true);
+	expect(fixture.read("out/healthy/init.luau")).toContain("value = 1");
+});
+
+it.each([false, true])(
+	"repairs a cold missing root and invalid declaration in one watch build (polling=%s)",
+	async polling => {
+		createMissingRootWithInvalidDeclaration();
+		const watch = await startWatch(fixture, polling);
+		try {
+			const initialLog = watch.log;
+			await watch.edit(repairMissingRoot);
+
+			expect(watch.log.slice(initialLog.length)).toContain("Found 0 errors");
+			expect(watch.log.slice(initialLog.length)).not.toContain("init.d.ts");
+			expect(initialLog).toContain("TS6053");
+			expect(initialLog).toContain("init.d.ts");
+			expect(fixture.read(indexOutputs[0])).toContain("value = 2");
+			expect(fixture.read(indexOutputs[1])).toContain("value = 2");
+		} finally {
+			await watch.close();
+		}
+	},
+);

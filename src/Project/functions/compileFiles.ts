@@ -57,7 +57,7 @@ export function compileFiles(
 	if (program.getRootFileNames().some(fileName => program.getSourceFile(fileName) === undefined)) {
 		const diagnostics = program.getOptionsDiagnostics();
 		if (hasErrors(diagnostics)) {
-			return { emitSkipped: true, diagnostics };
+			return { emitSkipped: true, diagnostics: [...diagnostics, ...DiagnosticService.flush()] };
 		}
 	}
 
