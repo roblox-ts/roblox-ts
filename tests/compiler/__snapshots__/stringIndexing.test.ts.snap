@@ -28,7 +28,7 @@ return {
 exports[`converts numeric string keys 1`] = `
 "local function read(value, index)
 	local _index = tonumber(index)
-	return if _index ~= nil and _index >= 0 and _index % 1 == 0 and _index < #value then string.sub(value, _index + 1, _index + 1) else nil
+	return if _index ~= nil and (index == "0" or string.match(index, "^[1-9]%d*$") ~= nil) and _index >= 0 and _index % 1 == 0 and _index < #value then string.sub(value, _index + 1, _index + 1) else nil
 end
 local first = if 0 < #"abc" then string.sub("abc", 1, 1) else nil
 return {
@@ -92,6 +92,17 @@ exports[`preserves effects when an indexed value is discarded 1`] = `
 local _arg0 = index()
 local _ = if _arg0 >= 0 and _arg0 % 1 == 0 and _arg0 < #_exp then string.sub(_exp, _arg0 + 1, _arg0 + 1) else nil
 return nil
+"
+`;
+
+exports[`rejects noncanonical string keys while preserving numeric indices 1`] = `
+"local function read(value, index)
+	local _index = tonumber(index)
+	return if _index ~= nil and (type(index) == "number" or (index == "0" or string.match(index, "^[1-9]%d*$") ~= nil)) and _index >= 0 and _index % 1 == 0 and _index < #value then string.sub(value, _index + 1, _index + 1) else nil
+end
+return {
+	read = read,
+}
 "
 `;
 
