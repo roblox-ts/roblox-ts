@@ -97,6 +97,33 @@ it.each([false, true])("prints build errors and exits unsuccessfully (missing co
 	}
 });
 
+it("keeps imported modules excluded from root file discovery", () => {
+	const fixture = new ReferenceFixture();
+	try {
+		fixture.project("game", [], { declaration: true });
+		const config = fs.readJsonSync(fixture.file("game/tsconfig.json"));
+		fixture.json("game/tsconfig.json", { ...config, exclude: ["src/helper.ts"] });
+		fixture.write("game/src/helper.ts", "export const value = 42;");
+		fixture.write("game/src/index.ts", 'export { value } from "./helper";');
+
+		const result = run([
+			"-p",
+			fixture.file("game"),
+			"--rojo",
+			fixture.file("default.project.json"),
+			"-i",
+			fixture.file("include"),
+		]);
+
+		expect(result.status).toBe(0);
+		expect(fixture.read("out/game/init.luau")).toContain('"helper"');
+		expect(fixture.read("out/game/helper.luau")).toContain("value = 42");
+		expect(fixture.read("out/game/helper.d.ts")).toContain("value = 42");
+	} finally {
+		fixture.close();
+	}
+});
+
 it.each(["1", "getInitial()"])("compiles shared constant dependencies within the CLI timeout (seed: %s)", seed => {
 	const fixture = new ReferenceFixture();
 	try {
