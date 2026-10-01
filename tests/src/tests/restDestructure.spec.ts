@@ -224,6 +224,46 @@ export = () => {
 		}
 	});
 
+	it("initializes fixed tuple iterator rest bindings before every loop body", () => {
+		let iteration = 0;
+		const iterator = (() => {
+			iteration++;
+			if (iteration <= 2) {
+				return $tuple(iteration, iteration + 10, iteration + 20);
+			}
+			return $tuple(undefined!, undefined!, undefined!);
+		}) as IterableFunction<LuaTuple<[number, number, number]>>;
+		const seen = new Array<string>();
+
+		for (const [first, ...rest] of iterator) {
+			seen.push(`${first}:${rest.join(",")}`);
+			if (first === 1) {
+				continue;
+			}
+			assert(first === 2 && rest[0] === 12 && rest[1] === 22);
+		}
+
+		assert(seen.join(";") === "1:11,21;2:12,22");
+	});
+
+	it("initializes fixed tuple iterator object bindings before the loop body", () => {
+		let iteration = 0;
+		const iterator = (() => {
+			iteration++;
+			if (iteration <= 2) {
+				return $tuple(iteration, [iteration + 10]);
+			}
+			return $tuple(undefined!, undefined!);
+		}) as IterableFunction<LuaTuple<[number, number[]]>>;
+		let sum = 0;
+
+		for (const { 0: first, 1: [second] } of iterator) {
+			sum += first + second;
+		}
+
+		assert(sum === 26);
+	});
+
 	it("collects rest in a tuple iterator loop assignment", () => {
 		let first: string | number;
 		let rest: Array<string | number>;
