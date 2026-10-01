@@ -41,6 +41,9 @@
 - Fixed using `$tuple()` with a type assertion ([#2809][2809])
 - Fixed `for...of` loops dropping variadic elements from `IterableFunction<LuaTuple<T>>` ([#3044][3044])
 - Fixed tuple iterator loops and array spreads continuing after the first return value is `undefined` ([#3064][3064])
+- Fixed missing `LuaTuple` values being returned as empty tables ([#3101][3101])
+	- `Map.get()`, `Array.pop()`, `Array.shift()`, and `Array.remove()` now return a stored `LuaTuple` value or `undefined` directly
+	- functions returning `LuaTuple<T> | undefined` now return `undefined` when no tuple is returned
 - Fixed callbacks whose generic `this` type resolves to `void` emitting an unnecessary `self` parameter ([#3078][3078])
 - Fixed direct and optional calls shifting arguments when a function expects a `this` receiver ([#3082][3082])
 - Fixed async functions continuing to run after cancellation ([#2957][2957])
@@ -65,6 +68,10 @@
 - Assigning or passing functions with incompatible method and callback conventions now reports an error in more cases ([#3083][3083])
 - Generic `this` types that can change between method and callback conventions now report an error ([#3078][3078])
 	- use `this: void` for callbacks, or constrain the receiver type to exclude `void`
+- Functions returning `LuaTuple<T> | undefined` now return one tuple table or `nil` instead of multiple values ([#3101][3101])
+	- this also applies to functions declared in `.d.ts` files, so typings for Luau functions that return several values or nothing should use `LuaTuple<[A, B] | [undefined, undefined]>`
+	- packages built with an earlier roblox-ts version that export such functions must be rebuilt
+	- assigning or passing a function returning `LuaTuple<T>` where one returning `LuaTuple<T> | undefined` is expected now reports an error; wrap it in a function expression, such as `() => pair()`
 - Bundled runtime files are now named `RuntimeLib.luau` and `Promise.luau` ([#2810][2810])
 	- update any Rojo mappings or tooling that explicitly reference the old `.lua` filenames
 	- `--luau=false` copies the runtime files with `.lua` extensions to preserve the old behavior
@@ -826,4 +833,5 @@ Changes prior to 1.0.0-beta.0 have been removed from this page since the entire 
 [3083]: https://github.com/roblox-ts/roblox-ts/pull/3083
 [3087]: https://github.com/roblox-ts/roblox-ts/pull/3087
 [3090]: https://github.com/roblox-ts/roblox-ts/pull/3090
+[3101]: https://github.com/roblox-ts/roblox-ts/pull/3101
 [roblox-ts/luau-ast#483]: https://github.com/roblox-ts/luau-ast/pull/483

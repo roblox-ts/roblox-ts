@@ -64,5 +64,6 @@ export function transformMacroCall(
 			args.filter(arg => !luau.isNone(arg)),
 		),
 	);
-	return wrapReturnIfLuaTuple(state, node, result);
+	// only calls can return multiple values; stored tuples from collection macros are already one value
+	return luau.isCall(result) ? wrapReturnIfLuaTuple(state, node, result) : result;
 }

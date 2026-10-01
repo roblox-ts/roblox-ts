@@ -60,7 +60,7 @@ export function transformElementAccessExpressionInner(
 		)
 	) {
 		// hack because wrapReturnIfLuaTuple will not wrap this, but now we need to!
-		if (isLuaTupleType(state)(receiverType)) {
+		if (luau.isCall(expression) && isLuaTupleType(state)(receiverType)) {
 			expression = luau.array([expression]);
 		}
 

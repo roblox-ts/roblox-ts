@@ -72,6 +72,15 @@ one value or `nil`: `tonumber(foo())` can error if `foo` returns no values. Pres
 [wrapReturnIfLuaTuple.ts](../src/TSTransformer/util/wrapReturnIfLuaTuple.ts) and `fixVoidArgumentsForRobloxFunctions`
 in [transformCallExpression.ts](../src/TSTransformer/nodes/expressions/transformCallExpression.ts).
 
+A function returning `LuaTuple<T> | undefined` returns one tuple table or `nil`; a function returning
+`LuaTuple<T>` returns multiple values. Keep this distinction in callable assignments, type assertions, callback
+parameters and returns, and overloads, including callbacks nested in objects or indexed containers. Calls through unions
+must also agree on the return convention. An unannotated function expression adopts a nullable tuple return from its
+contextual type, so `run(() => pair())` boxes its result. To widen an existing pure tuple-returning function, wrap it
+in that context, or annotate a wrapper such as `(): LuaTuple<[number, number]> | undefined => pair()` elsewhere.
+Declared functions follow the same conventions. Typings for Luau functions that return several values or nothing use
+`LuaTuple<[A, B] | [undefined, undefined]>`, which keeps multiple returns.
+
 Luau treats `0` and `""` as truthy. Use the shared truthiness helpers for TypeScript conditions. TypeScript arrays need
 index offsets; numeric keys on ordinary objects do not. Reuse the type and indexing helpers rather than applying
 either rule by syntax alone.
