@@ -325,4 +325,77 @@ export = () => {
 		const missing = [1, 2].reduce<LuaTuple<[number, number]> | undefined>(() => undefined, undefined);
 		expect(missing).to.equal(undefined);
 	});
+
+	it("should preserve compatible generic higher-order callbacks", () => {
+		type Pair = LuaTuple<[number, number]>;
+		function source<T>(callback: (value: T) => Pair, value: T): number {
+			return callback(value)[1];
+		}
+		const target: <U>(callback: (value: U) => Pair, value: U) => number = source;
+		expect(target(pair, 1)).to.equal(60);
+
+		function nullable<T>(callback: (value: T) => Pair | undefined, value: T): number {
+			return callback(value)![1];
+		}
+		const nullableTarget: <U>(callback: (value: U) => Pair | undefined, value: U) => number = nullable;
+		expect(nullableTarget((): Pair | undefined => pair(), 1)).to.equal(60);
+
+		function factory<T>(value: T): (value: T) => Pair {
+			return (value: T): Pair => pair();
+		}
+		const make: <U>(value: U) => (value: U) => Pair = factory;
+		expect(make(1)(1)[1]).to.equal(60);
+
+		function constrained<T extends Pair>(callback: () => T): number {
+			return callback()[1];
+		}
+		const constrainedTarget: <U extends Pair>(callback: () => U) => number = constrained;
+		expect(constrainedTarget(pair)).to.equal(60);
+	});
+
+	it("should preserve recursive generic callback containers", () => {
+		type Pair = LuaTuple<[number, number]>;
+		interface Source {
+			next: <T>(value: T) => Source;
+			callback: <T>(value: T) => Pair;
+			extra: boolean;
+		}
+		interface Target {
+			next: <T>(value: T) => Target;
+			callback: <T>(value: T) => Pair;
+		}
+		const original: Source = { next: <T>(value: T) => original, callback: pair, extra: true };
+		const target: Target = original;
+		expect(target.next(1).callback("value")[1]).to.equal(60);
+	});
+
+	it("should preserve compatible overload return conventions", () => {
+		type Pair = LuaTuple<[number, number]>;
+		function pure(value: number): Pair;
+		function pure(value: string): Pair;
+		function pure(value: number | string) {
+			return $tuple(50, 60);
+		}
+		function nullable(value: number): Pair | undefined;
+		function nullable(value: string): Pair | undefined;
+		function nullable(value: number | string): Pair | undefined {
+			return pair();
+		}
+		class Example {
+			pure(): Pair;
+			pure() {
+				return $tuple(50, 60);
+			}
+			nullable(): Pair | undefined;
+			nullable(): Pair | undefined {
+				return pair();
+			}
+		}
+		expect(pure(1)[1]).to.equal(60);
+		expect(pure("value")[1]).to.equal(60);
+		expect(nullable(1)![1]).to.equal(60);
+		expect(nullable("value")![1]).to.equal(60);
+		expect(new Example().pure()[1]).to.equal(60);
+		expect(new Example().nullable()![1]).to.equal(60);
+	});
 };

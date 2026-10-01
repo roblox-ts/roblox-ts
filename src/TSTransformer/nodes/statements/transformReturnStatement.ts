@@ -21,12 +21,16 @@ function returnsNullableLuaTuple(state: TransformState, node: ts.Expression) {
 	const returnType = state.typeChecker.getReturnTypeOfSignature(signature);
 	const nullableTuple = isNullableLuaTupleType(state)(returnType);
 	if (
-		nullableTuple &&
 		declaration.name &&
 		state
 			.getType(declaration.name)
 			.getCallSignatures()
-			.some(overload => isLuaTupleType(state)(state.typeChecker.getReturnTypeOfSignature(overload)))
+			.some(overload => {
+				const overloadReturn = state.typeChecker.getReturnTypeOfSignature(overload);
+				return nullableTuple
+					? isLuaTupleType(state)(overloadReturn)
+					: isLuaTupleType(state)(returnType) && isNullableLuaTupleType(state)(overloadReturn);
+			})
 	) {
 		DiagnosticService.addDiagnosticWithCache(
 			declaration,

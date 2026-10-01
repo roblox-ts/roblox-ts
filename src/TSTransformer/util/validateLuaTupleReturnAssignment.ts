@@ -21,6 +21,7 @@ function hasLuaTupleReturnWidening(
 		state.services.macroManager.getPropertyCallMacro(type.symbol) !== undefined;
 
 	const visited = new Map<ts.Type, Set<ts.Type>>();
+	const activeSignatures = new Map<ts.Signature, Set<ts.Signature>>();
 	function hasWidening(source: ts.Type, target: ts.Type): boolean {
 		source = state.typeChecker.getNonNullableType(source.getConstraint() ?? source);
 		target = state.typeChecker.getNonNullableType(target.getConstraint() ?? target);
@@ -67,10 +68,20 @@ function hasLuaTupleReturnWidening(
 		// returned callbacks keep their direction, while callers of the target pass arguments to the source
 		for (const sourceSignature of source.getCallSignatures()) {
 			for (const targetSignature of target.getCallSignatures()) {
-				// generic signatures instantiate fresh types on each visit, so the visited pairs never repeat
-				if (sourceSignature.typeParameters || targetSignature.typeParameters) {
+				// instantiated generic signatures can recreate types along a recursive path
+				// only guard active pairs so separate concrete instantiations are still compared
+				const sourceKey = sourceSignature.typeParameters
+					? (sourceSignature.target ?? sourceSignature)
+					: sourceSignature;
+				const targetKey = targetSignature.typeParameters
+					? (targetSignature.target ?? targetSignature)
+					: targetSignature;
+				const targets = getOrSetDefault(activeSignatures, sourceKey, () => new Set());
+				if (targets.has(targetKey)) {
 					continue;
 				}
+				targets.add(targetKey);
+
 				if (
 					hasWidening(
 						state.typeChecker.getReturnTypeOfSignature(sourceSignature),
@@ -91,6 +102,7 @@ function hasLuaTupleReturnWidening(
 						return true;
 					}
 				}
+				targets.delete(targetKey);
 			}
 		}
 
