@@ -16,6 +16,7 @@ import { TransformServices, TryUses } from "TSTransformer/types";
 import { createGetService } from "TSTransformer/util/createGetService";
 import { propertyAccessExpressionChain } from "TSTransformer/util/expressionChain";
 import { getBlockCommentText } from "TSTransformer/util/getBlockCommentText";
+import { getOriginalSourcePosition } from "TSTransformer/util/getOriginalSourcePosition";
 import { getModuleAncestor, skipUpwards } from "TSTransformer/util/traversal";
 import ts from "typescript";
 
@@ -114,6 +115,20 @@ export class TransformState {
 				);
 			}),
 		);
+	}
+
+	public setSourceOrigin<T extends luau.Node>(node: T, sourceNode: ts.Node): T {
+		if (!this.compilerOptions.sourceMap) {
+			return node;
+		}
+
+		const start = getOriginalSourcePosition(this.multiTransformState, sourceNode);
+		if (!start) {
+			return node;
+		}
+
+		const closing = getOriginalSourcePosition(this.multiTransformState, sourceNode, n => n.getEnd() - 1);
+		return luau.setNodeOrigin(node, { start, closing });
 	}
 
 	public readonly hoistsByStatement = new Map<ts.Statement | ts.CaseClause, Array<ts.Identifier>>();

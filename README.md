@@ -18,6 +18,18 @@
 
 Ready to dive in? [Check out the documentation.](https://roblox-ts.com/docs)
 
+## Source maps
+
+Set `compilerOptions.sourceMap` to `true` in `tsconfig.json` to emit a V3 source map beside each compiled file, such as `init.luau.map` or `init.lua.map`. Maps contain the original TypeScript source text and relative filesystem paths with `/` separators. Literal characters in paths, including spaces, `#`, `%`, and Unicode, are preserved.
+
+Generated mappings use column zero for statement starts and block-closing keywords. Expression-level columns are not mapped.
+
+Compiler-generated statements are mapped only when they have a TypeScript syntax anchor. Namespace export assignments inherit the exported declaration's position. Hoists and plugin-generated syntax without an original printer mapping remain unmapped.
+
+Maps update independently of Luau output when `writeOnlyChanged` is enabled. Successful builds remove maps for deleted inputs and remove stale maps when `sourceMap` is disabled. Builds that fail diagnostics preserve existing Luau and map files.
+
+This option produces external JSON files for tools that consume source maps. It does not install a Studio debugger or configure Rojo to synchronize maps. Inline maps and the TypeScript `sourceRoot` and `mapRoot` options are not supported.
+
 ## Join the Community!
 
 https://discord.roblox-ts.com
