@@ -16,7 +16,7 @@ export class ReferenceFixture {
 	private readonly projects = new Set<string>();
 	private readonly builds = new Array<ProjectBuild>();
 
-	constructor() {
+	constructor(private readonly projectOptions: Partial<ProjectOptions> = {}) {
 		fs.copySync(path.join(PACKAGE_ROOT, "tests/node_modules"), this.file("node_modules"));
 
 		this.json("package.json", { name: "reference-fixture", version: "1.0.0" });
@@ -88,7 +88,12 @@ export class ReferenceFixture {
 	}
 
 	public options(): Partial<ProjectOptions> {
-		return { rojo: this.file("default.project.json"), includePath: this.file("include"), writeOnlyChanged: true };
+		return {
+			rojo: this.file("default.project.json"),
+			includePath: this.file("include"),
+			writeOnlyChanged: true,
+			...this.projectOptions,
+		};
 	}
 
 	public createBuild(options: Partial<ProjectOptions> = {}, project = "game") {

@@ -3,7 +3,7 @@ import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { EvaluationOperand, planEvaluation } from "TSTransformer/util/evaluation/plan";
 import { getLiteralNumberValue } from "TSTransformer/util/getLiteralNumberValue";
 import { offset } from "TSTransformer/util/offset";
-import { isPossiblyType, isStringType } from "TSTransformer/util/types";
+import { isDefinitelyType, isPossiblyType, isStringType } from "TSTransformer/util/types";
 import ts from "typescript";
 
 export function createStringIndexExpression(
@@ -33,8 +33,28 @@ export function createStringIndexExpression(
 			if (literalIndex === undefined) {
 				// TypeScript also accepts numeric string keys such as "0"
 				if (isPossiblyType(indexType, isStringType)) {
+					const key = index;
 					index = indexPrereqs.pushToVar(luau.call(luau.id("tonumber"), [index]), "index");
 					conditions.push(luau.binary(index, "~=", luau.nil()));
+
+					// string keys must spell a nonnegative integer without signs, padding, or exponents
+					let canonicalKey = luau.binary(
+						luau.binary(key, "==", luau.string("0")),
+						"or",
+						luau.binary(
+							luau.call(luau.globals.string.match, [key, luau.string("^[1-9]%d*$")]),
+							"~=",
+							luau.nil(),
+						),
+					);
+					if (!isDefinitelyType(indexType, isStringType)) {
+						canonicalKey = luau.binary(
+							luau.binary(luau.call(luau.globals.type, [key]), "==", luau.string("number")),
+							"or",
+							canonicalKey,
+						);
+					}
+					conditions.push(canonicalKey);
 				}
 				conditions.push(luau.binary(index, ">=", luau.number(0)));
 				conditions.push(luau.binary(luau.binary(index, "%", luau.number(1)), "==", luau.number(0)));

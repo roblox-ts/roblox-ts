@@ -1,0 +1,23 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`builds nested lib/spec solutions with independent game runtimes 1`] = `
+{
+  "first/out-test/main.server.luau": "local TS = require(game:GetService("ReplicatedStorage"):WaitForChild("runtime"):WaitForChild("RuntimeLib"))
+local answer = TS.import(script, game:GetService("ReplicatedStorage"), "first").answer
+assert(answer == 42)
+print("first passed")
+",
+  "first/out/init.luau": "local TS = _G[script]
+local value = TS.import(script, script, "value").value
+local answer = value
+return {
+	answer = answer,
+}
+",
+  "second/out-test/main.server.luau": "local TS = require(game:GetService("ReplicatedStorage"):WaitForChild("runtime"):WaitForChild("RuntimeLib"))
+local answer = TS.import(script, game:GetService("ReplicatedStorage"), "relocated").answer
+assert(answer == 42)
+print("second passed")
+",
+}
+`;

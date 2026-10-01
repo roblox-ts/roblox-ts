@@ -76,7 +76,11 @@ export function compileFiles(
 		LogService.warn(warning);
 	}
 
-	checkRojoConfig(data, rojoResolver, getRootDirs(compilerOptions), pathTranslator);
+	const inputFileNames = program
+		.getSourceFiles()
+		.filter(sourceFile => !sourceFile.isDeclarationFile && !program.isSourceFileFromExternalLibrary(sourceFile))
+		.map(sourceFile => sourceFile.fileName);
+	checkRojoConfig(data, rojoResolver, getRootDirs(compilerOptions), inputFileNames, pathTranslator);
 
 	for (const sourceFile of program.getSourceFiles()) {
 		if (!path.normalize(sourceFile.fileName).startsWith(data.nodeModulesPath)) {
