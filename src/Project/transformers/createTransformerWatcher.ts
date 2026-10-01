@@ -7,7 +7,7 @@ function createServiceHost(program: ts.Program) {
 	assert(ts.sys.createHash);
 	const createHash = ts.sys.createHash;
 
-	const rootFileNames = program.getRootFileNames().map(x => x);
+	const rootFileNames = new Set(program.getRootFileNames());
 	const files = new Map<string, number>();
 
 	rootFileNames.forEach(fileName => {
@@ -25,6 +25,9 @@ function createServiceHost(program: ts.Program) {
 	}
 
 	function updateFile(fileName: string, text: string) {
+		// a plugin can remove the last import of a source that still needs to be compiled
+		rootFileNames.add(fileName);
+
 		const key = getCanonicalFileName(fileName);
 		overriddenText.set(key, text);
 
@@ -33,7 +36,7 @@ function createServiceHost(program: ts.Program) {
 	}
 
 	const serviceHost: ts.LanguageServiceHost = {
-		getScriptFileNames: () => rootFileNames.filter(fileName => program.getSourceFile(fileName) !== undefined),
+		getScriptFileNames: () => [...rootFileNames].filter(fileName => program.getSourceFile(fileName) !== undefined),
 		getCurrentDirectory: () => process.cwd(),
 		getCompilationSettings: () => program.getCompilerOptions(),
 		getDefaultLibFileName: options => ts.getDefaultLibFilePath(options),
