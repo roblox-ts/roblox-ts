@@ -95,7 +95,10 @@ export function transformClassConstructor(
 	node: ts.ConstructorDeclaration & { body: ts.Block },
 	name: luau.AnyIdentifier,
 ) {
-	const { statements, parameters, hasDotDotDot } = transformParameters(state, node);
+	const { statements, parameters, hasDotDotDot, varArgsData } = transformParameters(state, node);
+
+	state.pushFunction(varArgsData);
+
 	const bodyStatements = getStatements(node.body);
 
 	// property parameters must come after the first super() call
@@ -121,7 +124,7 @@ export function transformClassConstructor(
 
 	luau.list.pushList(statements, transformStatementList(state, node.body, bodyStatements.slice(superIndex + 1)));
 
-	return luau.list.make<luau.Statement>(
+	const result = luau.list.make<luau.Statement>(
 		luau.create(luau.SyntaxKind.MethodDeclaration, {
 			expression: name,
 			name: CONSTRUCTOR,
@@ -130,4 +133,8 @@ export function transformClassConstructor(
 			hasDotDotDot,
 		}),
 	);
+
+	state.popFunction();
+
+	return result;
 }

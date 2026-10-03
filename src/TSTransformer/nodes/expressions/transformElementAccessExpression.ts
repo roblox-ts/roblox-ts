@@ -16,6 +16,7 @@ import { offset } from "TSTransformer/util/offset";
 import { skipUpwards } from "TSTransformer/util/traversal";
 import { isDefinitelyType, isLuaTupleType, isMixedStringType, isStringType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
+import { tryHandleVarArgsIndexableExpression } from "TSTransformer/util/varArgsOptimization";
 import ts from "typescript";
 
 export function transformElementAccessExpressionInner(
@@ -90,6 +91,11 @@ export function transformElementAccessExpressionInner(
 			}),
 		);
 		return luau.none();
+	}
+
+	const optimized = tryHandleVarArgsIndexableExpression(state, node, index);
+	if (optimized) {
+		return optimized;
 	}
 
 	const access = luau.create(luau.SyntaxKind.ComputedIndexExpression, {

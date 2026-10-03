@@ -13,6 +13,7 @@ import { effectsCommute, getEffects, isLateRead, joinEffects, NO_EFFECTS } from 
 import { isMethod, isMethodFromType } from "TSTransformer/util/isMethod";
 import { getFirstDefinedSymbol, isPossiblyType, isRobloxType, isUndefinedType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
+import { tryHandleVarArgsCallMacro } from "TSTransformer/util/varArgsOptimization";
 import { wrapReturnIfLuaTuple } from "TSTransformer/util/wrapReturnIfLuaTuple";
 import ts from "typescript";
 
@@ -72,7 +73,10 @@ export function transformCallExpressionInner(
 	if (symbol) {
 		const macro = state.services.macroManager.getCallMacro(symbol);
 		if (macro) {
-			return transformMacroCall(macro, state, prereqs, node, expression, nodeArguments);
+			return (
+				tryHandleVarArgsCallMacro(state, node, symbol) ??
+				transformMacroCall(macro, state, prereqs, node, expression, nodeArguments)
+			);
 		}
 	}
 
@@ -179,7 +183,10 @@ export function transformPropertyCallExpressionInner(
 	if (symbol) {
 		const macro = state.services.macroManager.getPropertyCallMacro(symbol);
 		if (macro) {
-			return transformMacroCall(macro, state, prereqs, node, baseExpression, nodeArguments);
+			return (
+				tryHandleVarArgsCallMacro(state, node, symbol) ??
+				transformMacroCall(macro, state, prereqs, node, baseExpression, nodeArguments)
+			);
 		}
 	}
 
@@ -230,7 +237,10 @@ export function transformElementCallExpressionInner(
 	if (symbol) {
 		const macro = state.services.macroManager.getPropertyCallMacro(symbol);
 		if (macro) {
-			return transformMacroCall(macro, state, prereqs, node, baseExpression, nodeArguments);
+			return (
+				tryHandleVarArgsCallMacro(state, node, symbol) ??
+				transformMacroCall(macro, state, prereqs, node, baseExpression, nodeArguments)
+			);
 		}
 	}
 
