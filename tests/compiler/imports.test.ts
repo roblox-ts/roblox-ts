@@ -36,6 +36,16 @@ it.each(["export { Value };", "export default Value;", "export = Value;"])(
 	},
 );
 
+it.each(['export type { default as Value } from "./value";', 'export { type default as Value } from "./value";'])(
+	"elides type-only default re-exports with %s",
+	source => {
+		const project = createTestProject();
+		project.vfs.writeFile("/src/value.ts", "class Value { value = 42; } export = Value;");
+
+		expect(project.compileSource(source)).toBe("return nil\n");
+	},
+);
+
 it("elides type-only mutable exports without redirecting local reads or writes", () => {
 	const output = createTestProject().compileSource("let value = 1; export type { value }; value = 2; print(value);");
 
@@ -146,6 +156,82 @@ it("preserves verbatim import side effects and value re-exports with noCheck", (
 	} finally {
 		fixture.close();
 	}
+});
+
+it.each([
+	["class", "class Value { value = 42; } export = Value;"],
+	["class with a static default", "class Value { static default = 43; value = 42; } export = Value;"],
+	["function", "function value() { return 42; } export = value;"],
+	["object", "const value = { value: 42 }; export = value;"],
+])("re-exports an export-equals %s through a default alias", (_, source) => {
+	const project = createTestProject();
+	project.vfs.writeFile("/src/value.ts", source);
+
+	const output = project.compileSource('export { default as Value } from "./value";');
+
+	expect(output).not.toContain(".default");
+	expect(output).toContain('exports.Value = TS.import(script, script.Parent, "value")');
+	expect(output).toMatchSnapshot();
+});
+
+it("re-exports an export-equals object with a default property as the complete module", () => {
+	const project = createTestProject();
+	project.vfs.writeFile("/src/value.ts", "const value = { value: 42, default: 43 }; export = value;");
+
+	const output = project.compileSource('export { default } from "./value";');
+
+	expect(output).toContain('exports.default = TS.import(script, script.Parent, "value")\n');
+	expect(output).toMatchSnapshot();
+});
+
+it("re-exports an export-equals package through a default alias", () => {
+	const project = createTestProject();
+	project.vfs.writeFile(
+		"/node_modules/@rbxts/example/index.d.ts",
+		"declare namespace Library { function createElement(): number; } export = Library;",
+	);
+	project.setMapping("/node_modules/@rbxts/example/index.d.ts", "/node_modules/@rbxts/example/init.luau");
+
+	const output = project.compileSource('export { default as Library } from "@rbxts/example";');
+
+	expect(output).not.toContain(".default");
+	expect(output).toContain("exports.Library = TS.import");
+	expect(output).toMatchSnapshot();
+});
+
+it("re-exports default aliases and named properties with one import", () => {
+	const project = createTestProject();
+	project.vfs.writeFile("/src/value.ts", "const value = { value: 42 }; export = value;");
+
+	const output = project.compileSource(
+		'export { default as first, "default" as "second-alias", value } from "./value";',
+	);
+
+	expect(output).not.toContain(".default");
+	expect(output.match(/TS\.import\(/g)).toHaveLength(1);
+	expect(output).toMatchSnapshot();
+});
+
+it("re-exports default values and named exports from ES modules", () => {
+	const project = createTestProject();
+	project.vfs.writeFile("/src/value.ts", "export default 42; export const named = 43;");
+
+	const output = project.compileSource('export { default as value, named } from "./value";');
+
+	expect(output).toContain(".default");
+	expect(output.match(/TS\.import\(/g)).toHaveLength(1);
+	expect(output).toMatchSnapshot();
+});
+
+it("re-exports defaults through a barrel without unwrapping its module", () => {
+	const project = createTestProject();
+	project.vfs.writeFile("/src/value.ts", "const value = { value: 42 }; export = value;");
+	project.vfs.writeFile("/src/barrel.ts", 'export { default } from "./value";');
+
+	const output = project.compileSource('export { default as Value } from "./barrel";');
+
+	expect(output).toContain('exports.Value = TS.import(script, script.Parent, "barrel").default');
+	expect(output).toMatchSnapshot();
 });
 
 it("uses relative imports within an isolated game container", () => {

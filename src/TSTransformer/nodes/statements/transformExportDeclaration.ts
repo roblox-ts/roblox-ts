@@ -70,12 +70,22 @@ function transformExportFrom(state: TransformState, node: ts.ExportDeclaration) 
 	const moduleId = state.getModuleIdFromNode(node);
 	if (exportClause) {
 		if (ts.isNamedExports(exportClause)) {
+			const moduleSymbol = state.typeChecker.getSymbolAtLocation(node.moduleSpecifier);
+			const isExportEquals = moduleSymbol?.exports?.has(ts.InternalSymbolName.ExportEquals);
+
 			// export { a, b, c } from "./module";
 			for (const element of exportClause.elements) {
 				if (isExportSpecifierValue(state, element)) {
 					const namePrereqs = new Prereqs();
 					const exportName = transformPropertyName(state, namePrereqs, element.name);
-					const importName = transformPropertyName(state, namePrereqs, element.propertyName ?? element.name);
+					const importName = element.propertyName ?? element.name;
+					const value =
+						importName.text === "default" && isExportEquals
+							? importExp
+							: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+									expression: importExp,
+									index: transformPropertyName(state, namePrereqs, importName),
+								});
 					luau.list.pushList(statements, namePrereqs.statements);
 					luau.list.push(
 						statements,
@@ -85,10 +95,7 @@ function transformExportFrom(state: TransformState, node: ts.ExportDeclaration) 
 								index: exportName,
 							}),
 							operator: "=",
-							right: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-								expression: importExp,
-								index: importName,
-							}),
+							right: value,
 						}),
 					);
 				}
