@@ -3,6 +3,11 @@ import { effects } from "./moduleSyntax/effects";
 import anonymous from "./moduleSyntax/defaultAnonymous";
 import DefaultClass from "./moduleSyntax/defaultClass";
 import named from "./moduleSyntax/defaultNamed";
+import defaultReExport, * as reExported from "./moduleSyntax/defaultReExport";
+import { value as chainedReExport } from "./moduleSyntax/defaultReExportChain";
+import ExportEqualsClass = require("./moduleSyntax/exportEqualsClass");
+import exportEqualsFunction = require("./moduleSyntax/exportEqualsFunction");
+import exportEqualsObject = require("./moduleSyntax/exportEqualsObject");
 import * as directReExport from "./moduleSyntax/quotedDirectReExport";
 import {
 	"" as empty,
@@ -54,6 +59,32 @@ export = () => {
 		expect(named()).to.equal(42);
 		expect(anonymous()).to.equal(43);
 		expect(new DefaultClass().value).to.equal(44);
+	});
+
+	it("should re-export default values from export-equals modules", () => {
+		expect(reExported.Class).to.equal(ExportEqualsClass);
+		expect(reExported.ClassAlias).to.equal(ExportEqualsClass);
+		expect(new reExported.Class().value).to.equal(45);
+		expect(reExported.Class.default).to.equal(49);
+		expect(reExported.callback).to.equal(exportEqualsFunction);
+		expect(reExported.callback()).to.equal(46);
+		expect(defaultReExport).to.equal(exportEqualsObject);
+		expect(chainedReExport).to.equal(exportEqualsObject);
+		expect(reExported["quoted-object"]).to.equal(exportEqualsObject);
+		expect(defaultReExport.value).to.equal(47);
+		expect(defaultReExport.default).to.equal(48);
+		expect(reExported.objectValue).to.equal(47);
+	});
+
+	it("should preserve ES module default re-exports and erase type-only aliases", () => {
+		const value: reExported.ClassType = new reExported.Class();
+		const inlineValue: reExported.InlineType = value;
+
+		expect(reExported.DefaultClass).to.equal(DefaultClass);
+		expect(new reExported.DefaultClass().value).to.equal(44);
+		expect(inlineValue.value).to.equal(45);
+		expect("ClassType" in reExported).to.equal(false);
+		expect("InlineType" in reExported).to.equal(false);
 	});
 
 	it("should re-export values and elide type-only re-exports", () => {

@@ -7,23 +7,26 @@ import ts from "typescript";
 import { createTestProject } from "./createTestProject";
 import { expectSuccess, ReferenceFixture } from "./referenceFixture";
 
-it.each(['export * from "./missing";', 'export * as missing from "./missing";'])(
-	"reports an unresolved re-export with semantic checks disabled: %s",
-	source => {
-		const project = createTestProject({ allowCommentDirectives: true });
+it.each([
+	'export * from "./missing";',
+	'export * as missing from "./missing";',
+	'export { default as missing } from "./missing";',
+	'export { default as missing } from "@rbxts/missing";',
+])("reports an unresolved re-export with semantic checks disabled: %s", source => {
+	const project = createTestProject({ allowCommentDirectives: true });
+	project.vfs.writeFile("/src/ambient.d.ts", 'declare module "@rbxts/missing";');
 
-		try {
-			project.compileSource(`// @ts-nocheck\n${source}`);
-			throw new Error("Expected a module resolution diagnostic");
-		} catch (error) {
-			expect(error).toBeInstanceOf(DiagnosticError);
-			if (!(error instanceof DiagnosticError)) {
-				throw error;
-			}
-			expect(error.diagnostics.map(getDiagnosticId)).toEqual([errors.noModuleSpecifierFile.id]);
+	try {
+		project.compileSource(`// @ts-nocheck\n${source}`);
+		throw new Error("Expected a module resolution diagnostic");
+	} catch (error) {
+		expect(error).toBeInstanceOf(DiagnosticError);
+		if (!(error instanceof DiagnosticError)) {
+			throw error;
 		}
-	},
-);
+		expect(error.diagnostics.map(getDiagnosticId)).toEqual([errors.noModuleSpecifierFile.id]);
+	}
+});
 
 it.each([
 	["unmapped dependency", {}, errors.noRojoData],

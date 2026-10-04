@@ -67,6 +67,83 @@ return nil
 "
 `;
 
+exports[`re-exports an export-equals class through a default alias 1`] = `
+"local TS = _G[script]
+local exports = {}
+exports.Value = TS.import(script, script.Parent, "value")
+return exports
+"
+`;
+
+exports[`re-exports an export-equals class with a static default through a default alias 1`] = `
+"local TS = _G[script]
+local exports = {}
+exports.Value = TS.import(script, script.Parent, "value")
+return exports
+"
+`;
+
+exports[`re-exports an export-equals function through a default alias 1`] = `
+"local TS = _G[script]
+local exports = {}
+exports.Value = TS.import(script, script.Parent, "value")
+return exports
+"
+`;
+
+exports[`re-exports an export-equals object through a default alias 1`] = `
+"local TS = _G[script]
+local exports = {}
+exports.Value = TS.import(script, script.Parent, "value")
+return exports
+"
+`;
+
+exports[`re-exports an export-equals object with a default property as the complete module 1`] = `
+"local TS = _G[script]
+local exports = {}
+exports.default = TS.import(script, script.Parent, "value")
+return exports
+"
+`;
+
+exports[`re-exports an export-equals package through a default alias 1`] = `
+"local TS = _G[script]
+local exports = {}
+exports.Library = TS.import(script, script.Parent, "include", "node_modules", "@rbxts", "example")
+return exports
+"
+`;
+
+exports[`re-exports default aliases and named properties with one import 1`] = `
+"local TS = _G[script]
+local exports = {}
+local _value = TS.import(script, script.Parent, "value")
+exports.first = _value
+exports["second-alias"] = _value
+exports.value = _value.value
+return exports
+"
+`;
+
+exports[`re-exports default values and named exports from ES modules 1`] = `
+"local TS = _G[script]
+local exports = {}
+local _value = TS.import(script, script.Parent, "value")
+exports.value = _value.default
+exports.named = _value.named
+return exports
+"
+`;
+
+exports[`re-exports defaults through a barrel without unwrapping its module 1`] = `
+"local TS = _G[script]
+local exports = {}
+exports.Value = TS.import(script, script.Parent, "barrel").default
+return exports
+"
+`;
+
 exports[`uses relative imports within an isolated game container 1`] = `
 "local TS = require(game:GetService("ReplicatedStorage"):WaitForChild("include"):WaitForChild("RuntimeLib"))
 local value = TS.import(script, script, "value").value
