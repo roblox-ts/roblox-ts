@@ -29,6 +29,15 @@ export class TransformState {
 
 	public classIdentifierMap = new Map<ts.ClassLikeDeclaration, luau.AnyIdentifier>();
 
+	/**
+	 * Flags used to continue an enclosing loop from inside a `switch` statement.
+	 *
+	 * A `switch` compiles to `repeat ... until true`, which Luau's `continue` targets instead of the loop.
+	 * An entry is only created when a `continue` actually crosses the `switch`, so unaffected
+	 * `switch` statements keep emitting their existing output.
+	 */
+	public readonly switchContinueFlags = new Map<ts.SwitchStatement, luau.TemporaryIdentifier>();
+
 	public debugRender(node: luau.Node) {
 		const state = new RenderState();
 		solveTempIds(state, node);

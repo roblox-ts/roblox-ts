@@ -1,5 +1,61 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
+exports[`avoids continue flags for loops inside a case 1`] = `
+"for _, value in { 1, 2 } do
+	repeat
+		if value == 1 then
+			for _1, inner in { 1, 2 } do
+				if inner == 1 then
+					continue
+				end
+				print(inner)
+			end
+			break
+		end
+	until true
+	print(value)
+end
+return nil
+"
+`;
+
+exports[`avoids continue flags for switch statements without a continue 1`] = `
+"for _, value in { 1, 2 } do
+	repeat
+		if value == 1 then
+			print("a")
+			break
+		end
+		print("b")
+	until true
+	print(value)
+end
+return nil
+"
+`;
+
+exports[`avoids continue flags for try statements inside a case 1`] = `
+"local TS = _G[script]
+for _, value in { 1, 2 } do
+	repeat
+		local _fallthrough = false
+		if value == 2 then
+			local _exitType, _returns = TS.try(function()
+				return TS.TRY_CONTINUE
+			end, nil, function()
+				print("c")
+			end)
+			if _exitType then
+				continue
+			end
+		end
+	until true
+	print(value)
+end
+return nil
+"
+`;
+
 exports[`avoids operand captures for boolean cases with a mutable local 1`] = `
 "local value = true
 repeat
@@ -47,6 +103,181 @@ exports[`avoids operand captures for wrapped numeric and template literal cases 
 			return 2
 		end
 	until true
+end
+return nil
+"
+`;
+
+exports[`continues the enclosing loop from inside a switch for do-while loops 1`] = `
+"local count = 0
+repeat
+	do
+		count += 1
+		local _continue = false
+		repeat
+			if count == 2 then
+				_continue = true
+				break
+			end
+		until true
+		if _continue then
+			continue
+		end
+		print(count)
+	end
+until not (count < 3)
+return nil
+"
+`;
+
+exports[`continues the enclosing loop from inside a switch for fallthrough clauses 1`] = `
+"for _, value in { 1, 2, 3 } do
+	local _continue = false
+	repeat
+		local _fallthrough = false
+		if value == 1 then
+			_fallthrough = true
+		end
+		if _fallthrough or value == 2 then
+			if value == 2 then
+				_continue = true
+				break
+			end
+			print("one or two")
+			break
+		end
+		print("other")
+	until true
+	if _continue then
+		continue
+	end
+	print(value)
+end
+return nil
+"
+`;
+
+exports[`continues the enclosing loop from inside a switch for for-of loops 1`] = `
+"for _, value in { 1, 2, 3 } do
+	local _continue = false
+	repeat
+		if value == 2 then
+			_continue = true
+			break
+		end
+	until true
+	if _continue then
+		continue
+	end
+	print(value)
+end
+return nil
+"
+`;
+
+exports[`continues the enclosing loop from inside a switch for multiple continues in one switch 1`] = `
+"for _, value in { 1, 2, 3 } do
+	local _continue = false
+	repeat
+		if value == 1 then
+			_continue = true
+			break
+		end
+		if value == 2 then
+			_continue = true
+			break
+		end
+	until true
+	if _continue then
+		continue
+	end
+	print(value)
+end
+return nil
+"
+`;
+
+exports[`continues the enclosing loop from inside a switch for nested switch statements 1`] = `
+"for _, value in { 1, 2 } do
+	local _continue = false
+	repeat
+		local _fallthrough = false
+		if value == 2 then
+			local _continue_1 = false
+			repeat
+				if value == 2 then
+					_continue_1 = true
+					break
+				end
+			until true
+			if _continue_1 then
+				_continue = true
+				break
+			end
+			print("outer")
+		end
+	until true
+	if _continue then
+		continue
+	end
+	print(value)
+end
+return nil
+"
+`;
+
+exports[`continues the enclosing loop from inside a switch for unoptimized for loops 1`] = `
+"do
+	local _i = 0
+	local _shouldIncrement = false
+	while true do
+		local i = _i
+		if _shouldIncrement then
+			i += 1
+		else
+			_shouldIncrement = true
+		end
+		if not (i < 6) then
+			break
+		end
+		local _continue = false
+		repeat
+			if i == 1 then
+				_continue = true
+				break
+			end
+			if i == 3 then
+				i += 1
+				break
+			end
+		until true
+		if _continue then
+			_i = i
+			continue
+		end
+		print(i)
+		_i = i
+	end
+end
+return nil
+"
+`;
+
+exports[`continues the enclosing loop from inside a switch for while loops 1`] = `
+"local count = 0
+while count < 3 do
+	count += 1
+	local _continue = false
+	repeat
+		if count == 2 then
+			_continue = true
+			break
+		end
+	until true
+	if _continue then
+		continue
+	end
+	print(count)
 end
 return nil
 "

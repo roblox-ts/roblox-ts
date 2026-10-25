@@ -305,4 +305,155 @@ export = () => {
 		expect(foo(3)).to.equal(0);
 		expect(foo(0)).to.equal(0);
 	});
+
+	it("should continue the enclosing loop from inside a switch", () => {
+		const visited = new Array<string>();
+
+		for (const value of [1, 2, 3]) {
+			switch (value) {
+				case 2:
+					visited.push("skipped");
+					continue;
+			}
+
+			visited.push(`after ${value}`);
+		}
+
+		expect(visited.join(",")).to.equal("after 1,skipped,after 3");
+	});
+
+	it("should re-evaluate the loop condition when continuing from inside a switch", () => {
+		const visited = new Array<number>();
+		let count = 0;
+
+		while (count < 3) {
+			count += 1;
+
+			switch (count) {
+				case 2:
+					continue;
+			}
+
+			visited.push(count);
+		}
+
+		expect(visited.join(",")).to.equal("1,3");
+	});
+
+	it("should continue the enclosing loop from inside nested switch statements", () => {
+		const visited = new Array<string>();
+
+		for (const value of [1, 2]) {
+			switch (value) {
+				case 2:
+					switch (value) {
+						case 2:
+							visited.push("inner");
+							continue;
+					}
+
+					visited.push("outer");
+			}
+
+			visited.push(`after ${value}`);
+		}
+
+		expect(visited.join(",")).to.equal("after 1,inner");
+	});
+
+	it("should continue the inner loop from a loop inside a case", () => {
+		const visited = new Array<string>();
+
+		for (const outer of [1, 2]) {
+			switch (outer) {
+				case 1:
+					for (const inner of [1, 2, 3]) {
+						if (inner === 2) {
+							continue;
+						}
+
+						visited.push(`inner ${inner}`);
+					}
+
+					break;
+			}
+
+			visited.push(`outer ${outer}`);
+		}
+
+		expect(visited.join(",")).to.equal("inner 1,inner 3,outer 1,outer 2");
+	});
+
+	it("should write back the loop variable when continuing from inside a switch", () => {
+		const visited = new Array<number>();
+
+		// writing the loop variable in the body forces the unoptimized loop form,
+		// which copies the variable back at the end of every iteration
+		let guard = 0;
+		for (let i = 0; i < 6; i++) {
+			// a dropped write back turns the continue below into an infinite loop
+			guard += 1;
+			if (guard > 20) {
+				break;
+			}
+
+			switch (i) {
+				case 1:
+					continue;
+				case 3:
+					i += 1;
+					break;
+			}
+
+			visited.push(i);
+		}
+
+		expect(visited.join(",")).to.equal("0,2,4,5");
+
+		// case 3 skips an iteration, so the body runs for 0, 1, 2, 3, and 5
+		expect(guard).to.equal(5);
+	});
+
+	it("should continue a do-while loop from inside a switch", () => {
+		const visited = new Array<number>();
+		let count = 0;
+
+		do {
+			count += 1;
+
+			switch (count) {
+				case 2:
+					continue;
+			}
+
+			visited.push(count);
+		} while (count < 3);
+
+		expect(visited.join(",")).to.equal("1,3");
+	});
+
+	it("should continue the enclosing loop alongside switch fallthrough and break", () => {
+		const visited = new Array<string>();
+
+		for (const value of [1, 2, 3, 4]) {
+			switch (value) {
+				case 1:
+				case 2:
+					if (value === 2) {
+						continue;
+					}
+
+					visited.push("one or two");
+					break;
+				case 3:
+					break;
+				default:
+					visited.push("default");
+			}
+
+			visited.push(`after ${value}`);
+		}
+
+		expect(visited.join(",")).to.equal("one or two,after 1,after 3,default,after 4");
+	});
 };

@@ -79,3 +79,80 @@ it.each([
 	expect(output).toContain("local _exp");
 	expect(output).toMatchSnapshot();
 });
+
+it.each([
+	[
+		"do-while loops",
+		`let count = 0; do { count += 1; switch (count) { case 2: continue; } print(count); } while (count < 3);`,
+	],
+	[
+		"fallthrough clauses",
+		`for (const value of [1, 2, 3]) {
+			switch (value) {
+				case 1:
+				case 2:
+					if (value === 2) { continue; }
+					print("one or two");
+					break;
+				default:
+					print("other");
+			}
+			print(value);
+		}`,
+	],
+	["for-of loops", `for (const value of [1, 2, 3]) { switch (value) { case 2: continue; } print(value); }`],
+	[
+		"multiple continues in one switch",
+		`for (const value of [1, 2, 3]) { switch (value) { case 1: continue; case 2: continue; } print(value); }`,
+	],
+	[
+		"nested switch statements",
+		`for (const value of [1, 2]) {
+			switch (value) {
+				case 2:
+					switch (value) { case 2: continue; }
+					print("outer");
+			}
+			print(value);
+		}`,
+	],
+	[
+		"unoptimized for loops",
+		`for (let i = 0; i < 6; i++) { switch (i) { case 1: continue; case 3: i += 1; break; } print(i); }`,
+	],
+	[
+		"while loops",
+		`let count = 0; while (count < 3) { count += 1; switch (count) { case 2: continue; } print(count); }`,
+	],
+])("continues the enclosing loop from inside a switch for %s", (_name, source) => {
+	const output = createTestProject().compileSource(source);
+	expect(output).toContain("_continue");
+	expect(output).toMatchSnapshot();
+});
+
+it.each([
+	[
+		"loops inside a case",
+		`for (const value of [1, 2]) {
+			switch (value) {
+				case 1:
+					for (const inner of [1, 2]) { if (inner === 1) { continue; } print(inner); }
+					break;
+			}
+			print(value);
+		}`,
+	],
+	[
+		"switch statements without a continue",
+		`for (const value of [1, 2]) { switch (value) { case 1: print("a"); break; default: print("b"); } print(value); }`,
+	],
+	[
+		// the try dispatch emits its own continue inside the repeat, which is tracked separately
+		"try statements inside a case",
+		`for (const value of [1, 2]) { switch (value) { case 2: try { continue; } finally { print("c"); } } print(value); }`,
+	],
+])("avoids continue flags for %s", (_name, source) => {
+	const output = createTestProject().compileSource(source);
+	expect(output).not.toContain("_continue");
+	expect(output).toMatchSnapshot();
+});
