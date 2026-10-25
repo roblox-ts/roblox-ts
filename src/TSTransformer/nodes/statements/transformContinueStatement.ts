@@ -2,6 +2,7 @@ import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
+import { createContinueStatements } from "TSTransformer/util/createContinueStatements";
 import { isBreakBlockedByTryStatement } from "TSTransformer/util/isBlockedByTryStatement";
 import ts from "typescript";
 
@@ -21,5 +22,5 @@ export function transformContinueStatement(state: TransformState, node: ts.Conti
 		);
 	}
 
-	return luau.list.make(luau.create(luau.SyntaxKind.ContinueStatement, {}));
+	return createContinueStatements(state, node);
 }

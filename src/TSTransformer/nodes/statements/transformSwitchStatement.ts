@@ -3,6 +3,7 @@ import { TransformState } from "TSTransformer";
 import { Prereqs } from "TSTransformer/classes/Prereqs";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
+import { createContinueStatements } from "TSTransformer/util/createContinueStatements";
 import { createHoistDeclaration } from "TSTransformer/util/createHoistDeclaration";
 import { expressionMightMutate } from "TSTransformer/util/expressionMightMutate";
 import { skipDownwards } from "TSTransformer/util/traversal";
@@ -219,6 +220,19 @@ export function transformSwitchStatement(state: TransformState, node: ts.SwitchS
 		);
 	}
 
+	// claimed while transforming the case bodies above, so it is already known here
+	const continueFlagId = state.switchContinueFlags.get(node);
+	if (continueFlagId) {
+		// declared outside the repeat so it outlives the break that escapes it
+		luau.list.push(
+			result,
+			luau.create(luau.SyntaxKind.VariableDeclaration, {
+				left: continueFlagId,
+				right: luau.bool(false),
+			}),
+		);
+	}
+
 	luau.list.push(
 		result,
 		luau.create(luau.SyntaxKind.RepeatStatement, {
@@ -226,5 +240,18 @@ export function transformSwitchStatement(state: TransformState, node: ts.SwitchS
 			statements,
 		}),
 	);
+
+	if (continueFlagId) {
+		// an enclosing switch raises its own flag instead, so the escape continues one level at a time
+		luau.list.push(
+			result,
+			luau.create(luau.SyntaxKind.IfStatement, {
+				condition: continueFlagId,
+				statements: createContinueStatements(state, node),
+				elseBody: luau.list.make(),
+			}),
+		);
+	}
+
 	return result;
 }
