@@ -213,11 +213,23 @@ export function getImportParts(state: TransformState, sourceFile: ts.SourceFile,
 	}
 
 	const virtualPath = state.guessVirtualPath(moduleFile.fileName) || moduleFile.fileName;
-	const referencePath = state.data.projectReferencePaths?.get(getCanonicalFileName(path.normalize(virtualPath)));
+	const referencePath =
+		state.data.projectReferencePaths?.get(getCanonicalFileName(path.normalize(virtualPath))) ??
+		state.data.projectReferencePaths?.get(getCanonicalFileName(path.normalize(moduleFile.fileName)));
 
-	if (referencePath === undefined && ts.isInsideNodeModules(virtualPath)) {
+	if (
+		ts.isInsideNodeModules(virtualPath) &&
+		(referencePath === undefined || state.projectType === ProjectType.Package)
+	) {
 		const mappedPath = state.nodeModulesPathMapping.get(getCanonicalFileName(path.normalize(virtualPath)));
-		const moduleOutPath = state.pathTranslator.getImportPath(mappedPath ?? virtualPath, /* isNodeModule */ true);
+		// reference outputs belong to the real project; package imports must retain the installed package path
+		const moduleOutPath =
+			referencePath !== undefined
+				? path.resolve(
+						path.dirname(virtualPath),
+						path.relative(path.dirname(moduleFile.fileName), referencePath),
+					)
+				: state.pathTranslator.getImportPath(mappedPath ?? virtualPath, /* isNodeModule */ true);
 		return getNodeModulesImportParts(state, sourceFile, moduleSpecifier, moduleOutPath, moduleFile.fileName);
 	} else {
 		let moduleOutPath = referencePath ?? state.pathTranslator.getImportPath(virtualPath);
@@ -234,7 +246,15 @@ export function getImportParts(state: TransformState, sourceFile: ts.SourceFile,
 			}
 		}
 
-		const moduleRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
+		let moduleRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
+		if (!moduleRbxPath && referencePath !== undefined) {
+			// a game may mount the workspace output through its node_modules symlink
+			const virtualOutPath = state.guessVirtualPath(referencePath);
+			if (virtualOutPath) {
+				moduleOutPath = virtualOutPath;
+				moduleRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
+			}
+		}
 		if (!moduleRbxPath) {
 			DiagnosticService.addDiagnostic(
 				errors.noRojoData(moduleSpecifier, path.relative(state.data.projectPath, moduleOutPath), false),
